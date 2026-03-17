@@ -74,6 +74,7 @@
             <div class="chat-sidebar__filters">
                 <button class="filter-btn filter-btn--active" data-testid="filter-all">Tudo</button>
                 <button class="filter-btn" data-testid="filter-unread">Não lidas</button>
+                <button class="filter-btn" data-testid="filter-orders">Pedidos</button>
                 <button class="filter-btn" data-testid="filter-favorites">Favoritos</button>
                 <button class="filter-btn" data-testid="filter-groups">Grupos</button>
             </div>
@@ -86,7 +87,7 @@
                     </div>
                     <div class="chat-item__content">
                         <div class="chat-item__header">
-                            <span class="chat-item__name">João Silva</span>
+                            <span class="chat-item__name">João Silva <span class="badge badge--orange" data-testid="badge-order">Novo Pedido</span></span>
                             <span class="chat-item__time">10:45 AM</span>
                         </div>
                         <div class="chat-item__snippet">Claro, o cardápio está pronto!</div>
@@ -149,13 +150,20 @@
             </div>
 
             <!-- Chat Input Area -->
-            <footer class="chat-main__input-area">
-                <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
-                <button class="icon-btn"><i class="fa-solid fa-paperclip"></i></button>
-                <input type="text" class="chat-input" placeholder="Type a message">
-                <button class="icon-btn send-btn" data-testid="send-message-btn"><i
-                        class="fa-solid fa-paper-plane"></i></button>
-            </footer>
+            <div class="chat-main__footer">
+                <div class="chat-main__quick-replies">
+                    <button class="quick-reply-btn" data-testid="quick-reply-pix">Chave Pix</button>
+                    <button class="quick-reply-btn">Pedido em Rota</button>
+                    <button class="quick-reply-btn">Cardápio</button>
+                </div>
+                <footer class="chat-main__input-area">
+                    <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
+                    <button class="icon-btn"><i class="fa-solid fa-paperclip"></i></button>
+                    <input type="text" class="chat-input" placeholder="Type a message">
+                    <button class="icon-btn send-btn" data-testid="send-message-btn"><i
+                            class="fa-solid fa-paper-plane"></i></button>
+                </footer>
+            </div>
         </section>
     </main>
 
