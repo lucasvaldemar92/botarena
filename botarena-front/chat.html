@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>botarena - Chat</title>
+    <!-- Use Outfit font to match the CSS variables -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="theme-dark chat-body">
+    <!-- Header Minimal -->
+    <header class="navbar chat-navbar" data-testid="chat-header">
+        <div class="navbar__container chat-navbar__container">
+            <a href="dashboard.html" class="navbar__logo" data-testid="logo-text">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>botarena</span>
+            </a>
+            <div class="header-controls" style="display: flex; align-items: center; gap: 1rem;">
+                <div class="control__status chat-header-status" data-testid="status-indicator">
+                    <span class="control__led control__led--online" id="header-bot-led" data-testid="status-led"></span>
+                    <span class="control__status-text" id="header-bot-text" data-testid="status-text">Bot Ativo</span>
+                </div>
+                <!-- Toggle Switch for Bot -->
+                <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label"
+                    title="Ativar/Desativar Bot">
+                    <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle"
+                        data-testid="bot-toggle-switch" checked>
+                    <span class="toggle-switch__slider"></span>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <script>
+        // Simple mock logic for the Bot Toggle
+        document.getElementById('header-bot-toggle').addEventListener('change', function (e) {
+            const led = document.getElementById('header-bot-led');
+            const text = document.getElementById('header-bot-text');
+            if (e.target.checked) {
+                led.className = 'control__led control__led--online';
+                text.textContent = 'Bot Ativo';
+                text.style.color = '#4ade80'; // dynamic green
+            } else {
+                led.className = 'control__led control__led--offline';
+                text.textContent = 'Bot Inativo';
+                text.style.color = '#9ca3af'; // medium gray
+            }
+        });
+    </script>
+
+    <main class="chat-layout" data-testid="chat-layout">
+        <!-- Sidebar: Chat List -->
+        <aside class="chat-sidebar glass-panel" data-testid="chat-sidebar">
+            <div class="chat-sidebar__header">
+                <h2>Chats</h2>
+                <div class="chat-sidebar__actions">
+                    <button class="icon-btn"><i class="fa-solid fa-plus"></i></button>
+                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                </div>
+            </div>
+            <div class="chat-sidebar__search">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Search or start new chat">
+                </div>
+            </div>
+
+            <!-- WhatsApp-style Filter Bar -->
+            <div class="chat-sidebar__filters">
+                <button class="filter-btn filter-btn--active" data-testid="filter-all">Tudo</button>
+                <button class="filter-btn" data-testid="filter-unread">Não lidas</button>
+                <button class="filter-btn" data-testid="filter-favorites">Favoritos</button>
+                <button class="filter-btn" data-testid="filter-groups">Grupos</button>
+            </div>
+
+            <div class="chat-sidebar__list" data-testid="contact-list">
+                <!-- Chat Item 1 (Active) -->
+                <div class="chat-item chat-item--active" data-testid="chat-item-1">
+                    <div class="chat-item__avatar">
+                        <img src="https://ui-avatars.com/api/?name=João+Silva&background=3b82f6&color=fff" alt="Avatar">
+                    </div>
+                    <div class="chat-item__content">
+                        <div class="chat-item__header">
+                            <span class="chat-item__name">João Silva</span>
+                            <span class="chat-item__time">10:45 AM</span>
+                        </div>
+                        <div class="chat-item__snippet">Claro, o cardápio está pronto!</div>
+                    </div>
+                </div>
+                <!-- Chat Item 2 -->
+                <div class="chat-item" data-testid="chat-item-2">
+                    <div class="chat-item__avatar">
+                        <img src="https://ui-avatars.com/api/?name=Maria+Oliveira&background=10b981&color=fff"
+                            alt="Avatar">
+                    </div>
+                    <div class="chat-item__content">
+                        <div class="chat-item__header">
+                            <span class="chat-item__name">Maria Oliveira</span>
+                            <span class="chat-item__time">Yesterday</span>
+                        </div>
+                        <div class="chat-item__snippet">Vocês entregam nessa região?</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <section class="chat-main glass-panel" data-testid="chat-main">
+            <!-- Active Chat Header -->
+            <header class="chat-main__header">
+                <div class="chat-main__contact-info">
+                    <div class="chat-item__avatar">
+                        <img src="https://ui-avatars.com/api/?name=João+Silva&background=3b82f6&color=fff" alt="Avatar">
+                    </div>
+                    <div class="contact-details">
+                        <span class="contact-name">João Silva</span>
+                        <span class="contact-status">online</span>
+                    </div>
+                </div>
+                <div class="chat-main__actions">
+                    <button class="icon-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                </div>
+            </header>
+
+            <!-- Chat History -->
+            <div class="chat-main__history" data-testid="chat-history">
+                <!-- Received Message -->
+                <div class="message message--received fade-in-section">
+                    <div class="message__bubble">
+                        <p class="message__text">Olá, gostaria de saber se vocês têm o cardápio de hoje.</p>
+                        <span class="message__time">10:42 AM</span>
+                    </div>
+                </div>
+                <!-- Sent Message -->
+                <div class="message message--sent fade-in-section" style="animation-delay: 0.1s;">
+                    <div class="message__bubble">
+                        <p class="message__text">Olá João! Claro, o cardápio está pronto!</p>
+                        <span class="message__time">10:45 AM</span>
+                        <span class="message__status"><i class="fa-solid fa-check-double"
+                                style="color: #3b82f6;"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <footer class="chat-main__input-area">
+                <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
+                <button class="icon-btn"><i class="fa-solid fa-paperclip"></i></button>
+                <input type="text" class="chat-input" placeholder="Type a message">
+                <button class="icon-btn send-btn" data-testid="send-message-btn"><i
+                        class="fa-solid fa-paper-plane"></i></button>
+            </footer>
+        </section>
+    </main>
+
+</body>
+
+</html>

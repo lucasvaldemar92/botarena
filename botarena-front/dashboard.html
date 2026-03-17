@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>botarena</title>
+    <!-- Use Outfit font to match the CSS variables -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="theme-dark">
+    <!-- Header -->
+    <header class="navbar" data-testid="dashboard-header">
+        <div class="navbar__container">
+            <h1 class="navbar__logo" data-testid="logo-text">
+                <span>botarena</span>
+            </h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" data-testid="main-content">
+        <div class="grid dashboard-grid">
+
+            <!-- Connection Section -->
+            <section class="glass-panel connection-panel fade-in-section" data-testid="connection-section">
+                <div class="dashboard__header">
+                    <h2 class="dashboard__title">Connection Status</h2>
+                </div>
+
+                <div class="qr-card">
+                    <div class="qr-card__image connection__qr-wrapper" data-testid="qr-code-placeholder"
+                        id="qr-container">
+                        <!-- State 1: Loading (Default) -->
+                        <div class="qr-loader" id="qr-loader" data-testid="qr-loader">
+                            <div class="qr-loader__spinner"></div>
+                            <p class="qr-loader__text">Gerando QR Code...</p>
+                        </div>
+
+                        <!-- State 2: QR Code Ready (Hidden initially) -->
+                        <img src="" alt="WhatsApp QR Code" class="connection__qr-image hidden simulated-link"
+                            id="qr-image" data-testid="qr-image" onclick="window.location.href='chat.html'"
+                            title="Click to Simulate Connection">
+
+                        <!-- State 3: Error (Hidden initially) -->
+                        <div class="qr-error hidden" id="qr-error" data-testid="qr-error">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="qr-error__icon">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <p class="qr-error__text">Erro na conexão</p>
+                            <button class="btn-animado btn-secondary qr-error__btn" id="qr-retry-btn">Tentar
+                                Novamente</button>
+                        </div>
+                    </div>
+                    <div class="qr-card__content">
+                        <h3 class="qr-card__label">WhatsApp Web</h3>
+                        <p class="qr-card__data" id="qr-status-text" data-testid="qr-status-text">Aguardando leitura...
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Control Section -->
+            <section class="glass-panel control-panel fade-in-section" data-testid="control-section"
+                style="animation-delay: 0.2s">
+                <div class="dashboard__header">
+                    <h2 class="dashboard__title">Bot Controls</h2>
+                </div>
+
+                <div class="qr-card">
+                    <div class="qr-card__content control__status-wrapper">
+                        <!-- LED Style Indicator -->
+                        <div class="control__status" data-testid="status-indicator">
+                            <span class="control__led control__led--online" data-testid="status-led"></span>
+                            <span class="control__status-text" data-testid="status-text">Online</span>
+                        </div>
+
+                        <!-- Toggle Switch -->
+                        <div class="control__toggle-wrapper">
+                            <span class="control__toggle-label">Activate Bot Logic</span>
+                            <label class="toggle-switch" data-testid="bot-toggle-label">
+                                <input type="checkbox" class="toggle-switch__input" data-testid="bot-toggle-switch"
+                                    checked>
+                                <span class="toggle-switch__slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p class="footer__text">© 2026 botarena</p>
+    </footer>
+</body>
+
+</html>
