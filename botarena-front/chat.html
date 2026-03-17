@@ -23,7 +23,7 @@
             <div class="header-controls" style="display: flex; align-items: center; gap: 1rem;">
                 <div class="control__status chat-header-status" data-testid="status-indicator">
                     <span class="control__led control__led--online" id="header-bot-led" data-testid="status-led"></span>
-                    <span class="control__status-text" id="header-bot-text" data-testid="status-text">Bot Ativo</span>
+                    <span class="control__status-text" id="header-bot-text" data-testid="status-text">{{ company_name }}</span>
                 </div>
                 <!-- Toggle Switch for Bot -->
                 <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label"
@@ -32,6 +32,10 @@
                         data-testid="bot-toggle-switch" checked>
                     <span class="toggle-switch__slider"></span>
                 </label>
+                <!-- Settings Button -->
+                <button class="icon-btn header-settings-btn" id="open-settings-btn" data-testid="open-settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
             </div>
         </div>
     </header>
@@ -43,11 +47,11 @@
             const text = document.getElementById('header-bot-text');
             if (e.target.checked) {
                 led.className = 'control__led control__led--online';
-                text.textContent = 'Bot Ativo';
+                text.textContent = '{{ company_name }}';
                 text.style.color = '#4ade80'; // dynamic green
             } else {
                 led.className = 'control__led control__led--offline';
-                text.textContent = 'Bot Inativo';
+                text.textContent = '{{ company_name }} (Inativo)';
                 text.style.color = '#9ca3af'; // medium gray
             }
         });
@@ -167,6 +171,130 @@
         </section>
     </main>
 
+    <!-- Settings Overlay Modal -->
+    <div class="settings-modal" id="settings-modal" data-testid="settings-modal">
+        <div class="settings-modal__backdrop" id="settings-backdrop"></div>
+        <aside class="settings-modal__panel glass-panel">
+            <header class="settings-modal__header">
+                <h2>Configurações</h2>
+                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="settings-modal__content">
+                <form id="settings-form" class="settings-form">
+                    
+                    <!-- Section: Identidade -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-store"></i> Identidade</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Nome da Empresa</label>
+                            <input type="text" class="settings-form__input" value="Lanchonete X" placeholder="Ex: Burguer King" data-testid="cfg-company-name">
+                        </div>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Upload Logo</label>
+                            <input type="file" class="settings-form__input settings-form__input--file" accept="image/*">
+                        </div>
+                    </div>
+
+                    <!-- Section: Checkout -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Checkout</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Chave Pix</label>
+                            <input type="text" class="settings-form__input" placeholder="CNPJ, Email ou Celular" data-testid="cfg-pix-key">
+                        </div>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Nome do Favorecido</label>
+                            <input type="text" class="settings-form__input" placeholder="Nome na conta destino">
+                        </div>
+                    </div>
+
+                    <!-- Section: Automação -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-robot"></i> Automação</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Link do Cardápio</label>
+                            <input type="url" class="settings-form__input" placeholder="https://..." data-testid="cfg-menu-link">
+                        </div>
+                        <div class="settings-form__group" style="margin-top: 1.5rem;">
+                            <button type="button" class="btn-animado btn-secondary" style="width: 100%; justify-content: center; gap: 0.5rem;" id="test-bot-btn" data-testid="btn-test-bot">
+                                <i class="fa-solid fa-play"></i> Visualizar Simulação de Venda
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <footer class="settings-modal__footer">
+                <button class="btn-animado btn-secondary" style="width: auto; flex:1;" id="cancel-settings-btn">Cancelar</button>
+                <button class="btn-animado" style="width: auto; flex: 1.5;" data-testid="btn-save-config">Salvar Tudo</button>
+            </footer>
+        </aside>
+    </div>
+
+    <!-- Test Bot Simulation Bubble -->
+    <div class="test-bot-bubble" id="test-bot-bubble">
+        <div class="test-bot-bubble__header">
+            <h4><i class="fa-solid fa-robot"></i> Simulação do Bot</h4>
+            <button class="icon-btn" id="close-test-bot-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="test-bot-bubble__content">
+            <div class="message message--sent fade-in-section">
+                <div class="message__bubble" style="font-size: 0.85rem;">
+                    <p>Olá! Aqui é o atendimento virtual da <strong>{{ company_name }}</strong> 🍔.</p>
+                    <p>Para ver nossas opções e fazer seu pedido, acesse nosso cardápio digital:</p>
+                    <a href="#" style="color: white; font-weight: bold; text-decoration: underline;">👉 Acessar Cardápio</a>
+                    <span class="message__time">Agora</span>
+                </div>
+            </div>
+            <div class="message message--sent fade-in-section" style="animation-delay: 0.5s;">
+                <div class="message__bubble" style="font-size: 0.85rem;">
+                    <p>Seu pedido foi confirmado! 🎉</p>
+                    <p>O total é <strong>R$ 45,90</strong>.</p>
+                    <p>Nossa chave PIX (Celular) é:<br><strong>11999999999</strong><br>Favorecido: João Silva</p>
+                    <span class="message__time">Agora</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script to Handle Settings Modal Interactions -->
+    <script>
+        const settingsModal = document.getElementById('settings-modal');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+        const settingsBackdrop = document.getElementById('settings-backdrop');
+
+        function openModal() {
+            settingsModal.classList.add('settings-modal--active');
+        }
+
+        function closeModal() {
+            settingsModal.classList.remove('settings-modal--active');
+            testBotBubble.classList.remove('test-bot-bubble--active'); // auto-close simulation
+        }
+
+        // Test Bot Interaction
+        const testBotBtn = document.getElementById('test-bot-btn');
+        const testBotBubble = document.getElementById('test-bot-bubble');
+        const closeTestBotBtn = document.getElementById('close-test-bot-btn');
+
+        testBotBtn.addEventListener('click', () => {
+            testBotBubble.classList.toggle('test-bot-bubble--active');
+        });
+        closeTestBotBtn.addEventListener('click', () => {
+            testBotBubble.classList.remove('test-bot-bubble--active');
+        });
+
+        openSettingsBtn.addEventListener('click', openModal);
+        closeSettingsBtn.addEventListener('click', closeModal);
+        cancelSettingsBtn.addEventListener('click', closeModal);
+        settingsBackdrop.addEventListener('click', closeModal);
+    </script>
+    
+    <!-- Socket.IO & Backend Sync -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="chat_app.js"></script>
 </body>
 
 </html>

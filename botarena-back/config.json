@@ -1,0 +1,7 @@
+{
+  "empresa": "Arena Juvenal - Teste QA",
+  "pix": "123.456.789-00",
+  "cardapio_url": "",
+  "boas_vindas": "Bem-vindo à {{empresa}}!",
+  "bot_active": true
+}
