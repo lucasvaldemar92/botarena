@@ -22,55 +22,35 @@ const PORT = 3000;
 // ==========================================
 // 🗄️ SQLITE DATABASE SETUP
 // ==========================================
-const dbPath = path.join(__dirname, 'botarena.db');
+const dbPath = path.join(__dirname, 'database', 'botarena.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('❌ [DB] Error opening database:', err);
     else console.log('✅ [DB] Connected to SQLite database.');
 });
 
-// Initialize Config Table
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS config (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        empresa TEXT,
-        pix TEXT,
-        cardapio_url TEXT,
-        boas_vindas TEXT,
-        bot_active BOOLEAN
-    )`);
-
-    // Insert default values if table is empty
-    db.get('SELECT * FROM config WHERE id = 1', (err, row) => {
-        if (!row) {
-            console.log('🔄 [DB] Seding initial config values...');
-            const stmt = db.prepare('INSERT INTO config VALUES (?, ?, ?, ?, ?, ?)');
-            stmt.run(1, 'Arena Juvenal', '000.000.000-00', '', 'Bem-vindo à {{empresa}}!', 1);
-            stmt.finalize();
-        }
-    });
-});
+// DB schema is managed externally via sql_scripts/schema.sql
 
 // Helper to Read Config from DB (Promise-based)
 function getConfigDB() {
     return new Promise((resolve, reject) => {
-        db.get('SELECT * FROM config WHERE id = 1', (err, row) => {
+        db.get('SELECT * FROM settings WHERE id = 1', (err, row) => {
             if (err) reject(err);
             else resolve({
                 ...row,
-                bot_active: Boolean(row.bot_active) // Convert 1/0 to true/false
+                bot_active: Boolean(row?.bot_active) // Convert 1/0 to true/false
             });
         });
     });
 }
-// Helper to Update Config in DB
 function updateConfigDB(newConfig) {
     return new Promise((resolve, reject) => {
-        const stmt = db.prepare(`UPDATE config SET 
+        const stmt = db.prepare(`UPDATE settings SET 
             empresa = COALESCE(?, empresa),
             pix = COALESCE(?, pix),
             cardapio_url = COALESCE(?, cardapio_url),
             boas_vindas = COALESCE(?, boas_vindas),
-            bot_active = COALESCE(?, bot_active)
+            bot_active = COALESCE(?, bot_active),
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = 1`);
         
         stmt.run(
@@ -91,6 +71,25 @@ function updateConfigDB(newConfig) {
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// ==========================================
+// 🌐 STATIC FRONTEND FILES
+// ==========================================
+// Serve all CSS, JS, and image assets from the frontend directory
+app.use(express.static(path.join(__dirname, '../botarena-front')));
+
+// Map explicit routes to HTML files
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../botarena-front/index.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../botarena-front/dashboard.html'));
+});
+
+app.get('/chat', (req, res) => {
+    res.sendFile(path.join(__dirname, '../botarena-front/chat.html'));
+});
 
 // ==========================================
 // 🚀 EXPRESS API LOGIC
@@ -176,6 +175,22 @@ client.on('disconnected', async (reason) => {
     io.emit('bot_disconnected', { status: 'Bot Inativo', active: false });
 });
 
+client.on('message_create', async (msg) => {
+    console.log(`💬 [WhatsApp] Message ${msg.fromMe ? 'Sent' : 'Received'} - ID: ${msg.id.id}`);
+    
+    // Only broadcast meaningful messages
+    if (msg.body) {
+        io.emit('new_message', {
+            id: msg.id._serialized,
+            from: msg.from,
+            to: msg.to,
+            body: msg.body,
+            fromMe: msg.fromMe,
+            timestamp: msg.timestamp
+        });
+    }
+});
+
 client.initialize();
 
 // ==========================================
@@ -200,6 +215,24 @@ io.on('connection', async (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`🔌 [Socket] Frontend disconnected: ${socket.id}`);
+    });
+
+    // Handle outbound messages from the frontend Chat Interface
+    socket.on('send_message', async (data) => {
+        console.log(`💬 [Frontend] Outbound message received: ${data.body.substring(0, 30)}...`);
+        
+        // --- REAL INTEGRATION TODO: ---
+        // client.sendMessage(data.to, data.body);
+
+        // For now, immediately broadcast it back so the UI displays it
+        io.emit('new_message', {
+            id: 'simulated_' + Date.now(),
+            from: 'me',
+            to: 'customer',
+            body: data.body,
+            fromMe: true,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
     });
 });
 

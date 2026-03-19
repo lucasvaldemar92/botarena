@@ -198,13 +198,9 @@
                     <!-- Section: Checkout -->
                     <div class="settings-form__section">
                         <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Checkout</h3>
-                        <div class="settings-form__group">
+                        <div class="settings-form__group" style="width: 100%;">
                             <label class="settings-form__label">Chave Pix</label>
-                            <input type="text" class="settings-form__input" placeholder="CNPJ, Email ou Celular" data-testid="cfg-pix-key">
-                        </div>
-                        <div class="settings-form__group">
-                            <label class="settings-form__label">Nome do Favorecido</label>
-                            <input type="text" class="settings-form__input" placeholder="Nome na conta destino">
+                            <input type="text" class="settings-form__input" placeholder="CNPJ, Email ou Celular" data-testid="pix-input-masked">
                         </div>
                     </div>
 
@@ -240,9 +236,9 @@
         <div class="test-bot-bubble__content">
             <div class="message message--sent fade-in-section">
                 <div class="message__bubble" style="font-size: 0.85rem;">
-                    <p>Olá! Aqui é o atendimento virtual da <strong>{{ company_name }}</strong> 🍔.</p>
+                    <p>Olá! Aqui é o atendimento virtual da <strong data-testid="sim-company-name">{{ company_name }}</strong> 🍔.</p>
                     <p>Para ver nossas opções e fazer seu pedido, acesse nosso cardápio digital:</p>
-                    <a href="#" style="color: white; font-weight: bold; text-decoration: underline;">👉 Acessar Cardápio</a>
+                    <a href="#" style="color: white; font-weight: bold; text-decoration: underline;" data-testid="sim-cardapio-link">👉 Acessar Cardápio</a>
                     <span class="message__time">Agora</span>
                 </div>
             </div>
@@ -250,7 +246,7 @@
                 <div class="message__bubble" style="font-size: 0.85rem;">
                     <p>Seu pedido foi confirmado! 🎉</p>
                     <p>O total é <strong>R$ 45,90</strong>.</p>
-                    <p>Nossa chave PIX (Celular) é:<br><strong>11999999999</strong><br>Favorecido: João Silva</p>
+                    <p>Nossa chave PIX é:<br><strong data-testid="sim-pix">11999999999</strong></p>
                     <span class="message__time">Agora</span>
                 </div>
             </div>
