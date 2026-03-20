@@ -18,18 +18,18 @@
         <div class="navbar__container chat-navbar__container">
             <a href="dashboard.html" class="navbar__logo" data-testid="logo-text">
                 <i class="fa-solid fa-arrow-left"></i>
-                <span>botarena</span>
+                <span id="header-company-logo">botarena</span>
             </a>
             <div class="header-controls" style="display: flex; align-items: center; gap: 1rem;">
                 <div class="control__status chat-header-status" data-testid="status-indicator">
                     <span class="control__led control__led--online" id="header-bot-led" data-testid="status-led"></span>
-                    <span class="control__status-text" id="header-bot-text" data-testid="status-text">{{ company_name }}</span>
+                    <span class="control__status-text" id="header-bot-text" data-testid="status-text">Carregando...</span>
                 </div>
                 <!-- Toggle Switch for Bot -->
                 <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label"
                     title="Ativar/Desativar Bot">
                     <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle"
-                        data-testid="bot-toggle-switch" checked>
+                        data-testid="bot-toggle-switch">
                     <span class="toggle-switch__slider"></span>
                 </label>
                 <!-- Settings Button -->
@@ -39,23 +39,6 @@
             </div>
         </div>
     </header>
-
-    <script>
-        // Simple mock logic for the Bot Toggle
-        document.getElementById('header-bot-toggle').addEventListener('change', function (e) {
-            const led = document.getElementById('header-bot-led');
-            const text = document.getElementById('header-bot-text');
-            if (e.target.checked) {
-                led.className = 'control__led control__led--online';
-                text.textContent = '{{ company_name }}';
-                text.style.color = '#4ade80'; // dynamic green
-            } else {
-                led.className = 'control__led control__led--offline';
-                text.textContent = '{{ company_name }} (Inativo)';
-                text.style.color = '#9ca3af'; // medium gray
-            }
-        });
-    </script>
 
     <main class="chat-layout" data-testid="chat-layout">
         <!-- Sidebar: Chat List -->
@@ -200,7 +183,7 @@
                         <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Checkout</h3>
                         <div class="settings-form__group" style="width: 100%;">
                             <label class="settings-form__label">Chave Pix</label>
-                            <input type="text" class="settings-form__input" placeholder="CNPJ, Email ou Celular" data-testid="pix-input-masked">
+                            <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular" data-testid="pix-input-masked" id="cfg-pix-key">
                         </div>
                     </div>
 

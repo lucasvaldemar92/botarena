@@ -15,8 +15,13 @@
     <header class="navbar" data-testid="dashboard-header">
         <div class="navbar__container">
             <h1 class="navbar__logo" data-testid="logo-text">
-                <span>botarena</span>
+                <span id="header-company-logo">botarena</span>
             </h1>
+            <div class="navbar__actions">
+                <button class="icon-btn" id="open-settings-btn" data-testid="open-settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -100,6 +105,49 @@
     <footer class="footer">
         <p class="footer__text">© 2026 botarena</p>
     </footer>
+
+    <!-- Section: Settings Modal (Consolidated with Style.css) -->
+    <div class="settings-modal" id="settings-modal" data-testid="settings-modal">
+        <div class="settings-modal__backdrop" id="settings-backdrop"></div>
+        <aside class="settings-modal__panel glass-panel">
+            <header class="settings-modal__header">
+                <h2 class="settings-modal__title"><i class="fa-solid fa-sliders"></i> Configurações</h2>
+                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="settings-modal__content">
+                <form id="settings-form" class="settings-form">
+
+                    <!-- Section: Identidade -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-store"></i> Identidade</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Nome da Empresa</label>
+                            <input type="text" class="settings-form__input" placeholder="Ex: Arena Juvenal"
+                                data-testid="cfg-company-name" id="cfg-company-name">
+                        </div>
+                    </div>
+
+                    <!-- Section: Checkout -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Checkout</h3>
+                        <div class="settings-form__group" style="width: 100%;">
+                            <label class="settings-form__label">Chave Pix</label>
+                            <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
+                                data-testid="pix-input-masked" id="cfg-pix-key">
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <footer class="settings-modal__footer">
+                <button class="btn-animado btn-secondary" style="width: auto; flex:1;"
+                    id="cancel-settings-btn">Cancelar</button>
+                <button class="btn-animado" style="width: auto; flex: 1.5;" id="btn-save-config"
+                    data-testid="btn-save-config">Salvar Tudo</button>
+            </footer>
+        </aside>
+    </div>
 
     <!-- Socket.IO Client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>

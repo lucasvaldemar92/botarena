@@ -1,0 +1,12 @@
+services:
+  botarena-app:
+    build: .
+    container_name: botarena_prod
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./database:/app/database  # Persistência do SQLite
+      - ./sql_scripts:/app/sql_scripts
+    restart: always
+    environment:
+      - NODE_ENV=production

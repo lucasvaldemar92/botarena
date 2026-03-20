@@ -15,6 +15,12 @@ const inputPix = document.querySelector('[data-testid="pix-input-masked"]');
 const inputCardapio = document.querySelector('[data-testid="cfg-menu-link"]');
 const btnSaveConfig = document.querySelector('[data-testid="btn-save-config"]');
 
+// Header Unified Elements
+const headerCompanyLogo = document.getElementById('header-company-logo');
+const headerBotToggle = document.getElementById('header-bot-toggle');
+const headerBotLed = document.getElementById('header-bot-led');
+const headerBotText = document.getElementById('header-bot-text');
+
 // Chat / Simulation
 const simCompanyName = document.querySelector('[data-testid="sim-company-name"]');
 const simCardapioLink = document.querySelector('[data-testid="sim-cardapio-link"]');
@@ -28,13 +34,15 @@ const btnSendMessage = document.querySelector('[data-testid="send-message-btn"]'
 // ==========================================
 // 🔄 FETCH AND POPULATE SETTINGS (API)
 // ==========================================
+let currentConfig = null;
+
 async function fetchConfig() {
     try {
         const response = await fetch(`${BASE_URL}/api/config`);
         if (!response.ok) throw new Error('Failed to fetch config');
         
-        const config = await response.json();
-        populateUI(config);
+        currentConfig = await response.json();
+        populateUI(currentConfig);
     } catch (err) {
         console.error('❌ [Config] Error fetching:', err);
     }
@@ -42,6 +50,7 @@ async function fetchConfig() {
 
 function populateUI(config) {
     if (!config) return;
+    currentConfig = config; // Keep global updated
 
     // 1. Settings Inputs
     if (inputEmpresa) inputEmpresa.value = config.empresa || '';
@@ -49,22 +58,27 @@ function populateUI(config) {
     if (inputCardapio) inputCardapio.value = config.cardapio_url || '';
 
     // 2. Header and Chat Placeholders
-    const companyName = config.empresa || 'Empresa';
+    const companyName = config.empresa || 'botarena';
     
-    // Update main header title (Note: we have to keep the badge HTML intact)
-    headerCompanyPlaceholder.forEach(h2 => {
-        // The first child is the text node, second is the span badge
-        if(h2.childNodes.length > 0) {
-            h2.childNodes[0].textContent = companyName + ' ';
-        }
-    });
+    // Update Branding Logo (Cyberpunk Style)
+    if (headerCompanyLogo) headerCompanyLogo.textContent = companyName;
+    
+    // Dynamic Footer Branding (if present)
+    const footerText = document.querySelector('.footer__text');
+    if (footerText) footerText.textContent = `© 2026 ${companyName}`;
 
-    // Update Simulation placeholders 
+    // Update main header title (if present)
+    if (headerCompanyPlaceholder) {
+        headerCompanyPlaceholder.forEach(h2 => {
+            if(h2.childNodes.length > 0) h2.childNodes[0].textContent = companyName + ' ';
+        });
+    }
+
     if (simCompanyName) simCompanyName.textContent = companyName;
     if (simCardapioLink) simCardapioLink.href = config.cardapio_url || '#';
-    if (simPix) simPix.textContent = config.pix || 'Não definido';
 
-    // 3. Status Badge
+    // 3. Bot Status & Toggle
+    if (headerBotToggle) headerBotToggle.checked = !!config.bot_active;
     updateStatus(config.bot_active);
 }
 
@@ -121,16 +135,30 @@ if (btnSaveConfig) {
 // 🔌 SOCKET.IO EVENTS (REALTIME)
 // ==========================================
 function updateStatus(isActive) {
-    if(!headerStatusBadge || !headerStatusText) return;
+    // Dashboard Header (if present)
+    if(headerStatusBadge && headerStatusText) {
+        if (isActive) {
+            headerStatusBadge.className = 'header__status-badge header__status-badge--online pulse';
+            headerStatusText.textContent = 'Bot Ativado';
+            headerStatusText.style.color = '#4ade80'; // --green
+        } else {
+            headerStatusBadge.className = 'header__status-badge header__status-badge--offline';
+            headerStatusText.textContent = 'Bot Desativado';
+            headerStatusText.style.color = '#ff3131'; // --red
+        }
+    }
 
-    if (isActive) {
-        headerStatusBadge.className = 'header__status-badge header__status-badge--online pulse';
-        headerStatusText.textContent = 'Bot Ativo';
-        headerStatusText.style.color = 'var(--color-success)';
-    } else {
-        headerStatusBadge.className = 'header__status-badge header__status-badge--offline';
-        headerStatusText.textContent = 'Bot Inativo';
-        headerStatusText.style.color = 'var(--color-text-muted)';
+    // Chat Header (Minimal)
+    if(headerBotLed && headerBotText) {
+        if (isActive) {
+            headerBotLed.className = 'control__led control__led--online pulse';
+            headerBotText.textContent = 'Bot Ativado';
+            headerBotText.style.color = '#4ade80';
+        } else {
+            headerBotLed.className = 'control__led control__led--offline';
+            headerBotText.textContent = 'Bot Desativado';
+            headerBotText.style.color = '#ff3131';
+        }
     }
 }
 
@@ -191,16 +219,10 @@ socket.on('new_message', (msg) => {
 if (btnQuickPix && chatInput) {
     btnQuickPix.addEventListener('click', async () => {
         try {
-            // Task 2: Fetch the current Pix key from the settings table in the DB
-            const response = await fetch(`${BASE_URL}/api/config`);
-            if (response.ok) {
-                const config = await response.json();
-                let textToInsert = `Nossa chave PIX é: ${config.pix || 'Não configurada'}`;
-                
-                // Automatically insert this key into the message input field
-                chatInput.value = textToInsert;
-                chatInput.focus();
-            }
+            // Task 2: Use the cached Pix key from currentConfig
+            const pixKey = (currentConfig && currentConfig.pix) ? currentConfig.pix : 'Não configurada';
+            chatInput.value = `Nossa chave PIX comercial é: ${pixKey}. Após o pagamento, envie o comprovante por aqui! 🚀`;
+            chatInput.focus();
         } catch (err) {
             console.error('❌ [Quick Reply] Error fetching Pix Config:', err);
         }
@@ -222,6 +244,29 @@ if (btnQuickPix && chatInput) {
     }
 }
 
+// 🔘 Bot Toggle Interaction (Header)
+if (headerBotToggle) {
+    headerBotToggle.addEventListener('change', async (e) => {
+        const isActive = e.target.checked;
+        
+        // Optimistic UI update
+        updateStatus(isActive);
+
+        try {
+            await fetch(`${BASE_URL}/api/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bot_active: isActive })
+            });
+        } catch (err) {
+            console.error('❌ [Toggle] Error updating status:', err);
+            // Revert on error
+            headerBotToggle.checked = !isActive;
+            updateStatus(!isActive);
+        }
+    });
+}
+
 function sendMessage() {
     if (!chatInput) return;
     const text = chatInput.value.trim();
@@ -241,71 +286,34 @@ function sendMessage() {
 }
 
 // ==========================================
-// 🛡️ DYNAMIC PIX MASK
+// 🛡️ DYNAMIC PIX MASK (Refined & Alphanumeric)
 // ==========================================
 function formatPixKey(value) {
     if (!value) return '';
-
-    // Standard Email verification
-    if (value.includes('@')) return value.replace(/\s/g, '');
-
-    // Heuristics
-    const looksLikePhone = /\(|\)|\+/.test(value);
-    const looksLikeCPF = /\./.test(value) && !value.includes('/');
-
-    // Strip everything to alphanumeric
+    if (value.includes('@')) return value.replace(/\s/g, '').toLowerCase();
     let clean = value.replace(/[^a-zA-Z0-9]/g, '');
-
-    // Alphanumeric keys (Random Key or new CNPJ rules)
-    if (/[a-zA-Z]/.test(clean)) {
-        if (clean.length === 14) {
-            // Letters allowed in CNPJ by new rules
-            return clean.replace(/^(.{2})(.{3})(.{3})(.{4})(.{2})$/, '$1.$2.$3/$4-$5');
-        }
-        // Random 32 key
-        return value.replace(/\s/g, ''); 
+    if (clean.length === 14) {
+        return clean.toUpperCase().replace(/^(.{2})(.{3})(.{3})(.{4})(.{2})$/, '$1.$2.$3/$4-$5');
     }
-
-    // Number formats
-    if (looksLikePhone || (!looksLikeCPF && clean.length === 11 && clean[2] === '9')) {
-        // Cellphone & Landline
-        if (clean.length <= 10) {
-            return clean.replace(/^(\d{2})(\d{0,4})(\d{0,4}).*/, (match, p1, p2, p3) => {
-                let res = `(${p1}`;
-                if (p2) res += `) ${p2}`;
-                if (p3) res += `-${p3}`;
-                return res;
-            });
-        } else {
-            return clean.replace(/^(\d{2})(\d{0,5})(\d{0,4}).*/, (match, p1, p2, p3) => {
-                let res = `(${p1}`;
-                if (p2) res += `) ${p2}`;
-                if (p3) res += `-${p3}`;
-                return res;
-            });
-        }
+    if (clean.length === 11 && (clean[2] !== '9' || /^\d+$/.test(clean) === false)) {
+         if (/^\d+$/.test(clean)) return clean.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
     }
-
-    // CPF and CNPJ
-    if (clean.length <= 11) {
-        return clean
-            .replace(/(\d{3})(\d)/, '$1.$2')
-            .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-            .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4')
-            .substring(0, 14);
-    } else {
-        return clean
-            .replace(/(\d{2})(\d)/, '$1.$2')
-            .replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-            .replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
-            .replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5')
-            .substring(0, 18);
+    if ((clean.length === 10 || clean.length === 11) && /^\d+$/.test(clean)) {
+         if (clean.length === 11) return clean.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+         return clean.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
     }
+    return value;
 }
 
 if (inputPix) {
     inputPix.addEventListener('input', (e) => {
         e.target.value = formatPixKey(e.target.value);
+    });
+    inputPix.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+        const sanitized = pastedData.replace(/[^a-zA-Z0-9@.-]/g, '');
+        e.target.value = formatPixKey(sanitized);
     });
 }
 

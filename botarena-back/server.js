@@ -37,28 +37,35 @@ function getConfigDB() {
             if (err) reject(err);
             else resolve({
                 ...row,
-                bot_active: Boolean(row?.bot_active) // Convert 1/0 to true/false
+                bot_active: Boolean(row?.bot_active) // 1/0 -> true/false
             });
         });
     });
 }
 function updateConfigDB(newConfig) {
     return new Promise((resolve, reject) => {
+        // Build dynamic query to avoid overwriting with NULL if partial payload
         const stmt = db.prepare(`UPDATE settings SET 
             empresa = COALESCE(?, empresa),
             pix = COALESCE(?, pix),
             cardapio_url = COALESCE(?, cardapio_url),
             boas_vindas = COALESCE(?, boas_vindas),
-            bot_active = COALESCE(?, bot_active),
+            bot_active = CASE 
+                WHEN ? IS NOT NULL THEN ? 
+                ELSE bot_active 
+            END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = 1`);
         
+        const botVal = newConfig.bot_active !== undefined ? (newConfig.bot_active ? 1 : 0) : null;
+        
         stmt.run(
-            newConfig.empresa, 
-            newConfig.pix, 
-            newConfig.cardapio_url, 
-            newConfig.boas_vindas, 
-            newConfig.bot_active !== undefined ? (newConfig.bot_active ? 1 : 0) : null,
+            newConfig.empresa || null, 
+            newConfig.pix || null, 
+            newConfig.cardapio_url || null, 
+            newConfig.boas_vindas || null, 
+            botVal,
+            botVal,
             function(err) {
                 if (err) reject(err);
                 else resolve(this.changes);
@@ -221,14 +228,23 @@ io.on('connection', async (socket) => {
     socket.on('send_message', async (data) => {
         console.log(`💬 [Frontend] Outbound message received: ${data.body.substring(0, 30)}...`);
         
-        // --- REAL INTEGRATION TODO: ---
-        // client.sendMessage(data.to, data.body);
+        try {
+            // Send the real WhatsApp message!
+            if (client && client.info) {
+                // Determine the target (usually a chat ID passed from frontend, or a default)
+                const target = data.to || 'status@broadcast'; // Fallback
+                await client.sendMessage(target, data.body);
+                console.log(`✅ [WhatsApp] Message sent to ${target}`);
+            }
+        } catch (err) {
+            console.error('❌ [WhatsApp] Error sending message:', err);
+        }
 
-        // For now, immediately broadcast it back so the UI displays it
+        // Broadcast it back so the UI displays it immediately
         io.emit('new_message', {
-            id: 'simulated_' + Date.now(),
+            id: 'mw_' + Date.now(),
             from: 'me',
-            to: 'customer',
+            to: data.to || 'customer',
             body: data.body,
             fromMe: true,
             timestamp: Math.floor(Date.now() / 1000)
