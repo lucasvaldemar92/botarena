@@ -3,33 +3,24 @@ const BASE_URL = 'http://localhost:3000';
 const socket = window.io ? io(BASE_URL) : null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- Theme Persistence ---
+    const themeSelect = document.getElementById('theme-select');
+    const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
+    document.documentElement.className = savedTheme;
+    document.body.className = savedTheme;
+    if (themeSelect) themeSelect.value = savedTheme;
+
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+            const newTheme = e.target.value;
+            document.documentElement.className = newTheme;
+            document.body.className = newTheme;
+            localStorage.setItem('botarena-theme', newTheme);
+        });
+    }
+
     // --- Shared State & Global Sync ---
     const headerCompanyLogo = document.getElementById('header-company-logo');
-
-    async function syncGlobalHeader() {
-        try {
-            const response = await fetch(`${BASE_URL}/api/config`);
-            if (response.ok) {
-                const config = await response.json();
-                const company = config.empresa || 'botarena';
-                if (headerCompanyLogo) headerCompanyLogo.textContent = company;
-                
-                // Dynamic Footer Branding
-                const footerText = document.querySelector('.footer__text');
-                if (footerText) footerText.textContent = `© 2026 ${company}`;
-
-                // Trigger dashboard specific updates if elements exist
-                if (typeof updateBotStatus === 'function') updateBotStatus(config.bot_active);
-                
-                // Populate inputs if they exist (settings modal)
-                const inputEmpresa = document.getElementById('cfg-company-name');
-                const inputPix = document.getElementById('cfg-pix-key');
-                if (inputEmpresa) inputEmpresa.value = config.empresa || '';
-                if (inputPix) inputPix.value = config.pix || '';
-            }
-        } catch (err) { console.log('Backend not reached for sync'); }
-    }
-    syncGlobalHeader();
 
     // --- State (QR Library) ---
     const STORAGE_KEY = 'qr_manager_data';
@@ -249,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ bot_active: isActive })
                 });
-            } catch (err) { e.target.checked = !isActive; updateBotStatus(!isActive); }
+            } catch (err) { e.target.checked = !isActive; updateBotStatus(!isActive); if (typeof Sentry !== 'undefined') Sentry.captureException(err); }
         });
     }
 
@@ -327,6 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Error saving config:', err);
                 btnSaveConfig.innerHTML = 'Erro!';
                 btnSaveConfig.disabled = false;
+                if (typeof Sentry !== 'undefined') Sentry.captureException(err);
                 setTimeout(() => btnSaveConfig.innerHTML = originalText, 2000);
             }
         });
@@ -379,18 +371,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Override syncGlobalHeader to populate inputs
+    // Consolidated syncGlobalHeader (single definition)
     async function syncGlobalHeader() {
         try {
             const response = await fetch(`${BASE_URL}/api/config`);
             if (response.ok) {
                 const config = await response.json();
-                if (headerCompanyLogo) headerCompanyLogo.textContent = config.empresa || 'botarena';
+                const company = config.empresa || 'botarena';
+                if (headerCompanyLogo) headerCompanyLogo.textContent = company;
                 if (inputEmpresa) inputEmpresa.value = config.empresa || '';
                 if (inputPix) inputPix.value = config.pix || '';
+
+                // Dynamic Footer Branding
+                const footerText = document.querySelector('.footer__text');
+                if (footerText) footerText.textContent = `© 2026 ${company}`;
+
                 updateBotStatus(config.bot_active);
             }
-        } catch (err) { console.log('Backend not reached'); }
+        } catch (err) { console.log('Backend not reached'); if (typeof Sentry !== 'undefined') Sentry.captureException(err); }
     }
 
     // Initialize View

@@ -10,6 +10,17 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <!-- 🛡️ Sentry Browser SDK (Tracing + Replay) -->
+    <script src="https://browser.sentry-cdn.com/10.45.0/bundle.tracing.replay.min.js"
+        integrity="sha384-EdYeZPKoZvjjRFLx/LmMXczbuvX701VUTBEWUmmiOYvHav+mp5GzqV/kpQjQ6f8F"
+        crossorigin="anonymous"></script>
+    <script src="sentry-init.js"></script>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
+            document.documentElement.className = savedTheme;
+        })();
+    </script>
 </head>
 
 <body class="theme-dark chat-body">
@@ -27,13 +38,14 @@
                 </div>
                 <!-- Toggle Switch for Bot -->
                 <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label"
-                    title="Ativar/Desativar Bot">
+                    title="Ativar/Desativar Bot" aria-label="Ativar/Desativar Bot">
                     <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle"
-                        data-testid="bot-toggle-switch">
+                        data-testid="bot-toggle-switch" aria-label="Ativar/Desativar Bot">
+
                     <span class="toggle-switch__slider"></span>
                 </label>
                 <!-- Settings Button -->
-                <button class="icon-btn header-settings-btn" id="open-settings-btn" data-testid="open-settings">
+                <button class="icon-btn header-settings-btn" id="open-settings-btn" data-testid="open-settings" aria-label="Configurações">
                     <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
@@ -46,14 +58,14 @@
             <div class="chat-sidebar__header">
                 <h2>Chats</h2>
                 <div class="chat-sidebar__actions">
-                    <button class="icon-btn"><i class="fa-solid fa-plus"></i></button>
-                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                    <button class="icon-btn" aria-label="Novo chat"><i class="fa-solid fa-plus"></i></button>
+                    <button class="icon-btn" aria-label="Menu"><i class="fa-solid fa-ellipsis-vertical"></i></button>
                 </div>
             </div>
             <div class="chat-sidebar__search">
                 <div class="search-input-wrapper">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" placeholder="Search or start new chat">
+                    <input type="text" placeholder="Search or start new chat" aria-label="Buscar conversa">
                 </div>
             </div>
 
@@ -102,6 +114,9 @@
             <!-- Active Chat Header -->
             <header class="chat-main__header">
                 <div class="chat-main__contact-info">
+                    <button class="icon-btn mobile-only chat-main__back-btn" id="back-to-list-btn" aria-label="Voltar para lista">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
                     <div class="chat-item__avatar">
                         <img src="https://ui-avatars.com/api/?name=João+Silva&background=3b82f6&color=fff" alt="Avatar">
                     </div>
@@ -111,8 +126,8 @@
                     </div>
                 </div>
                 <div class="chat-main__actions">
-                    <button class="icon-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                    <button class="icon-btn" aria-label="Buscar na conversa"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button class="icon-btn" aria-label="Menu da conversa"><i class="fa-solid fa-ellipsis-vertical"></i></button>
                 </div>
             </header>
 
@@ -144,10 +159,10 @@
                     <button class="quick-reply-btn">Cardápio</button>
                 </div>
                 <footer class="chat-main__input-area">
-                    <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
-                    <button class="icon-btn"><i class="fa-solid fa-paperclip"></i></button>
-                    <input type="text" class="chat-input" placeholder="Type a message">
-                    <button class="icon-btn send-btn" data-testid="send-message-btn"><i
+                    <button class="icon-btn" aria-label="Emoji"><i class="fa-regular fa-face-smile"></i></button>
+                    <button class="icon-btn" aria-label="Anexar arquivo"><i class="fa-solid fa-paperclip"></i></button>
+                    <input type="text" class="chat-input" placeholder="Type a message" aria-label="Digite uma mensagem">
+                    <button class="icon-btn send-btn" data-testid="send-message-btn" aria-label="Enviar mensagem"><i
                             class="fa-solid fa-paper-plane"></i></button>
                 </footer>
             </div>
@@ -160,7 +175,7 @@
         <aside class="settings-modal__panel glass-panel">
             <header class="settings-modal__header">
                 <h2>Configurações</h2>
-                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings"><i class="fa-solid fa-xmark"></i></button>
+                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings" aria-label="Fechar configurações"><i class="fa-solid fa-xmark"></i></button>
             </header>
             <div class="settings-modal__content">
                 <form id="settings-form" class="settings-form">
@@ -184,6 +199,18 @@
                         <div class="settings-form__group" style="width: 100%;">
                             <label class="settings-form__label">Chave Pix</label>
                             <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular" data-testid="pix-input-masked" id="cfg-pix-key">
+                        </div>
+                    </div>
+
+                    <!-- Section: Aparência -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-palette"></i> Aparência</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Tema do Sistema</label>
+                            <select class="settings-form__input" id="theme-select">
+                                <option value="theme-dark">Modo Escuro (Cyberpunk)</option>
+                                <option value="theme-light">Modo Claro (WhatsApp Classic)</option>
+                            </select>
                         </div>
                     </div>
 
@@ -214,7 +241,7 @@
     <div class="test-bot-bubble" id="test-bot-bubble">
         <div class="test-bot-bubble__header">
             <h4><i class="fa-solid fa-robot"></i> Simulação do Bot</h4>
-            <button class="icon-btn" id="close-test-bot-btn"><i class="fa-solid fa-xmark"></i></button>
+            <button class="icon-btn" id="close-test-bot-btn" aria-label="Fechar simulação"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="test-bot-bubble__content">
             <div class="message message--sent fade-in-section">
@@ -236,40 +263,8 @@
         </div>
     </div>
 
-    <!-- Script to Handle Settings Modal Interactions -->
-    <script>
-        const settingsModal = document.getElementById('settings-modal');
-        const openSettingsBtn = document.getElementById('open-settings-btn');
-        const closeSettingsBtn = document.getElementById('close-settings-btn');
-        const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
-        const settingsBackdrop = document.getElementById('settings-backdrop');
 
-        function openModal() {
-            settingsModal.classList.add('settings-modal--active');
-        }
 
-        function closeModal() {
-            settingsModal.classList.remove('settings-modal--active');
-            testBotBubble.classList.remove('test-bot-bubble--active'); // auto-close simulation
-        }
-
-        // Test Bot Interaction
-        const testBotBtn = document.getElementById('test-bot-btn');
-        const testBotBubble = document.getElementById('test-bot-bubble');
-        const closeTestBotBtn = document.getElementById('close-test-bot-btn');
-
-        testBotBtn.addEventListener('click', () => {
-            testBotBubble.classList.toggle('test-bot-bubble--active');
-        });
-        closeTestBotBtn.addEventListener('click', () => {
-            testBotBubble.classList.remove('test-bot-bubble--active');
-        });
-
-        openSettingsBtn.addEventListener('click', openModal);
-        closeSettingsBtn.addEventListener('click', closeModal);
-        cancelSettingsBtn.addEventListener('click', closeModal);
-        settingsBackdrop.addEventListener('click', closeModal);
-    </script>
     
     <!-- Socket.IO & Backend Sync -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>

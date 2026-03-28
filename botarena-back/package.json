@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sentry/node": "^10.45.0",
+    "@sentry/profiling-node": "^10.45.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "qrcode-terminal": "^0.12.0",

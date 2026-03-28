@@ -1,6 +1,12 @@
 node_modules
 npm-debug.log
-database/*.db
-.wwebjs_auth
 .git
-.vscode
+database/*.db
+database/*.db-journal
+database/*.db-shm
+database/*.db-wal
+.env
+.DS_Store
+dist
+build
+.wwebjs_auth

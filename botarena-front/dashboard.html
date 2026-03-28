@@ -8,6 +8,17 @@
     <!-- Use Outfit font to match the CSS variables -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- 🛡️ Sentry Browser SDK (Tracing + Replay) -->
+    <script src="https://browser.sentry-cdn.com/10.45.0/bundle.tracing.replay.min.js"
+        integrity="sha384-EdYeZPKoZvjjRFLx/LmMXczbuvX701VUTBEWUmmiOYvHav+mp5GzqV/kpQjQ6f8F"
+        crossorigin="anonymous"></script>
+    <script src="sentry-init.js"></script>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
+            document.documentElement.className = savedTheme;
+        })();
+    </script>
 </head>
 
 <body class="theme-dark">
@@ -18,7 +29,7 @@
                 <span id="header-company-logo">botarena</span>
             </h1>
             <div class="navbar__actions">
-                <button class="icon-btn" id="open-settings-btn" data-testid="open-settings">
+                <button class="icon-btn" id="open-settings-btn" data-testid="open-settings" aria-label="Configurações">
                     <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
@@ -89,9 +100,9 @@
                         <!-- Toggle Switch -->
                         <div class="control__toggle-wrapper">
                             <span class="control__toggle-label">Activate Bot Logic</span>
-                            <label class="toggle-switch" data-testid="bot-toggle-label">
+                            <label class="toggle-switch" data-testid="bot-toggle-label" aria-label="Ativar/Desativar Bot">
                                 <input type="checkbox" class="toggle-switch__input" data-testid="bot-toggle-switch"
-                                    checked>
+                                    checked aria-label="Ativar/Desativar Bot">
                                 <span class="toggle-switch__slider"></span>
                             </label>
                         </div>
@@ -112,7 +123,7 @@
         <aside class="settings-modal__panel glass-panel">
             <header class="settings-modal__header">
                 <h2 class="settings-modal__title"><i class="fa-solid fa-sliders"></i> Configurações</h2>
-                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings"><i
+                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings" aria-label="Fechar configurações"><i
                         class="fa-solid fa-xmark"></i></button>
             </header>
             <div class="settings-modal__content">
@@ -135,6 +146,18 @@
                             <label class="settings-form__label">Chave Pix</label>
                             <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
                                 data-testid="pix-input-masked" id="cfg-pix-key">
+                        </div>
+                    </div>
+
+                    <!-- Section: Aparência -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-palette"></i> Aparência</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Tema do Sistema</label>
+                            <select class="settings-form__input" id="theme-select">
+                                <option value="theme-dark">Modo Escuro (Cyberpunk)</option>
+                                <option value="theme-light">Modo Claro (WhatsApp Classic)</option>
+                            </select>
                         </div>
                     </div>
 

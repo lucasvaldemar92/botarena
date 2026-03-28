@@ -10,3 +10,4 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
+      - SENTRY_DSN=${SENTRY_DSN}

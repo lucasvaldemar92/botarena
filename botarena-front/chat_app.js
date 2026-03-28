@@ -32,6 +32,16 @@ const btnQuickPix = document.querySelector('[data-testid="quick-reply-pix"]');
 const btnSendMessage = document.querySelector('[data-testid="send-message-btn"]');
 
 // ==========================================
+// 🛡️ SECURITY HELPERS (XSS PROTECTION)
+// ==========================================
+function sanitizeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ==========================================
 // 🔄 FETCH AND POPULATE SETTINGS (API)
 // ==========================================
 let currentConfig = null;
@@ -45,6 +55,7 @@ async function fetchConfig() {
         populateUI(currentConfig);
     } catch (err) {
         console.error('❌ [Config] Error fetching:', err);
+        if (typeof Sentry !== 'undefined') Sentry.captureException(err);
     }
 }
 
@@ -122,6 +133,7 @@ if (btnSaveConfig) {
             }
         } catch (err) {
             console.error('❌ [Config] Error saving:', err);
+            if (typeof Sentry !== 'undefined') Sentry.captureException(err);
             btnSaveConfig.innerHTML = 'Erro ao Salvar';
             setTimeout(() => {
                 btnSaveConfig.innerHTML = originalText;
@@ -203,7 +215,7 @@ socket.on('new_message', (msg) => {
 
     msgDiv.innerHTML = `
         <div class="message__bubble">
-            <p class="message__text">${msg.body || '...'}</p>
+            <p class="message__text">${sanitizeHTML(msg.body) || '...'}</p>
             <span class="message__time">${timeString}</span>
             ${checkmarks}
         </div>
@@ -260,6 +272,7 @@ if (headerBotToggle) {
             });
         } catch (err) {
             console.error('❌ [Toggle] Error updating status:', err);
+            if (typeof Sentry !== 'undefined') Sentry.captureException(err);
             // Revert on error
             headerBotToggle.checked = !isActive;
             updateStatus(!isActive);
@@ -318,4 +331,78 @@ if (inputPix) {
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', fetchConfig);
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Theme Persistence ---
+    const themeSelect = document.getElementById('theme-select');
+    const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
+    document.documentElement.className = savedTheme;
+    document.body.className = savedTheme;
+    if (themeSelect) themeSelect.value = savedTheme;
+
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+            const newTheme = e.target.value;
+            document.documentElement.className = newTheme;
+            document.body.className = newTheme;
+            localStorage.setItem('botarena-theme', newTheme);
+        });
+    }
+
+    // --- Settings Modal (moved from inline script) ---
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+    const settingsBackdrop = document.getElementById('settings-backdrop');
+
+    // Test Bot Interaction
+    const testBotBtn = document.getElementById('test-bot-btn');
+    const testBotBubble = document.getElementById('test-bot-bubble');
+    const closeTestBotBtn = document.getElementById('close-test-bot-btn');
+
+    function openModal() {
+        if (settingsModal) settingsModal.classList.add('settings-modal--active');
+    }
+
+    function closeModal() {
+        if (settingsModal) settingsModal.classList.remove('settings-modal--active');
+        if (testBotBubble) testBotBubble.classList.remove('test-bot-bubble--active');
+    }
+
+    if (testBotBtn) {
+        testBotBtn.addEventListener('click', () => {
+            testBotBubble.classList.toggle('test-bot-bubble--active');
+        });
+    }
+    if (closeTestBotBtn) {
+        closeTestBotBtn.addEventListener('click', () => {
+            testBotBubble.classList.remove('test-bot-bubble--active');
+        });
+    }
+
+    if (openSettingsBtn) openSettingsBtn.addEventListener('click', openModal);
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeModal);
+    if (cancelSettingsBtn) cancelSettingsBtn.addEventListener('click', closeModal);
+    if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeModal);
+
+    // --- Mobile View-State Toggle ---
+    const chatLayout = document.querySelector('.chat-layout');
+    const backToListBtn = document.getElementById('back-to-list-btn');
+    const chatItems = document.querySelectorAll('.chat-item');
+
+    // Clicking a chat item opens the conversation on mobile
+    chatItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (chatLayout) chatLayout.classList.add('chat-layout--conversation');
+        });
+    });
+
+    // Back button returns to the sidebar list
+    if (backToListBtn) {
+        backToListBtn.addEventListener('click', () => {
+            if (chatLayout) chatLayout.classList.remove('chat-layout--conversation');
+        });
+    }
+
+    fetchConfig();
+});
