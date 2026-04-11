@@ -230,9 +230,14 @@
 
                 </form>
             </div>
-            <footer class="settings-modal__footer">
-                <button class="btn-animado btn-secondary" style="width: auto; flex:1;" id="cancel-settings-btn">Cancelar</button>
-                <button class="btn-animado" style="width: auto; flex: 1.5;" data-testid="btn-save-config">Salvar Tudo</button>
+            <footer class="settings-modal__footer" style="flex-direction: column; gap: 0.5rem;">
+                <button type="button" class="btn-animado btn-danger" style="width: 100%;" id="btn-logout" data-testid="btn-logout">
+                    <i class="fa-solid fa-sign-out-alt"></i> Desconectar WhatsApp
+                </button>
+                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button type="button" class="btn-animado btn-secondary" style="flex:1;" id="cancel-settings-btn">Cancelar</button>
+                    <button type="button" class="btn-animado" style="flex: 1.5;" id="btn-save-config" data-testid="btn-save-config">Salvar Tudo</button>
+                </div>
             </footer>
         </aside>
     </div>

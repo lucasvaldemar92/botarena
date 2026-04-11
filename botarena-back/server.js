@@ -65,6 +65,26 @@ app.get('/chat', (req, res) =>
 );
 
 // ==========================================
+// 📊 STATUS ROUTE
+// ==========================================
+app.get('/api/status', async (req, res) => {
+    console.log('📡 [API] GET /api/status');
+    try {
+        const config = await SettingsRepository.get();
+        const isConnected = config.bot_active === true;
+        // Never expose QR payload to REST — QR is socket-only
+        res.json({
+            connected: isConnected,
+            status:    isConnected ? 'CONNECTED' : 'WAITING_QR',
+            message:   isConnected ? 'Bot Ativo e Conectado' : 'Aguardando autenticação WhatsApp'
+        });
+    } catch (e) {
+        console.error('❌ [API] Error fetching status:', e);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ==========================================
 // 🐞 DEBUG / SENTRY
 // ==========================================
 app.get('/api/debug-sentry', (req, res) => {
@@ -98,6 +118,28 @@ app.post('/api/config', async (req, res) => {
     } catch (err) {
         console.error('❌ [API] Error saving config:', err);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// ==========================================
+// 🚪 LOGOUT ROUTE
+// ==========================================
+app.post('/api/logout', async (req, res) => {
+    console.log('📡 [API] POST /api/logout');
+    try {
+        await SettingsRepository.update({ bot_active: false });
+        isClientReady = false;
+        if (client?.info) {
+            await client.logout(); // Clears auth data natively in whatsapp-web.js
+            console.log('🚪 [WhatsApp] Client logged out manually.');
+        }
+        io.emit('force_logout');
+        res.json({ success: true, message: 'Logged out successfully' });
+    } catch (err) {
+        console.error('❌ [API] Error during logout:', err);
+        // Even if the client throws, force socket UI redirect
+        io.emit('force_logout');
+        res.status(500).json({ error: 'Error during logout' });
     }
 });
 
@@ -199,6 +241,7 @@ const client = new Client({
 });
 
 let lastQR = '';
+let isClientReady = false; // 🔒 Safety flag — true only when client.on('ready') fires
 
 client.on('qr', (qr) => {
     console.log('📱 [WhatsApp] QR Code generated! Awaiting scan...');
@@ -210,9 +253,11 @@ client.on('qr', (qr) => {
 
 client.on('ready', async () => {
     console.log('✅ [WhatsApp] Bot is Online!');
+    isClientReady = true;  // ✅ Client fully ready — safe to send messages
+    lastQR = '';           // ✅ Clear QR cache — no QR needed while connected
     await SettingsRepository.update({ bot_active: true });
     io.emit('bot_online', { status: 'Bot Ativo', active: true });
-    io.emit('auth_success'); // Fallback: garante redirect mesmo se authenticated não disparou
+    io.emit('auth_success');
     console.log('📡 [Socket] Emitted "bot_online" + "auth_success" events.');
 });
 
@@ -224,10 +269,12 @@ client.on('authenticated', () => {
 });
 
 client.on('auth_failure', msg => {
+    isClientReady = false; // ❌ Auth failed — block outgoing messages
     console.error('❌ [WhatsApp] Authentication failure:', msg);
 });
 
 client.on('disconnected', async (reason) => {
+    isClientReady = false; // ❌ Disconnected — block outgoing messages
     console.log('⚠️ [WhatsApp] Client Disconnected:', reason);
     await SettingsRepository.update({ bot_active: false });
     io.emit('bot_disconnected', { status: 'Bot Inativo', active: false });
@@ -238,7 +285,33 @@ client.on('disconnected', async (reason) => {
 // ==========================================
 const seenContacts = new Set();
 
+/**
+ * safeReply — Wraps msg.reply() with a client readiness guard.
+ * Prevents Puppeteer crashes when the client disconnects mid-session.
+ * @param {Message} msg  - The incoming whatsapp-web.js message object
+ * @param {string}  text - The reply text to send
+ * @returns {Promise<boolean>} true if sent, false if blocked
+ */
+async function safeReply(msg, text) {
+    if (!isClientReady) {
+        console.error('🚫 [Bot] safeReply blocked — client not ready. Message was:', text.substring(0, 60));
+        return false;
+    }
+    try {
+        await msg.reply(text);
+        return true;
+    } catch (err) {
+        console.error('❌ [Bot] safeReply failed:', err.message);
+        return false;
+    }
+}
+
 client.on('message_create', async (msg) => {
+    // Se a mensagem vier de um grupo, ignora imediatamente
+    if (msg.from.endsWith('@g.us')) {
+        return; 
+    }
+
     console.log(`💬 [WhatsApp] Message ${msg.fromMe ? 'Sent' : 'Received'} - ID: ${msg.id.id}`);
 
     if (msg.body) {
@@ -269,8 +342,8 @@ client.on('message_create', async (msg) => {
             seenContacts.add(contactId);
             const greeting = (config.boas_vindas || 'Olá! Como podemos ajudar?')
                 .replace(/\{\{empresa\}\}/g, config.empresa || 'BotArena');
-            await msg.reply(greeting);
-            console.log(`👋 [Bot] Welcome message sent to ${contactId}`);
+            const sent = await safeReply(msg, greeting);
+            if (sent) console.log(`👋 [Bot] Welcome message sent to ${contactId}`);
         }
 
         const text = msg.body.toLowerCase().trim();
@@ -279,29 +352,29 @@ client.on('message_create', async (msg) => {
         if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
             const dailyMenu = await MenuRepository.getActive();
             if (dailyMenu?.extracted_text) {
-                await msg.reply(dailyMenu.extracted_text);
-                console.log(`🍽️ [Bot] Daily menu sent to ${contactId}`);
+                if (await safeReply(msg, dailyMenu.extracted_text))
+                    console.log(`🍽️ [Bot] Daily menu sent to ${contactId}`);
             } else if (config.cardapio_url) {
-                await msg.reply(`📋 Confira nosso cardápio: ${config.cardapio_url}`);
-                console.log(`🔗 [Bot] Cardápio URL sent to ${contactId}`);
+                if (await safeReply(msg, `📋 Confira nosso cardápio: ${config.cardapio_url}`))
+                    console.log(`🔗 [Bot] Cardápio URL sent to ${contactId}`);
             } else {
-                await msg.reply('Nosso cardápio ainda não está disponível. Tente novamente mais tarde!');
+                await safeReply(msg, 'Nosso cardápio ainda não está disponível. Tente novamente mais tarde!');
             }
             return;
         }
 
         // Pix trigger
         if (text.includes('pix') && config.pix) {
-            await msg.reply(`💰 Nossa chave PIX é: ${config.pix}`);
-            console.log(`💰 [Bot] Pix key sent to ${contactId}`);
+            if (await safeReply(msg, `💰 Nossa chave PIX é: ${config.pix}`))
+                console.log(`💰 [Bot] Pix key sent to ${contactId}`);
             return;
         }
 
         // Knowledge Base lookup
         const kbMatch = await KnowledgeRepository.findByKeyword(text);
         if (kbMatch) {
-            await msg.reply(kbMatch.response);
-            console.log(`📚 [Bot] KB match "${kbMatch.keyword}" → replied to ${contactId}`);
+            if (await safeReply(msg, kbMatch.response))
+                console.log(`📚 [Bot] KB match "${kbMatch.keyword}" → replied to ${contactId}`);
             return;
         }
 
@@ -339,13 +412,16 @@ io.on('connection', async (socket) => {
     socket.on('send_message', async (data) => {
         console.log(`💬 [Frontend] Outbound: ${data.body.substring(0, 30)}...`);
         try {
-            if (client?.info) {
-                const target = data.to || 'status@broadcast';
-                await client.sendMessage(target, data.body);
-                console.log(`✅ [WhatsApp] Message sent to ${target}`);
+            if (!isClientReady) {
+                console.error('🚫 [Frontend] send_message blocked — client not ready.');
+                socket.emit('message_error', { error: 'WhatsApp client not ready. Try again.' });
+                return;
             }
+            const target = data.to || 'status@broadcast';
+            await client.sendMessage(target, data.body);
+            console.log(`✅ [WhatsApp] Message sent to ${target}`);
         } catch (err) {
-            console.error('❌ [WhatsApp] Error sending message:', err);
+            console.error('❌ [WhatsApp] Error sending message:', err.message);
         }
 
         io.emit('new_message', {

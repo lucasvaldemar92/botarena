@@ -222,8 +222,17 @@ socket.on('new_message', (msg) => {
     `;
     
     chatHistory.appendChild(msgDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+    scrollToBottom();
 });
+
+// Helper for Task 2
+function scrollToBottom() {
+    // Dynamic query guarantees it catches layout re-renders
+    const container = document.querySelector('.chat-main__history');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
 
 // ==========================================
 // ⚡ QUICK REPLIES (CHAT INTERFACE)
@@ -384,6 +393,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeModal);
     if (cancelSettingsBtn) cancelSettingsBtn.addEventListener('click', closeModal);
     if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeModal);
+
+    // --- Logout Functionality ---
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            if (!confirm('Deseja realmente desconectar o WhatsApp? Isso exigirá um novo scan do QR Code.')) return;
+            btnLogout.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Desconectando...';
+            btnLogout.disabled = true;
+            try {
+                await fetch(`${BASE_URL}/api/logout`, { method: 'POST' });
+            } catch (err) {
+                console.error('❌ [Logout] Error:', err);
+                btnLogout.innerHTML = '<i class="fa-solid fa-sign-out-alt"></i> Desconectar WhatsApp';
+                btnLogout.disabled = false;
+            }
+        });
+    }
+    
+    // Redirect when backend confirms logout via socket
+    socket.on('force_logout', () => {
+        window.location.href = 'dashboard.html';
+    });
 
     // --- Mobile View-State Toggle ---
     const chatLayout = document.querySelector('.chat-layout');
