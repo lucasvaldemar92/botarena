@@ -188,6 +188,10 @@ app.delete('/api/menu/:id', async (req, res) => {
 console.log('🔄 [WhatsApp] Initializing Client...');
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+    },
     puppeteer: {
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -208,12 +212,15 @@ client.on('ready', async () => {
     console.log('✅ [WhatsApp] Bot is Online!');
     await SettingsRepository.update({ bot_active: true });
     io.emit('bot_online', { status: 'Bot Ativo', active: true });
-    console.log('📡 [Socket] Emitted "bot_online" event.');
+    io.emit('auth_success'); // Fallback: garante redirect mesmo se authenticated não disparou
+    console.log('📡 [Socket] Emitted "bot_online" + "auth_success" events.');
 });
 
 client.on('authenticated', () => {
     console.log('🔐 [WhatsApp] Session Authenticated.');
     lastQR = '';
+    io.emit('auth_success');
+    console.log('📡 [Socket] Emitted "auth_success" event.');
 });
 
 client.on('auth_failure', msg => {

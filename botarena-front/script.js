@@ -256,6 +256,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         socket.on('bot_status', (data) => updateBotStatus(data.active));
         socket.on('bot_online', () => updateBotStatus(true));
         socket.on('bot_disconnected', () => updateBotStatus(false));
+
+        // 🔀 Auth Success: redireciona para o Chat após autenticação do WhatsApp
+        socket.on('auth_success', () => {
+            if (qrStatusText) qrStatusText.textContent = '✅ Conectado! Redirecionando...';
+            if (qrImage) qrImage.style.opacity = '0.3';
+            setTimeout(() => {
+                window.location.href = '/chat';
+            }, 1500); // delay suave para o usuário ver o feedback
+        });
     }
 
     // --- Settings Modal Logic (Dashboard) ---
