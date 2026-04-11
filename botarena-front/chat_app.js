@@ -202,11 +202,25 @@ socket.on('new_message', (msg) => {
     console.log('💬 [Socket] new_message received:', msg);
     if (!chatHistory) return;
 
+    const msgId = msg.id || ('temp_' + Date.now());
+
+    // Task 3: Prevent rendering duplicate messages based on ID
+    if (document.querySelector(`[data-msg-id="${msgId}"]`)) {
+        return; // Already exists in DOM
+    }
+
+    // Dynamic Binding: update the active target to the last person who texted!
+    if (!msg.fromMe && msg.from && !msg.from.includes('broadcast')) {
+        activeChatID = msg.from;
+        console.log('🔄 [UI] Chat ativo atualizado dinamicamente para:', activeChatID);
+    }
+
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const isSentByMe = msg.fromMe;
     
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${isSentByMe ? 'message--sent' : 'message--received'} fade-in-section`;
+    msgDiv.setAttribute('data-msg-id', msgId);
     
     let checkmarks = '';
     if (isSentByMe) {
@@ -228,17 +242,53 @@ socket.on('new_message', (msg) => {
 // Helper for Task 2
 function scrollToBottom() {
     // Dynamic query guarantees it catches layout re-renders
-    const container = document.querySelector('.chat-main__history');
+    const container = document.querySelector('.chat-messages');
     if (container) {
         container.scrollTop = container.scrollHeight;
     }
 }
 
 // ==========================================
+// ⚡ CONTEXT LOCK & CLICK LISTENERS (UI)
+// ==========================================
+let activeChatID = '554499824696@c.us'; // Real developer sandbox ID
+
+document.querySelectorAll('.chat-item').forEach(item => {
+    item.addEventListener('click', function() {
+        // Remove active class from all
+        document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('chat-item--active'));
+        this.classList.add('chat-item--active');
+        
+        activeChatID = this.getAttribute('data-chat-id');
+        
+        // Task 2: Block input if it's a broadcast/story
+        if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) {
+            if (chatInput) {
+                chatInput.disabled = true;
+                chatInput.placeholder = "🚫 Não é permitido enviar mensagens aqui.";
+                chatInput.value = "";
+            }
+            if (btnSendMessage) btnSendMessage.disabled = true;
+            if (btnQuickPix) btnQuickPix.disabled = true;
+        } else {
+            if (chatInput) {
+                chatInput.disabled = false;
+                chatInput.placeholder = "Type a message";
+            }
+            if (btnSendMessage) btnSendMessage.disabled = false;
+            if (btnQuickPix) btnQuickPix.disabled = false;
+        }
+    });
+});
+
+// ==========================================
 // ⚡ QUICK REPLIES (CHAT INTERFACE)
 // ==========================================
 if (btnQuickPix && chatInput) {
     btnQuickPix.addEventListener('click', async () => {
+        // Double check UI Context Lock
+        if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
+        
         try {
             // Task 2: Use the cached Pix key from currentConfig
             const pixKey = (currentConfig && currentConfig.pix) ? currentConfig.pix : 'Não configurada';
@@ -294,8 +344,14 @@ function sendMessage() {
     const text = chatInput.value.trim();
     if (!text) return;
 
+    if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) {
+        console.warn('Block Triggered in sendMessage manually.');
+        return;
+    }
+
     // Send the message payload via Socket.io
     socket.emit('send_message', {
+        to: activeChatID, // Bind to active chat!
         body: text,
         fromMe: true
     });

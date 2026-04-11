@@ -2,6 +2,22 @@ const BASE_URL = 'http://localhost:3000';
 // Only connect socket if io is available (socket.io script included in dashboard/chat)
 const socket = window.io ? io(BASE_URL) : null;
 
+// Task 1: Pre-flight check (Early Redirect Logic)
+async function checkAuthAndRedirect() {
+    // Only apply on dashboard page
+    if (window.location.pathname.includes('chat')) return;
+    try {
+        const response = await fetch(`${BASE_URL}/api/status`);
+        const data = await response.json();
+        if (data.status === 'CONNECTED') {
+            const qrContainer = document.getElementById('qr-container');
+            if (qrContainer) qrContainer.style.display = 'none'; // Avoid flash
+            window.location.replace('chat.html'); 
+        }
+    } catch (e) {}
+}
+checkAuthAndRedirect();
+
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Theme Persistence ---
     const themeSelect = document.getElementById('theme-select');
@@ -252,6 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showConnectedState() {
         if (qrLoader) qrLoader.classList.add('hidden');
         if (qrImage)  qrImage.classList.add('hidden');
+        if (qrContainer) qrContainer.style.display = 'none'; // Task 2: Hide QR UI entirely when connected
 
         let el = document.getElementById('qr-connected-state');
         if (!el) {
@@ -316,6 +333,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (socket) {
+        // Task 2: Persistent Auth State (Trigger on Reconnect)
+        socket.on('connect', () => {
+            console.log('🔌 [Socket] Connected/Reconnected, checking auth state...');
+            checkAuthAndRedirect();
+        });
+
         // QR recebido: renderiza o QR garantindo que estado "Conectado" foi removido
         socket.on('qr', (qrData) => {
             console.log('📱 [Socket] QR Code received — switching to QR state');
@@ -341,17 +364,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateBotStatus(false);
         });
 
-        // Auth success: só redireciona se o QR foi exibido nesta sessão
-        // (evita redirect ao abrir o dashboard quando já estava conectado)
+        // Task 2: Socket Event Enforcement 
+        // 100% listener redirect instead of conditional qrWasVisible waiting
         socket.on('auth_success', () => {
-            console.log('🔐 [Socket] auth_success — qrWasVisible:', qrWasVisible);
-            if (qrWasVisible) {
-                if (qrStatusText) qrStatusText.textContent = '✅ Conectado! Redirecionando...';
-                if (qrImage) qrImage.style.opacity = '0.3';
-                setTimeout(() => { window.location.href = '/chat'; }, 1500);
+            console.log('🔐 [Socket] auth_success triggered');
+            if (!window.location.pathname.includes('chat')) {
+                if (qrContainer) qrContainer.style.display = 'none';
+                window.location.replace('chat.html');
             }
-            // Se qrWasVisible === false, sessão já estava ativa:
-            // updateBotStatus(true) já foi chamado pelo bot_status — sem redirect
         });
     }
 

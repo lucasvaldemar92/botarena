@@ -56,9 +56,17 @@ function serveHTMLWithSentryDSN(res, filePath) {
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
-app.get('/dashboard', (req, res) =>
+app.get('/dashboard', async (req, res) => {
+    try {
+        const config = await SettingsRepository.get();
+        if (config.bot_active) {
+            return res.redirect('/chat');
+        }
+    } catch (err) {
+        console.error('❌ Middleware checking config failed:', err);
+    }
     serveHTMLWithSentryDSN(res, path.join(__dirname, '../botarena-front/dashboard.html'))
-);
+});
 
 app.get('/chat', (req, res) =>
     serveHTMLWithSentryDSN(res, path.join(__dirname, '../botarena-front/chat.html'))
@@ -75,6 +83,7 @@ app.get('/api/status', async (req, res) => {
         // Never expose QR payload to REST — QR is socket-only
         res.json({
             connected: isConnected,
+            isAuthenticated: isConnected, // Task 2: Persistent Auth State
             status:    isConnected ? 'CONNECTED' : 'WAITING_QR',
             message:   isConnected ? 'Bot Ativo e Conectado' : 'Aguardando autenticação WhatsApp'
         });
@@ -257,14 +266,24 @@ client.on('ready', async () => {
     lastQR = '';           // ✅ Clear QR cache — no QR needed while connected
     await SettingsRepository.update({ bot_active: true });
     io.emit('bot_online', { status: 'Bot Ativo', active: true });
-    io.emit('auth_success');
+    
+    // Task 3: Connection Handshake Fix (Small delay)
+    setTimeout(() => {
+        io.emit('auth_success');
+        console.log('📡 [Socket] Emitted "auth_success" event after delay.');
+    }, 500);
     console.log('📡 [Socket] Emitted "bot_online" + "auth_success" events.');
 });
 
 client.on('authenticated', () => {
     console.log('🔐 [WhatsApp] Session Authenticated.');
     lastQR = '';
-    io.emit('auth_success');
+    
+    // Task 3: Connection Handshake Fix
+    setTimeout(() => {
+        io.emit('auth_success');
+        console.log('📡 [Socket] Emitted "auth_success" event after delay.');
+    }, 500);
     console.log('📡 [Socket] Emitted "auth_success" event.');
 });
 
@@ -306,10 +325,15 @@ async function safeReply(msg, text) {
     }
 }
 
+client.removeAllListeners('message');
+client.removeAllListeners('message_create');
 client.on('message_create', async (msg) => {
-    // Se a mensagem vier de um grupo, ignora imediatamente
-    if (msg.from.endsWith('@g.us')) {
-        return; 
+    if (msg.fromMe) return; // Se eu enviei, não processe como entrada
+
+    // Task 1: Strict JID Lockdown
+    if (msg.from === 'status@broadcast' || msg.from.includes('@g.us')) {
+        console.log("🚫 [Bot] Ignorando Status/Grupo para evitar spam.");
+        return;
     }
 
     console.log(`💬 [WhatsApp] Message ${msg.fromMe ? 'Sent' : 'Received'} - ID: ${msg.id.id}`);
@@ -325,7 +349,7 @@ client.on('message_create', async (msg) => {
         });
     }
 
-    if (msg.fromMe || !msg.body) return;
+    if (!msg.body) return;
 
     try {
         const config = await SettingsRepository.get();
@@ -417,7 +441,23 @@ io.on('connection', async (socket) => {
                 socket.emit('message_error', { error: 'WhatsApp client not ready. Try again.' });
                 return;
             }
-            const target = data.to || 'status@broadcast';
+            
+            let target = data.to || 'status@broadcast';
+            
+            // Task 1: JID Sanitizer Middleware
+            const formatJID = (id) => {
+                if (!id.includes('@')) return `${id}@c.us`;
+                return id;
+            };
+            target = formatJID(target);
+            
+            // Task 1: TRAVA DE SEGURANÇA GLOBAL
+            const blockedTargets = ['status@broadcast', 'g.us'];
+            if (blockedTargets.some(bTarget => target.includes(bTarget))) {
+                console.error(`❌ [Security] Bloqueio de envio detectado para: ${target}`);
+                socket.emit('message_error', { error: 'Target Bloqueado' });
+                return { error: 'Target Bloqueado' }; 
+            }
             await client.sendMessage(target, data.body);
             console.log(`✅ [WhatsApp] Message sent to ${target}`);
         } catch (err) {

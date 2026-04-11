@@ -13,11 +13,15 @@
     "@sentry/node": "^10.45.0",
     "@sentry/profiling-node": "^10.45.0",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "qrcode-terminal": "^0.12.0",
     "socket.io": "^4.8.3",
     "sqlite3": "^6.0.1",
     "whatsapp-web.js": "^1.34.6"
   },
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
 }

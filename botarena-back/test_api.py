@@ -33,5 +33,17 @@ def test_backend_config():
     except Exception as e:
         print(f"🚨 Erro no teste de POST: {e}")
 
+    # 3. Testar a Rota do Frontend (/chat)
+    try:
+        chat_response = requests.get(f"http://localhost:3000/chat")
+        if chat_response.status_code == 200:
+            print("✅ GET /chat: Rota Renderizada com Sucesso! (Status 200)")
+        elif chat_response.status_code == 404:
+            print("❌ GET /chat: Erro 404 - Rota inexistente.")
+        else:
+            print(f"⚠️ GET /chat: Respondeu com {chat_response.status_code}")
+    except Exception as e:
+        print(f"🚨 Erro no teste de Routing /chat: {e}")
+
 if __name__ == "__main__":
     test_backend_config()

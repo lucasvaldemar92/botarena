@@ -5,9 +5,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./database:/app/database  # Persistência do SQLite
-      - ./sql_scripts:/app/sql_scripts
+      - .:/app
+      - /app/node_modules
     restart: always
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - SENTRY_DSN=${SENTRY_DSN}
+      - CHOKIDAR_USEPOLLING=true

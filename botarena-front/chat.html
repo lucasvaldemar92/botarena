@@ -54,7 +54,7 @@
 
     <main class="chat-layout" data-testid="chat-layout">
         <!-- Sidebar: Chat List -->
-        <aside class="chat-sidebar glass-panel" data-testid="chat-sidebar">
+        <aside class="chat-sidebar sidebar glass-panel" data-testid="chat-sidebar">
             <div class="chat-sidebar__header">
                 <h2>Chats</h2>
                 <div class="chat-sidebar__actions">
@@ -80,7 +80,7 @@
 
             <div class="chat-sidebar__list" data-testid="contact-list">
                 <!-- Chat Item 1 (Active) -->
-                <div class="chat-item chat-item--active" data-testid="chat-item-1">
+                <div class="chat-item chat-item--active" data-testid="chat-item-1" data-chat-id="554499824696@c.us">
                     <div class="chat-item__avatar">
                         <img src="https://ui-avatars.com/api/?name=João+Silva&background=3b82f6&color=fff" alt="Avatar">
                     </div>
@@ -93,7 +93,7 @@
                     </div>
                 </div>
                 <!-- Chat Item 2 -->
-                <div class="chat-item" data-testid="chat-item-2">
+                <div class="chat-item" data-testid="chat-item-2" data-chat-id="5511999999999@c.us">
                     <div class="chat-item__avatar">
                         <img src="https://ui-avatars.com/api/?name=Maria+Oliveira&background=10b981&color=fff"
                             alt="Avatar">
@@ -104,6 +104,19 @@
                             <span class="chat-item__time">Yesterday</span>
                         </div>
                         <div class="chat-item__snippet">Vocês entregam nessa região?</div>
+                    </div>
+                </div>
+                <!-- Chat Item 3 (Status/Story) -->
+                <div class="chat-item" data-testid="chat-item-story" data-chat-id="status@broadcast">
+                    <div class="chat-item__avatar" style="border: 2px dashed #10b981;">
+                        <img src="https://ui-avatars.com/api/?name=Status&background=gray&color=fff" alt="Avatar">
+                    </div>
+                    <div class="chat-item__content">
+                        <div class="chat-item__header">
+                            <span class="chat-item__name">Status (Contato)</span>
+                            <span class="chat-item__time">Agora</span>
+                        </div>
+                        <div class="chat-item__snippet">Atualização de status de imagem</div>
                     </div>
                 </div>
             </div>
@@ -132,7 +145,7 @@
             </header>
 
             <!-- Chat History -->
-            <div class="chat-main__history" data-testid="chat-history">
+            <div class="chat-main__history chat-messages" data-testid="chat-history">
                 <!-- Received Message -->
                 <div class="message message--received fade-in-section">
                     <div class="message__bubble">
