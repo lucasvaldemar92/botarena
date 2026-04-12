@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="theme-dark">
+<html lang="en" class="theme-light">
 
 <head>
     <meta charset="UTF-8">
@@ -17,13 +17,13 @@
     <script src="sentry-init.js"></script>
     <script>
         (function() {
-            const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
-            document.documentElement.className = savedTheme;
+            // Force light mode layout for this refactored view
+            document.documentElement.className = 'theme-light';
         })();
     </script>
 </head>
 
-<body class="theme-dark chat-body">
+<body class="theme-light chat-body">
     <!-- Header Minimal -->
     <header class="navbar chat-navbar" data-testid="chat-header">
         <div class="navbar__container chat-navbar__container">
@@ -54,7 +54,7 @@
 
     <main class="chat-layout" data-testid="chat-layout">
         <!-- Sidebar: Chat List -->
-        <aside class="chat-sidebar sidebar glass-panel" data-testid="chat-sidebar">
+        <aside class="chat-sidebar sidebar" data-testid="chat-sidebar">
             <div class="chat-sidebar__header">
                 <h2>Chats</h2>
                 <div class="chat-sidebar__actions">
@@ -123,9 +123,9 @@
         </aside>
 
         <!-- Main Chat Area -->
-        <section class="chat-main glass-panel" data-testid="chat-main">
-            <!-- Active Chat Header -->
-            <header class="chat-main__header">
+        <section class="chat-main" data-testid="chat-main">
+            <!-- Active Chat Header (Hidden for Global Header compliance) -->
+            <header class="chat-main__header" style="display: none;">
                 <div class="chat-main__contact-info">
                     <button class="icon-btn mobile-only chat-main__back-btn" id="back-to-list-btn" aria-label="Voltar para lista">
                         <i class="fa-solid fa-arrow-left"></i>

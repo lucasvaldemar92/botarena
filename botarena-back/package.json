@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "main": "bot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "teste-codigo": "node scripts/teste_codigo.js",
+    "teste-seg": "node scripts/teste_seguranca.js",
+    "teste-banco": "node scripts/teste_banco.js",
+    "teste-e2e": "npx playwright test tests/visual_sync.spec.js",
+    "testes": "npm run teste-codigo && npm run teste-seg && npm run teste-banco && npm run teste-e2e"
   },
   "keywords": [],
   "author": "",

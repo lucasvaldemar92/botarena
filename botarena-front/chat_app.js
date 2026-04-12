@@ -401,14 +401,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeSelect = document.getElementById('theme-select');
     const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
     document.documentElement.className = savedTheme;
-    document.body.className = savedTheme;
+    document.body.className = `${savedTheme} chat-body`;
     if (themeSelect) themeSelect.value = savedTheme;
 
     if (themeSelect) {
         themeSelect.addEventListener('change', (e) => {
             const newTheme = e.target.value;
             document.documentElement.className = newTheme;
-            document.body.className = newTheme;
+            document.body.className = `${newTheme} chat-body`;
             localStorage.setItem('botarena-theme', newTheme);
         });
     }
