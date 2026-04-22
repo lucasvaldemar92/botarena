@@ -9,3 +9,6 @@ yarn-error.log*
 *.pem
 *.sqlite
 *.db
+*.db-wal
+*.db-shm
+botarena-back/test-results/
