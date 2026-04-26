@@ -4,16 +4,20 @@
 // Encapsulates all SQL for the `daily_menu` table.
 // `setNewActive` uses a serialized transaction to guarantee consistency.
 
-const db = require('../db/connection');
+const BaseRepository = require('./BaseRepository');
 
-const MenuRepository = {
+class MenuRepository extends BaseRepository {
+    constructor(db) {
+        super(db, 'daily_menu');
+    }
+
     /**
      * Get the currently active menu entry.
      * @returns {Promise<Object|null>}
      */
     getActive() {
         return new Promise((resolve, reject) => {
-            db.get(
+            this.db.get(
                 'SELECT * FROM daily_menu WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1',
                 (err, row) => {
                     if (err) return reject(err);
@@ -21,7 +25,7 @@ const MenuRepository = {
                 }
             );
         });
-    },
+    }
 
     /**
      * Deactivate all menus and insert a new active one — in a transaction.
@@ -31,25 +35,25 @@ const MenuRepository = {
      */
     setNewActive(extractedText, filePath = null) {
         return new Promise((resolve, reject) => {
-            db.serialize(() => {
-                db.run('BEGIN TRANSACTION');
+            this.db.serialize(() => {
+                this.db.run('BEGIN TRANSACTION');
 
-                db.run('UPDATE daily_menu SET is_active = 0', (err) => {
+                this.db.run('UPDATE daily_menu SET is_active = 0', (err) => {
                     if (err) {
-                        db.run('ROLLBACK');
+                        this.db.run('ROLLBACK');
                         return reject(err);
                     }
 
-                    db.run(
+                    this.db.run(
                         'INSERT INTO daily_menu (file_path, extracted_text, is_active) VALUES (?, ?, 1)',
                         [filePath, extractedText],
                         function (err2) {
                             if (err2) {
-                                db.run('ROLLBACK');
+                                this.db.run('ROLLBACK');
                                 return reject(err2);
                             }
 
-                            db.run('COMMIT');
+                            this.db.run('COMMIT');
                             resolve({
                                 id: this.lastID,
                                 file_path: filePath,
@@ -61,7 +65,7 @@ const MenuRepository = {
                 });
             });
         });
-    },
+    }
 
     /**
      * Delete a menu entry by id.
@@ -69,13 +73,8 @@ const MenuRepository = {
      * @returns {Promise<number>} Rows deleted
      */
     remove(id) {
-        return new Promise((resolve, reject) => {
-            db.run('DELETE FROM daily_menu WHERE id = ?', [id], function (err) {
-                if (err) return reject(err);
-                resolve(this.changes);
-            });
-        });
+        return this.delete(id);
     }
-};
+}
 
 module.exports = MenuRepository;

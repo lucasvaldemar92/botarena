@@ -4,14 +4,38 @@ const path = require('path');
 console.log('--- Iniciando Teste de Segurança Modular (Serverless Guard) ---');
 const start = performance.now();
 
+/**
+ * Recursively collects all .js files under a directory.
+ */
+function collectJsFiles(dir) {
+    let results = [];
+    if (!fs.existsSync(dir)) return results;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory() && entry.name !== 'node_modules') {
+            results = results.concat(collectJsFiles(fullPath));
+        } else if (entry.isFile() && entry.name.endsWith('.js')) {
+            results.push(fullPath);
+        }
+    }
+    return results;
+}
+
 try {
-    // Busca no server.js (ou bot.service se tiver sido fragmentado depois)
-    const serverPath = path.resolve(__dirname, '../server.js');
+    // Concatenate server.js + all src/**/*.js into a single codebase string
+    const rootDir    = path.resolve(__dirname, '..');
+    const serverPath = path.join(rootDir, 'server.js');
+    const srcDir     = path.join(rootDir, 'src');
+
     if (!fs.existsSync(serverPath)) {
         throw new Error('server.js não encontrado.');
     }
 
-    const code = fs.readFileSync(serverPath, 'utf8');
+    const allFiles = [serverPath, ...collectJsFiles(srcDir)];
+    const code = allFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+
+    console.log(`📂 Escaneando ${allFiles.length} arquivo(s) de código-fonte...`);
 
     // MOCK VIRTUAL: Validação por Inspecão de AST / RegEx rígida
     // Garante que o desenvolvedor não removeu a trava global.
@@ -44,9 +68,9 @@ try {
     // ==========================================
 
     // Regra 4: authMiddleware must be imported
-    const hasAuthMiddleware = code.includes("require('./src/middleware/auth')") || code.includes('require("./src/middleware/auth")');
+    const hasAuthMiddleware = code.includes("require('../middleware/auth')") || code.includes("require('./src/middleware/auth')");
     if (!hasAuthMiddleware) {
-        console.error('❌ FATAL: authMiddleware NÃO está importado no server.js!');
+        console.error('❌ FATAL: authMiddleware NÃO está importado no código-fonte!');
         process.exit(1);
     }
     console.log('🔐 Regra 4 OK: authMiddleware importado.');
@@ -68,7 +92,7 @@ try {
     console.log('🔐 Regra 6 OK: JWT_SECRET via process.env.');
 
     // Regra 7: Rate limiter must be imported and applied to sensitive routes
-    const hasRateLimiterImport = code.includes("require('./src/middleware/rateLimiter')") || code.includes('require("./src/middleware/rateLimiter")');
+    const hasRateLimiterImport = code.includes("require('../middleware/rateLimiter')") || code.includes("require('./src/middleware/rateLimiter')");
     const hasRateLimiterUsage  = code.includes('sensitiveLimiter,');
     if (!hasRateLimiterImport || !hasRateLimiterUsage) {
         console.error('❌ FATAL: Rate limiter (sensitiveLimiter) não está importado ou aplicado nas rotas!');

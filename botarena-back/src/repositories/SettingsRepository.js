@@ -4,16 +4,20 @@
 // Encapsulates all SQL for the `settings` table.
 // Only one row ever exists (id = 1, enforced by CHECK constraint in schema).
 
-const db = require('../db/connection');
+const BaseRepository = require('./BaseRepository');
 
-const SettingsRepository = {
+class SettingsRepository extends BaseRepository {
+    constructor(db) {
+        super(db, 'settings');
+    }
+
     /**
      * Retrieve the single settings row.
      * @returns {Promise<Object>}
      */
     get() {
         return new Promise((resolve, reject) => {
-            db.get('SELECT * FROM settings WHERE id = 1', (err, row) => {
+            this.db.get('SELECT * FROM settings WHERE id = 1', (err, row) => {
                 if (err) return reject(err);
                 resolve({
                     ...row,
@@ -21,7 +25,7 @@ const SettingsRepository = {
                 });
             });
         });
-    },
+    }
 
     /**
      * Partially update settings. Only non-null fields are written.
@@ -34,7 +38,7 @@ const SettingsRepository = {
                 ? (fields.bot_active ? 1 : 0)
                 : null;
 
-            const stmt = db.prepare(`
+            const stmt = this.db.prepare(`
                 UPDATE settings SET
                     empresa        = COALESCE(?, empresa),
                     pix            = COALESCE(?, pix),
@@ -60,6 +64,6 @@ const SettingsRepository = {
             stmt.finalize();
         });
     }
-};
+}
 
 module.exports = SettingsRepository;

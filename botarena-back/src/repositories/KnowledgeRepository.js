@@ -3,21 +3,20 @@
 // ==========================================
 // Encapsulates all SQL for the `knowledge_base` table.
 
-const db = require('../db/connection');
+const BaseRepository = require('./BaseRepository');
 
-const KnowledgeRepository = {
+class KnowledgeRepository extends BaseRepository {
+    constructor(db) {
+        super(db, 'knowledge_base');
+    }
+
     /**
      * Get all knowledge entries, newest first.
      * @returns {Promise<Array>}
      */
     getAll() {
-        return new Promise((resolve, reject) => {
-            db.all('SELECT * FROM knowledge_base ORDER BY id DESC', (err, rows) => {
-                if (err) return reject(err);
-                resolve(rows || []);
-            });
-        });
-    },
+        return this.findAll('id DESC');
+    }
 
     /**
      * Add a new knowledge entry.
@@ -27,17 +26,8 @@ const KnowledgeRepository = {
      * @returns {Promise<Object>} Created entry
      */
     add(keyword, response, category = 'faq') {
-        return new Promise((resolve, reject) => {
-            db.run(
-                'INSERT INTO knowledge_base (keyword, response, category) VALUES (?, ?, ?)',
-                [keyword, response, category],
-                function (err) {
-                    if (err) return reject(err);
-                    resolve({ id: this.lastID, keyword, response, category });
-                }
-            );
-        });
-    },
+        return this.create({ keyword, response, category });
+    }
 
     /**
      * Delete a knowledge entry by id.
@@ -45,13 +35,8 @@ const KnowledgeRepository = {
      * @returns {Promise<number>} Rows deleted
      */
     remove(id) {
-        return new Promise((resolve, reject) => {
-            db.run('DELETE FROM knowledge_base WHERE id = ?', [id], function (err) {
-                if (err) return reject(err);
-                resolve(this.changes);
-            });
-        });
-    },
+        return this.delete(id);
+    }
 
     /**
      * Find the first entry whose keyword is contained in the given text.
@@ -61,7 +46,7 @@ const KnowledgeRepository = {
      */
     findByKeyword(text) {
         return new Promise((resolve, reject) => {
-            db.all('SELECT * FROM knowledge_base', (err, rows) => {
+            this.db.all('SELECT * FROM knowledge_base', (err, rows) => {
                 if (err) return reject(err);
                 const normalized = text.toLowerCase().trim();
                 const match = (rows || []).find(row =>
@@ -71,6 +56,6 @@ const KnowledgeRepository = {
             });
         });
     }
-};
+}
 
 module.exports = KnowledgeRepository;
