@@ -9,6 +9,14 @@ const qrcode = require('qrcode-terminal');
 const fs   = require('fs');
 const path = require('path');
 const cors = require('cors');
+const jwt  = require('jsonwebtoken');
+
+// ==========================================
+// 🔐 AUTH MIDDLEWARE & SERVICE
+// ==========================================
+const authMiddleware     = require('./src/middleware/auth');
+const AuthService        = require('./src/services/AuthService');
+const { sensitiveLimiter } = require('./src/middleware/rateLimiter');
 
 // ==========================================
 // 🗄️ REPOSITORIES  (no raw SQL in this file)
@@ -102,9 +110,19 @@ app.get('/api/debug-sentry', (req, res) => {
 });
 
 // ==========================================
-// ⚙️ SETTINGS ROUTES
+// 🔐 AUTH — DEV LOGIN (public, dev-only)
 // ==========================================
-app.get('/api/config', async (req, res) => {
+app.post('/api/auth/dev-login', (req, res) => {
+    const token = AuthService.generateMockToken();
+    if (!token) return res.status(403).json({ error: 'Only available in development' });
+    console.log('🔑 [Auth] Dev mock token generated.');
+    res.json({ token });
+});
+
+// ==========================================
+// ⚙️ SETTINGS ROUTES  (🔒 Protected)
+// ==========================================
+app.get('/api/config', authMiddleware, async (req, res) => {
     console.log('📡 [API] GET /api/config');
     try {
         res.json(await SettingsRepository.get());
@@ -114,7 +132,7 @@ app.get('/api/config', async (req, res) => {
     }
 });
 
-app.post('/api/config', async (req, res) => {
+app.post('/api/config', sensitiveLimiter, authMiddleware, async (req, res) => {
     console.log('📡 [API] POST /api/config');
     try {
         await SettingsRepository.update(req.body);
@@ -133,7 +151,7 @@ app.post('/api/config', async (req, res) => {
 // ==========================================
 // 🚪 LOGOUT ROUTE
 // ==========================================
-app.post('/api/logout', async (req, res) => {
+app.post('/api/logout', sensitiveLimiter, authMiddleware, async (req, res) => {
     console.log('📡 [API] POST /api/logout');
     try {
         await SettingsRepository.update({ bot_active: false });
@@ -155,7 +173,7 @@ app.post('/api/logout', async (req, res) => {
 // ==========================================
 // 📚 KNOWLEDGE BASE ROUTES
 // ==========================================
-app.get('/api/knowledge', async (req, res) => {
+app.get('/api/knowledge', authMiddleware, async (req, res) => {
     console.log('📡 [API] GET /api/knowledge');
     try {
         res.json(await KnowledgeRepository.getAll());
@@ -165,7 +183,7 @@ app.get('/api/knowledge', async (req, res) => {
     }
 });
 
-app.post('/api/knowledge', async (req, res) => {
+app.post('/api/knowledge', sensitiveLimiter, authMiddleware, async (req, res) => {
     console.log('📡 [API] POST /api/knowledge');
     try {
         const { keyword, response, category } = req.body;
@@ -181,7 +199,7 @@ app.post('/api/knowledge', async (req, res) => {
     }
 });
 
-app.delete('/api/knowledge/:id', async (req, res) => {
+app.delete('/api/knowledge/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
     console.log(`📡 [API] DELETE /api/knowledge/${req.params.id}`);
     try {
         const changes = await KnowledgeRepository.remove(req.params.id);
@@ -195,7 +213,7 @@ app.delete('/api/knowledge/:id', async (req, res) => {
 // ==========================================
 // 🍽️ DAILY MENU ROUTES
 // ==========================================
-app.get('/api/menu', async (req, res) => {
+app.get('/api/menu', authMiddleware, async (req, res) => {
     console.log('📡 [API] GET /api/menu');
     try {
         const menu = await MenuRepository.getActive();
@@ -206,7 +224,7 @@ app.get('/api/menu', async (req, res) => {
     }
 });
 
-app.post('/api/menu', async (req, res) => {
+app.post('/api/menu', sensitiveLimiter, authMiddleware, async (req, res) => {
     console.log('📡 [API] POST /api/menu');
     try {
         const { extracted_text, file_path } = req.body;
@@ -222,7 +240,7 @@ app.post('/api/menu', async (req, res) => {
     }
 });
 
-app.delete('/api/menu/:id', async (req, res) => {
+app.delete('/api/menu/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
     console.log(`📡 [API] DELETE /api/menu/${req.params.id}`);
     try {
         const changes = await MenuRepository.remove(req.params.id);
@@ -412,10 +430,22 @@ client.on('message_create', async (msg) => {
 client.initialize();
 
 // ==========================================
-// 🔌 SOCKET.IO — Connection Handlers
+// 🔌 SOCKET.IO — Auth Middleware + Connection Handlers
 // ==========================================
+io.use((socket, next) => {
+    const token = socket.handshake.auth?.token
+        || socket.handshake.headers?.authorization?.split(' ')[1];
+    if (!token) return next(new Error('Authentication error: token required'));
+    try {
+        socket.user = jwt.verify(token, process.env.JWT_SECRET);
+        next();
+    } catch {
+        next(new Error('Authentication error: invalid token'));
+    }
+});
+
 io.on('connection', async (socket) => {
-    console.log(`🔌 [Socket] New connection: ${socket.id}`);
+    console.log(`🔌 [Socket] Authenticated connection: ${socket.id} (user: ${socket.user?.email || 'unknown'})`);
 
     const currentConfig = await SettingsRepository.get();
     console.log(`📡 [Socket] Sending bot_active = ${currentConfig.bot_active}`);
