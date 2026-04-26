@@ -1,32 +1,19 @@
 // ==========================================
-// 🗄️ DB CONNECTION SINGLETON
+// 🗄️ DB CONNECTION FACTORY
 // ==========================================
-// Node's module cache ensures only one db instance is ever created.
-// All repositories import from here.
+// Loads the appropriate driver based on DB_TYPE environment variable.
+// Both drivers expose the same Promise-based interface:
+//   get(sql, params), all(sql, params), run(sql, params), transaction(fn), close()
 
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-require('dotenv').config(); // Ensure dotenv loads if running outside Docker
+const DB_TYPE = process.env.DB_TYPE || 'sqlite';
 
-let dbPath;
-const dbUrl = process.env.DATABASE_URL;
-
-if (dbUrl && dbUrl.startsWith('sqlite://')) {
-    // Basic SQLite abstraction
-    const cleanPath = dbUrl.replace('sqlite://', '').replace('./', '');
-    dbPath = path.resolve(__dirname, '../../', cleanPath);
+let driver;
+if (DB_TYPE === 'postgres') {
+    driver = require('./drivers/postgres');
 } else {
-    // Default fallback
-    dbPath = path.join(__dirname, '../../database/botarena.db');
+    driver = require('./drivers/sqlite');
 }
 
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) console.error('❌ [DB] Error opening database:', err);
-    else console.log(`✅ [DB] Connected to database using env string.`);
-});
+console.log(`📦 [DB] Driver loaded: ${DB_TYPE}`);
 
-// Enable WAL mode for better concurrency
-db.run('PRAGMA journal_mode=WAL;');
-db.run('PRAGMA foreign_keys=ON;');
-
-module.exports = db;
+module.exports = driver;

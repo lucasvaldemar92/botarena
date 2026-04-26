@@ -1,7 +1,11 @@
 const express = require('express');
 const authMiddleware       = require('../middleware/auth');
 const { sensitiveLimiter } = require('../middleware/rateLimiter');
+const { validate }         = require('../middleware/validate');
 const AuthService          = require('../services/AuthService');
+const { configSchema }     = require('../schemas/configSchema');
+const { knowledgeSchema }  = require('../schemas/knowledgeSchema');
+const { menuSchema }       = require('../schemas/menuSchema');
 
 /**
  * createApiRouter — Returns an Express Router with all API routes.
@@ -70,7 +74,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/config', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.post('/config', sensitiveLimiter, authMiddleware, validate(configSchema), async (req, res) => {
         console.log('📡 [API] POST /api/config');
         try {
             await settingsRepo.update(req.body);
@@ -122,13 +126,10 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/knowledge', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.post('/knowledge', sensitiveLimiter, authMiddleware, validate(knowledgeSchema), async (req, res) => {
         console.log('📡 [API] POST /api/knowledge');
         try {
             const { keyword, response, category } = req.body;
-            if (!keyword || !response)
-                return res.status(400).json({ error: 'keyword and response are required' });
-
             const entry = await knowledgeRepo.add(keyword, response, category);
             console.log(`✅ [API] Knowledge entry added: "${keyword}"`);
             res.json({ success: true, entry });
@@ -163,13 +164,10 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/menu', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.post('/menu', sensitiveLimiter, authMiddleware, validate(menuSchema), async (req, res) => {
         console.log('📡 [API] POST /api/menu');
         try {
             const { extracted_text, file_path } = req.body;
-            if (!extracted_text)
-                return res.status(400).json({ error: 'extracted_text is required' });
-
             const menu = await menuRepo.setNewActive(extracted_text, file_path);
             console.log('✅ [API] Daily menu updated.');
             res.json({ success: true, menu });
