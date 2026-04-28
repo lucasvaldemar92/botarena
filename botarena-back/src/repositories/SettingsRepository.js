@@ -38,18 +38,25 @@ class SettingsRepository extends BaseRepository {
 
         const result = await this.db.run(`
             UPDATE settings SET
-                empresa        = COALESCE(?, empresa),
-                pix            = COALESCE(?, pix),
-                cardapio_url   = COALESCE(?, cardapio_url),
-                boas_vindas    = COALESCE(?, boas_vindas),
-                bot_active     = CASE WHEN ? IS NOT NULL THEN ? ELSE bot_active END,
-                updated_at     = CURRENT_TIMESTAMP
+                empresa         = CASE WHEN ? IS NOT NULL THEN ? ELSE empresa END,
+                pix             = CASE WHEN ? IS NOT NULL THEN ? ELSE pix END,
+                nome_favorecido  = CASE WHEN ? IS NOT NULL THEN ? ELSE nome_favorecido END,
+                cardapio_url    = CASE WHEN ? IS NOT NULL THEN ? ELSE cardapio_url END,
+                boas_vindas     = CASE WHEN ? IS NOT NULL THEN ? ELSE boas_vindas END,
+                bot_active      = CASE WHEN ? IS NOT NULL THEN ? ELSE bot_active END,
+                updated_at      = CURRENT_TIMESTAMP
             WHERE company_id = ?
         `, [
-            fields.empresa      || null,
-            fields.pix          || null,
-            fields.cardapio_url || null,
-            fields.boas_vindas  || null,
+            fields.empresa      !== undefined ? fields.empresa : null,
+            fields.empresa      !== undefined ? fields.empresa : null,
+            fields.pix          !== undefined ? fields.pix : null,
+            fields.pix          !== undefined ? fields.pix : null,
+            fields.nome_favorecido !== undefined ? fields.nome_favorecido : null,
+            fields.nome_favorecido !== undefined ? fields.nome_favorecido : null,
+            fields.cardapio_url !== undefined ? fields.cardapio_url : null,
+            fields.cardapio_url !== undefined ? fields.cardapio_url : null,
+            fields.boas_vindas  !== undefined ? fields.boas_vindas : null,
+            fields.boas_vindas  !== undefined ? fields.boas_vindas : null,
             botVal,
             botVal,
             this.companyId

@@ -12,7 +12,7 @@ class MenuRepository extends BaseRepository {
     }
 
     /**
-     * Get the currently active menu entry for this tenant.
+     * Get the currently active menu entry for this tenant, including binary data.
      * @returns {Promise<Object|null>}
      */
     async getActive() {
@@ -24,25 +24,34 @@ class MenuRepository extends BaseRepository {
     }
 
     /**
+     * Alias for getActive() for asset-focused calls.
+     */
+    async getLatestAsset() {
+        return this.getActive();
+    }
+
+    /**
      * Deactivate all menus and insert a new active one — in a transaction.
      * Scoped to the current tenant.
      * @param {string} extractedText
-     * @param {string|null} [filePath]
+     * @param {string|null} [mimetype]
+     * @param {string|null} [base64Data]
      * @returns {Promise<Object>} The new menu entry
      */
-    async setNewActive(extractedText, filePath = null) {
+    async setNewActive(extractedText, mimetype = null, base64Data = null) {
         return this.db.transaction(async () => {
             await this.db.run(
                 'UPDATE daily_menu SET is_active = 0 WHERE company_id = ?',
                 [this.companyId]
             );
             const result = await this.db.run(
-                'INSERT INTO daily_menu (company_id, file_path, extracted_text, is_active) VALUES (?, ?, ?, 1)',
-                [this.companyId, filePath, extractedText]
+                'INSERT INTO daily_menu (company_id, mimetype, base64_data, extracted_text, is_active) VALUES (?, ?, ?, ?, 1)',
+                [this.companyId, mimetype, base64Data, extractedText]
             );
             return {
                 id: result.lastID,
-                file_path: filePath,
+                mimetype,
+                base64_data: base64Data,
                 extracted_text: extractedText,
                 is_active: true
             };

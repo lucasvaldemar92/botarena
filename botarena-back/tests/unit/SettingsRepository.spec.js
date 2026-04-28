@@ -34,13 +34,13 @@ describe('SettingsRepository Unit Tests', () => {
         const callArgs = mockDb.run.mock.calls[0];
         expect(callArgs[0]).toContain('UPDATE settings SET');
         expect(callArgs[1]).toEqual([
-            'New Name', // empresa
-            null,       // pix
-            null,       // cardapio_url
-            null,       // boas_vindas
-            0,          // botVal
-            0,          // botVal
-            1           // companyId
+            'New Name', 'New Name', // empresa
+            null,       null,       // pix
+            null,       null,       // nome_favorecido
+            null,       null,       // cardapio_url
+            null,       null,       // boas_vindas
+            0,          0,          // bot_active
+            1                       // company_id
         ]);
     });
 });

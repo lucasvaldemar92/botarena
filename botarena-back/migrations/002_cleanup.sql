@@ -1,0 +1,13 @@
+-- ==========================================
+-- 📐 MIGRATION 002: Cleanup
+-- ==========================================
+-- Observação Arquitetural:
+-- O campo 'tema' / 'aparencia' nunca foi persistido no banco de dados. 
+-- Ele era gerenciado exclusivamente no Front-end através do 'localStorage' 
+-- (chave 'botarena-theme').
+-- Portanto, o schema da tabela 'settings' e os repositórios (SettingsRepository, configSchema) 
+-- já estão perfeitamente limpos e desacoplados dessa lógica.
+-- 
+-- Esta migração foi criada para manter o versionamento da Sprint e registrar
+-- a remoção do recurso do ecossistema.
+-- ==========================================

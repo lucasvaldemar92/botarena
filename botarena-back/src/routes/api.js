@@ -167,8 +167,8 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.post('/menu', sensitiveLimiter, authMiddleware, validate(menuSchema), async (req, res) => {
         console.log('📡 [API] POST /api/menu');
         try {
-            const { extracted_text, file_path } = req.body;
-            const menu = await menuRepo.setNewActive(extracted_text, file_path);
+            const { extracted_text, mimetype, base64_data } = req.body;
+            const menu = await menuRepo.setNewActive(extracted_text, mimetype, base64_data);
             console.log('✅ [API] Daily menu updated.');
             res.json({ success: true, menu });
         } catch (e) {

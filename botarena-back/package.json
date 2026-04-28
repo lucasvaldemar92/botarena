@@ -12,7 +12,9 @@
     "test:coverage": "jest --coverage",
     "migrate": "node scripts/migrate_add_company_id.js",
     "qa": "node --check server.js src/routes/api.js src/container.js && npm run teste-codigo && npm run teste-seg && npm run test",
-    "testes": "npm run qa && npm run teste-banco && npm run teste-e2e"
+    "testes": "npm run qa && npm run teste-banco && npm run teste-e2e",
+    "qa:full": "node scripts/run_qa_full.js",
+    "qa:extreme": "node scripts/run_qa_full.js --full"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +38,9 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "jest": "^29.7.0"
+  },
+  "optionalDependencies": {
+    "pg": "^8.16.0"
   },
   "jest": {
     "testMatch": [

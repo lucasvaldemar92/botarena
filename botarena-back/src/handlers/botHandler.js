@@ -39,7 +39,10 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
     client.removeAllListeners('message');
     client.removeAllListeners('message_create');
     client.on('message_create', async (msg) => {
-        if (msg.fromMe) return; // Se eu enviei, não processe como entrada
+        // Ignore messages sent by the system (fromMe) – Bot only reacts to external messages
+        if (msg.fromMe === true || msg.id.fromMe === true) {
+            return; // Completely ignore any message sent by the system/operator
+        }
 
         // Task 1: Strict JID Lockdown
         if (msg.from === 'status@broadcast' || msg.from.includes('@g.us')) {
@@ -70,7 +73,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 return;
             }
 
-            const contactId = msg.from;
+            const contactId = msg.fromMe ? msg.to : msg.from;
 
             // Welcome message (first contact only)
             if (!seenContacts.has(contactId)) {
@@ -83,12 +86,29 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             const text = msg.body.toLowerCase().trim();
 
-            // Cardápio trigger
+            // Cardápio trigger (Dynamic Asset Management)
             if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
-                const dailyMenu = await menuRepo.getActive();
+                console.log(`🍽️ [Bot] Cardápio trigger detected for ${contactId} (fromMe: ${msg.fromMe})`);
+                const dailyMenu = await menuRepo.getLatestAsset();
+                
+                if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
+                    console.log(`📦 [Bot] Found binary menu: ${dailyMenu.mimetype}, size: ${dailyMenu.base64_data.length} chars`);
+                    try {
+                        const { MessageMedia } = require('whatsapp-web.js');
+                        const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
+                        await client.sendMessage(contactId, media);
+                        console.log(`🍽️ [Bot] Media menu sent SUCCESSFULLY to ${contactId}`);
+                        return;
+                    } catch (mediaErr) {
+                        console.error('❌ [Bot] Error sending media menu:', mediaErr);
+                    }
+                } else {
+                    console.log('⚠️ [Bot] No binary menu found in DB, falling back to text.');
+                }
+
                 if (dailyMenu?.extracted_text) {
                     if (await safeReply(msg, dailyMenu.extracted_text, isClientReadyFn))
-                        console.log(`🍽️ [Bot] Daily menu sent to ${contactId}`);
+                        console.log(`🍽️ [Bot] Daily menu (text) sent to ${contactId}`);
                 } else if (config.cardapio_url) {
                     if (await safeReply(msg, `📋 Confira nosso cardápio: ${config.cardapio_url}`, isClientReadyFn))
                         console.log(`🔗 [Bot] Cardápio URL sent to ${contactId}`);

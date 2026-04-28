@@ -91,6 +91,41 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
                 timestamp: Math.floor(Date.now() / 1000)
             });
         });
+
+        // --- Sprint: Menu Asset Management (Direct Trigger) ---
+        socket.on('send_menu_media', async (data) => {
+            console.log(`🍽️ [Socket] Triggering media menu send to ${data.to}...`);
+            try {
+                if (!isClientReady()) return;
+                
+                const dailyMenu = await menuRepo.getLatestAsset();
+                if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
+                    const { MessageMedia } = require('whatsapp-web.js');
+                    const client = getClient();
+                    const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
+                    
+                    const target = (data.to && !data.to.includes('@')) ? `${data.to}@c.us` : data.to;
+                    await client.sendMessage(target, media);
+                    
+                    console.log(`✅ [WhatsApp] Media menu sent to ${target}`);
+                    
+                    // Notify UI of the media message
+                    io.emit('new_message', {
+                        id:        'mm_' + Date.now(),
+                        from:      'me',
+                        to:        target,
+                        body:      '📎 Cardápio (Arquivo Enviado)',
+                        fromMe:    true,
+                        timestamp: Math.floor(Date.now() / 1000)
+                    });
+                } else {
+                    console.warn('⚠️ [Socket] No binary menu found to send.');
+                    socket.emit('message_error', { error: 'Nenhum arquivo de cardápio anexado.' });
+                }
+            } catch (err) {
+                console.error('❌ [Socket] Error sending menu media:', err);
+            }
+        });
     });
 }
 

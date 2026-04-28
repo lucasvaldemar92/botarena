@@ -95,7 +95,7 @@ initWhatsApp(io, repos);
 // ==========================================
 // 🔌 SOCKET.IO (modular)
 // ==========================================
-setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo });
+setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, menuRepo });
 
 // ==========================================
 // 🚀 SERVER START
