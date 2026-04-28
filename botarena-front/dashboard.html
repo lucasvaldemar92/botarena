@@ -7,7 +7,7 @@
     <title>botarena</title>
     <!-- Use Outfit font to match the CSS variables -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260427">
     <!-- 🛡️ Sentry Browser SDK (Tracing + Replay) -->
     <script src="https://browser.sentry-cdn.com/10.45.0/bundle.tracing.replay.min.js"
         integrity="sha384-EdYeZPKoZvjjRFLx/LmMXczbuvX701VUTBEWUmmiOYvHav+mp5GzqV/kpQjQ6f8F"
@@ -132,6 +132,18 @@
                     <!-- Section: Identidade -->
                     <div class="settings-form__section">
                         <h3 class="settings-form__section-title"><i class="fa-solid fa-store"></i> Identidade</h3>
+                        
+                        <div class="profile-sync-block" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--color-surface-hover); border-radius: 8px; border: 1px dashed var(--color-border);">
+                            <div class="profile-avatar" style="width: 64px; height: 64px; font-size: 1.5rem;">
+                                <span id="profile-initials">--</span>
+                                <span class="profile-badge" style="font-size: 0.6rem; bottom: -8px;">automático</span>
+                            </div>
+                            <div class="profile-sync-info" style="margin-top: 0.75rem; text-align: center;">
+                                <h4 style="margin:0; font-size: 0.9rem; color: var(--color-text);">Foto de Perfil</h4>
+                                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--color-text-muted);">Sincronizada via WhatsApp</p>
+                            </div>
+                        </div>
+
                         <div class="settings-form__group">
                             <label class="settings-form__label">Nome da Empresa</label>
                             <input type="text" class="settings-form__input" placeholder="Ex: Arena Juvenal"
@@ -139,27 +151,43 @@
                         </div>
                     </div>
 
-                    <!-- Section: Checkout -->
+                    <!-- Section: Cadastro Chave Pix -->
                     <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Checkout</h3>
-                        <div class="settings-form__group" style="width: 100%;">
-                            <label class="settings-form__label">Chave Pix</label>
-                            <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
-                                data-testid="pix-input-masked" id="cfg-pix-key">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Chave Pix</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
+                                    data-testid="pix-input-masked" id="cfg-pix-key">
+                            </div>
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Nome do favorecido</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                    data-testid="pix-name" id="cfg-pix-name">
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
+                            <i class="fa-solid fa-bolt" style="color: var(--color-primary); margin-right: 0.25rem;"></i>
+                            Disponível como atalho no menu do chat
+                        </p>
+                    </div>
+
+                    <!-- Section: Automação -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-robot"></i> Automação</h3>
+                        <div class="settings-form__group">
+                            <label class="settings-form__label">Cardápio (PDF/Imagem)</label>
+                            <div class="file-upload-container">
+                                <input type="file" id="menuFile" accept="application/pdf,image/*" class="settings-form__input--file" data-testid="menu-file-input">
+                                <div id="filePreview" class="file-preview-box mt-2" data-testid="menu-file-preview">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                    <span>Selecione PDF ou Imagem</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Section: Aparência -->
-                    <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-palette"></i> Aparência</h3>
-                        <div class="settings-form__group">
-                            <label class="settings-form__label">Tema do Sistema</label>
-                            <select class="settings-form__input" id="theme-select">
-                                <option value="theme-dark">Modo Escuro (Cyberpunk)</option>
-                                <option value="theme-light">Modo Claro (WhatsApp Classic)</option>
-                            </select>
-                        </div>
-                    </div>
+
 
                 </form>
             </div>
@@ -177,7 +205,8 @@
 
     <!-- Socket.IO Client -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="script.js"></script>
+    <script src="src/assets/js/utils.js?v=20260427"></script>
+    <script src="dashboard_app.js?v=20260427"></script>
 </body>
 
 </html>

@@ -1,27 +1,19 @@
 // ==========================================
-// 📡 GLOBALS AND DOM ELEMENTS
+// 📡 GLOBALS AND DOM ELEMENTS (CHAT ONLY)
 // ==========================================
-const BASE_URL = 'http://localhost:3000';
-const socket = io(BASE_URL);
+const socket = window.io ? io(window.BASE_URL) : null;
 
 // Header Elements
 const headerCompanyPlaceholder = document.querySelectorAll('.header__info h2');
 const headerStatusBadge = document.querySelector('.header__status-badge');
 const headerStatusText = document.querySelector('.header__status-text');
 
-// Settings Elements
-const inputEmpresa = document.querySelector('[data-testid="cfg-company-name"]');
-const inputPix = document.querySelector('[data-testid="pix-input-masked"]');
-const inputCardapio = document.querySelector('[data-testid="cfg-menu-link"]');
-const btnSaveConfig = document.querySelector('[data-testid="btn-save-config"]');
-
 // Header Unified Elements
-const headerCompanyLogo = document.getElementById('header-company-logo');
 const headerBotToggle = document.getElementById('header-bot-toggle');
 const headerBotLed = document.getElementById('header-bot-led');
 const headerBotText = document.getElementById('header-bot-text');
 
-// Chat / Simulation
+// Chat / Simulation Elements
 const simCompanyName = document.querySelector('[data-testid="sim-company-name"]');
 const simCardapioLink = document.querySelector('[data-testid="sim-cardapio-link"]');
 const simPix = document.querySelector('[data-testid="sim-pix"]');
@@ -42,42 +34,16 @@ function sanitizeHTML(str) {
 }
 
 // ==========================================
-// 🔄 FETCH AND POPULATE SETTINGS (API)
+// 🔄 UI POPULATION (Fired by utils.js)
 // ==========================================
 let currentConfig = null;
 
-async function fetchConfig() {
-    try {
-        const response = await fetch(`${BASE_URL}/api/config`);
-        if (!response.ok) throw new Error('Failed to fetch config');
-        
-        currentConfig = await response.json();
-        populateUI(currentConfig);
-    } catch (err) {
-        console.error('❌ [Config] Error fetching:', err);
-        if (typeof Sentry !== 'undefined') Sentry.captureException(err);
-    }
-}
-
 function populateUI(config) {
     if (!config) return;
-    currentConfig = config; // Keep global updated
+    currentConfig = config;
 
-    // 1. Settings Inputs
-    if (inputEmpresa) inputEmpresa.value = config.empresa || '';
-    if (inputPix) inputPix.value = config.pix || '';
-    if (inputCardapio) inputCardapio.value = config.cardapio_url || '';
-
-    // 2. Header and Chat Placeholders
     const companyName = config.empresa || 'botarena';
     
-    // Update Branding Logo (Cyberpunk Style)
-    if (headerCompanyLogo) headerCompanyLogo.textContent = companyName;
-    
-    // Dynamic Footer Branding (if present)
-    const footerText = document.querySelector('.footer__text');
-    if (footerText) footerText.textContent = `© 2026 ${companyName}`;
-
     // Update main header title (if present)
     if (headerCompanyPlaceholder) {
         headerCompanyPlaceholder.forEach(h2 => {
@@ -87,61 +53,17 @@ function populateUI(config) {
 
     if (simCompanyName) simCompanyName.textContent = companyName;
     if (simCardapioLink) simCardapioLink.href = config.cardapio_url || '#';
+    if (simPix) simPix.textContent = config.pix || '';
 
-    // 3. Bot Status & Toggle
+    // Bot Status & Toggle
     if (headerBotToggle) headerBotToggle.checked = !!config.bot_active;
     updateStatus(config.bot_active);
 }
 
-// ==========================================
-// 💾 SAVE SETTINGS (API)
-// ==========================================
-if (btnSaveConfig) {
-    btnSaveConfig.addEventListener('click', async () => {
-        const newBtnText = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
-        const originalText = btnSaveConfig.innerHTML;
-        btnSaveConfig.innerHTML = newBtnText;
-        btnSaveConfig.disabled = true;
-
-        const payload = {
-            empresa: inputEmpresa.value,
-            pix: inputPix.value,
-            cardapio_url: inputCardapio.value
-        };
-
-        try {
-            const response = await fetch(`${BASE_URL}/api/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                populateUI(result.config);
-                
-                // Visual feedback
-                btnSaveConfig.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
-                setTimeout(() => {
-                    btnSaveConfig.innerHTML = originalText;
-                    btnSaveConfig.disabled = false;
-                    
-                    // Close modal
-                    const modal = document.getElementById('settings-modal');
-                    if(modal) modal.classList.remove('settings-modal--active');
-                }, 1500);
-            }
-        } catch (err) {
-            console.error('❌ [Config] Error saving:', err);
-            if (typeof Sentry !== 'undefined') Sentry.captureException(err);
-            btnSaveConfig.innerHTML = 'Erro ao Salvar';
-            setTimeout(() => {
-                btnSaveConfig.innerHTML = originalText;
-                btnSaveConfig.disabled = false;
-            }, 2000);
-        }
-    });
-}
+// Listen to Global Config Updates
+window.addEventListener('configLoaded', (e) => {
+    populateUI(e.detail);
+});
 
 // ==========================================
 // 🔌 SOCKET.IO EVENTS (REALTIME)
@@ -284,20 +206,35 @@ document.querySelectorAll('.chat-item').forEach(item => {
 // ==========================================
 // ⚡ QUICK REPLIES (CHAT INTERFACE)
 // ==========================================
-if (btnQuickPix && chatInput) {
-    btnQuickPix.addEventListener('click', async () => {
-        // Double check UI Context Lock
-        if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
-        
-        try {
-            // Task 2: Use the cached Pix key from currentConfig
+    if (btnQuickPix && chatInput) {
+        // --- Shortcut: Chave Pix ---
+        btnQuickPix.addEventListener('click', () => {
+            if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
             const pixKey = (currentConfig && currentConfig.pix) ? currentConfig.pix : 'Não configurada';
             chatInput.value = `Nossa chave PIX comercial é: ${pixKey}. Após o pagamento, envie o comprovante por aqui! 🚀`;
             chatInput.focus();
-        } catch (err) {
-            console.error('❌ [Quick Reply] Error fetching Pix Config:', err);
+        });
+
+        // --- Shortcut: Pedido em Rota ---
+        const btnQuickRota = document.getElementById('quick-reply-rota');
+        if (btnQuickRota) {
+            btnQuickRota.addEventListener('click', () => {
+                if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
+                chatInput.value = `Seu pedido já saiu para entrega e deve chegar em instantes! 🛵💨`;
+                chatInput.focus();
+            });
         }
-    });
+
+        // --- Shortcut: Cardápio (Direct Media Trigger) ---
+        const btnQuickMenu = document.getElementById('quick-reply-menu');
+        if (btnQuickMenu) {
+            // Use .onclick to guarantee only one listener exists (Phase 2 correction)
+            btnQuickMenu.onclick = () => {
+                if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
+                socket.emit('send_menu_media', { to: activeChatID });
+                console.log('🍽️ [Frontend] Triggered send_menu_media event.');
+            };
+        }
 
     // Handle "Enter" key press
     chatInput.addEventListener('keypress', (e) => {
@@ -383,94 +320,23 @@ function formatPixKey(value) {
     return value;
 }
 
-if (inputPix) {
-    inputPix.addEventListener('input', (e) => {
-        e.target.value = formatPixKey(e.target.value);
-    });
-    inputPix.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const pastedData = (e.clipboardData || window.clipboardData).getData('text');
-        const sanitized = pastedData.replace(/[^a-zA-Z0-9@.-]/g, '');
-        e.target.value = formatPixKey(sanitized);
-    });
-}
-
-// Initialize
+// Initialize Specific Chat Logic
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Theme Persistence ---
-    const themeSelect = document.getElementById('theme-select');
-    const savedTheme = localStorage.getItem('botarena-theme') || 'theme-dark';
-    document.documentElement.className = savedTheme;
-    document.body.className = `${savedTheme} chat-body`;
-    if (themeSelect) themeSelect.value = savedTheme;
-
-    if (themeSelect) {
-        themeSelect.addEventListener('change', (e) => {
-            const newTheme = e.target.value;
-            document.documentElement.className = newTheme;
-            document.body.className = `${newTheme} chat-body`;
-            localStorage.setItem('botarena-theme', newTheme);
-        });
-    }
-
-    // --- Settings Modal (moved from inline script) ---
-    const settingsModal = document.getElementById('settings-modal');
-    const openSettingsBtn = document.getElementById('open-settings-btn');
-    const closeSettingsBtn = document.getElementById('close-settings-btn');
-    const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
-    const settingsBackdrop = document.getElementById('settings-backdrop');
-
-    // Test Bot Interaction
+    // --- Test Bot Simulation Toggle ---
     const testBotBtn = document.getElementById('test-bot-btn');
     const testBotBubble = document.getElementById('test-bot-bubble');
     const closeTestBotBtn = document.getElementById('close-test-bot-btn');
 
-    function openModal() {
-        if (settingsModal) settingsModal.classList.add('settings-modal--active');
-    }
-
-    function closeModal() {
-        if (settingsModal) settingsModal.classList.remove('settings-modal--active');
-        if (testBotBubble) testBotBubble.classList.remove('test-bot-bubble--active');
-    }
-
-    if (testBotBtn) {
+    if (testBotBtn && testBotBubble) {
         testBotBtn.addEventListener('click', () => {
             testBotBubble.classList.toggle('test-bot-bubble--active');
         });
     }
-    if (closeTestBotBtn) {
+    if (closeTestBotBtn && testBotBubble) {
         closeTestBotBtn.addEventListener('click', () => {
             testBotBubble.classList.remove('test-bot-bubble--active');
         });
     }
-
-    if (openSettingsBtn) openSettingsBtn.addEventListener('click', openModal);
-    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeModal);
-    if (cancelSettingsBtn) cancelSettingsBtn.addEventListener('click', closeModal);
-    if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeModal);
-
-    // --- Logout Functionality ---
-    const btnLogout = document.getElementById('btn-logout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => {
-            if (!confirm('Deseja realmente desconectar o WhatsApp? Isso exigirá um novo scan do QR Code.')) return;
-            btnLogout.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Desconectando...';
-            btnLogout.disabled = true;
-            try {
-                await fetch(`${BASE_URL}/api/logout`, { method: 'POST' });
-            } catch (err) {
-                console.error('❌ [Logout] Error:', err);
-                btnLogout.innerHTML = '<i class="fa-solid fa-sign-out-alt"></i> Desconectar WhatsApp';
-                btnLogout.disabled = false;
-            }
-        });
-    }
-    
-    // Redirect when backend confirms logout via socket
-    socket.on('force_logout', () => {
-        window.location.href = 'dashboard.html';
-    });
 
     // --- Mobile View-State Toggle ---
     const chatLayout = document.querySelector('.chat-layout');
@@ -490,6 +356,42 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chatLayout) chatLayout.classList.remove('chat-layout--conversation');
         });
     }
+    
+    // Redirect when backend confirms logout via socket (force_logout)
+    if (socket) {
+        socket.on('force_logout', () => {
+            window.location.href = 'dashboard.html';
+        });
+    }
 
-    fetchConfig();
+
+    // --- Menu File Preview (Sprint: Menu Asset Management) ---
+    const menuFile = document.getElementById('menuFile');
+    const filePreview = document.getElementById('filePreview');
+
+    if (menuFile && filePreview) {
+        menuFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                filePreview.classList.add('has-file');
+                const isImg = file.type.startsWith('image/');
+                const iconClass = isImg ? 'fa-image' : 'fa-file-pdf';
+                const fileSize = (file.size / 1024).toFixed(1);
+                
+                filePreview.innerHTML = `
+                    <i class="fa-solid ${iconClass}"></i>
+                    <div style="text-align: center;">
+                        <strong style="display: block; font-size: 0.9rem;">${file.name}</strong>
+                        <small style="color: var(--color-text-muted);">${fileSize} KB</small>
+                    </div>
+                `;
+            } else {
+                filePreview.classList.remove('has-file');
+                filePreview.innerHTML = `
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Selecione PDF ou Imagem</span>
+                `;
+            }
+        });
+    }
 });

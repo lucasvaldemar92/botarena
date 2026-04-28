@@ -167,9 +167,9 @@
             <!-- Chat Input Area -->
             <div class="chat-main__footer">
                 <div class="chat-main__quick-replies">
-                    <button class="quick-reply-btn" data-testid="quick-reply-pix">Chave Pix</button>
-                    <button class="quick-reply-btn">Pedido em Rota</button>
-                    <button class="quick-reply-btn">Cardápio</button>
+                    <button class="quick-reply-btn" id="quick-reply-pix" data-testid="quick-reply-pix">Chave Pix</button>
+                    <button class="quick-reply-btn" id="quick-reply-rota">Pedido em Rota</button>
+                    <button class="quick-reply-btn" id="quick-reply-menu">Cardápio</button>
                 </div>
                 <footer class="chat-main__input-area">
                     <button class="icon-btn" aria-label="Emoji"><i class="fa-regular fa-face-smile"></i></button>
@@ -200,39 +200,43 @@
                             <label class="settings-form__label">Nome da Empresa</label>
                             <input type="text" class="settings-form__input" value="Lanchonete X" placeholder="Ex: Burguer King" data-testid="cfg-company-name">
                         </div>
-                        <div class="settings-form__group">
-                            <label class="settings-form__label">Upload Logo</label>
-                            <input type="file" class="settings-form__input settings-form__input--file" accept="image/*">
-                        </div>
                     </div>
 
-                    <!-- Section: Checkout -->
+                    <!-- Section: Cadastro Chave Pix -->
                     <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Checkout</h3>
-                        <div class="settings-form__group" style="width: 100%;">
-                            <label class="settings-form__label">Chave Pix</label>
-                            <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular" data-testid="pix-input-masked" id="cfg-pix-key">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Chave Pix</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
+                                    data-testid="pix-input-masked" id="cfg-pix-key">
+                            </div>
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Nome do favorecido</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                    data-testid="pix-name" id="cfg-pix-name">
+                            </div>
                         </div>
+                        <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
+                            <i class="fa-solid fa-bolt" style="color: var(--color-primary); margin-right: 0.25rem;"></i>
+                            Disponível como atalho no menu do chat
+                        </p>
                     </div>
 
-                    <!-- Section: Aparência -->
-                    <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-palette"></i> Aparência</h3>
-                        <div class="settings-form__group">
-                            <label class="settings-form__label">Tema do Sistema</label>
-                            <select class="settings-form__input" id="theme-select">
-                                <option value="theme-dark">Modo Escuro (Cyberpunk)</option>
-                                <option value="theme-light">Modo Claro (WhatsApp Classic)</option>
-                            </select>
-                        </div>
-                    </div>
+
 
                     <!-- Section: Automação -->
                     <div class="settings-form__section">
                         <h3 class="settings-form__section-title"><i class="fa-solid fa-robot"></i> Automação</h3>
                         <div class="settings-form__group">
-                            <label class="settings-form__label">Link do Cardápio</label>
-                            <input type="url" class="settings-form__input" placeholder="https://..." data-testid="cfg-menu-link">
+                            <label class="settings-form__label">Cardápio (PDF/Imagem)</label>
+                            <div class="file-upload-container">
+                                <input type="file" id="menuFile" accept="application/pdf,image/*" class="settings-form__input--file" data-testid="menu-file-input">
+                                <div id="filePreview" class="file-preview-box mt-2" data-testid="menu-file-preview">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                    <span>Selecione PDF ou Imagem</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="settings-form__group" style="margin-top: 1.5rem;">
                             <button type="button" class="btn-animado btn-secondary" style="width: 100%; justify-content: center; gap: 0.5rem;" id="test-bot-btn" data-testid="btn-test-bot">
@@ -286,7 +290,8 @@
     
     <!-- Socket.IO & Backend Sync -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="chat_app.js"></script>
+    <script src="src/assets/js/utils.js?v=20260427"></script>
+    <script src="chat_app.js?v=20260427"></script>
 </body>
 
 </html>

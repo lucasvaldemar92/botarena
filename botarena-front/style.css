@@ -1380,13 +1380,13 @@ body.theme-light .glass-panel {
     box-shadow: 0 0 0 2px var(--color-primary-glow);
 }
 
-.settings-form__input--file {
+
     padding: 0.5rem;
     font-size: 0.85rem;
     background: rgba(255, 255, 255, 0.02);
 }
 
-.settings-form__input--file::-file-selector-button {
+
     background: var(--color-surface);
     color: var(--color-text-main);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1399,7 +1399,7 @@ body.theme-light .glass-panel {
     transition: var(--transition-fast);
 }
 
-.settings-form__input--file::-file-selector-button:hover {
+
     background: var(--color-surface-hover);
 }
 
@@ -1636,4 +1636,130 @@ body.theme-light .glass-panel {
         flex-direction: column;
         width: 100%;
     }
-}
+}
+/* Profile Avatar Sync Block */
+.profile-sync-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-avatar {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 3px solid var(--color-surface);
+}
+
+.profile-badge {
+    position: absolute;
+    bottom: -5px;
+    background: var(--color-success);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 2px solid var(--color-surface);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+
+/*=============================================
+=            Input Visibility Fixes           =
+=============================================*/
+/* Correção de legibilidade para todos os inputs dentro do modal */
+.settings-modal__content input, 
+.settings-modal__content textarea,
+.test-bot-bubble__content input,
+.test-bot-bubble__content textarea {
+    background-color: #1a1e2a !important; /* Fundo escuro */
+    color: #ffffff !important;           /* Texto branco para contraste */
+    border: 1px solid #333 !important;   /* Borda visível */
+    padding: 10px;
+    caret-color: #ffffff;               /* Cor do cursor */
+}
+
+/* Garante que o texto fique visível mesmo quando não selecionado */
+.settings-modal__content input::placeholder,
+.test-bot-bubble__content input::placeholder {
+    color: #666;                        /* Placeholder cinza claro */
+}
+
+/* Ajuste específico para o seletor de arquivo */
+.settings-modal__content input[type="file"] {
+    color: #cccccc !important;          /* Texto do arquivo */
+}
+
+/*=============================================
+=            Menu Asset Management Styles     =
+=============================================*/
+.file-upload-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.settings-form__input--file {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--color-text-main);
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.settings-form__input--file::-file-selector-button {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-md);
+    margin-right: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.file-preview-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px dashed rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    transition: var(--transition-smooth);
+}
+
+.file-preview-box i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-primary);
+}
+
+.file-preview-box.has-file {
+    background: rgba(37, 211, 102, 0.05);
+    border-color: var(--color-primary);
+    color: var(--color-text-main);
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+

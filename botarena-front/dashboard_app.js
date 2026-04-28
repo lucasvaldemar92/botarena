@@ -1,8 +1,8 @@
 // ==========================================
 // 📡 GLOBALS AND DOM ELEMENTS
 // ==========================================
-const BASE_URL = 'http://localhost:3000';
-const socket = io(BASE_URL);
+// BASE_URL and socket auth logic are now provided by utils.js
+const socket = window.io ? io(window.BASE_URL) : null;
 
 // QR Code Elements
 const qrContainer = document.getElementById('qr-container');
@@ -17,121 +17,166 @@ const statusText = document.querySelector('[data-testid="status-text"]');
 const botToggleSwitch = document.querySelector('[data-testid="bot-toggle-switch"]');
 
 // ==========================================
-// 🔄 FETCH AND POPULATE DASHBOARD
+// 🛡️ PRE-FLIGHT AUTH CHECK
 // ==========================================
-async function fetchDashboardConfig() {
+async function checkAuthAndRedirect() {
     try {
-        const response = await fetch(`${BASE_URL}/api/config`);
-        if (!response.ok) throw new Error('Failed to fetch config');
-        
-        const config = await response.json();
-        updateBotStatus(config.bot_active);
-    } catch (err) {
-        console.error('❌ [Config] Error fetching:', err);
-        showErrorState();
-    }
+        const response = await fetch(`${window.BASE_URL}/api/status`);
+        const data = await response.json();
+        if (data.status === 'CONNECTED') {
+            if (qrContainer) qrContainer.style.display = 'none'; // Avoid flash
+            window.location.replace('chat.html'); 
+        }
+    } catch (e) {}
 }
 
 // ==========================================
-// 🔌 SOCKET.IO EVENTS (REALTIME)
+// 🔌 SOCKET.IO EVENTS & UI UPDATES
 // ==========================================
 
 function updateBotStatus(isActive) {
+    if (!statusLed || !statusText || !botToggleSwitch) return;
+
     if (isActive) {
         statusLed.className = 'control__led control__led--online pulse';
-        statusText.textContent = 'Online';
-        statusText.style.color = 'var(--color-success)';
+        statusText.textContent = 'Bot Ativado';
+        statusText.style.color = '#4ade80';
         botToggleSwitch.checked = true;
         
-        // Hide QR loader and show success message if it was waiting
-        qrLoader.classList.add('hidden');
-        qrImage.classList.add('hidden');
-        qrError.classList.add('hidden');
-        qrStatusText.textContent = 'WhatsApp Conectado!';
-        qrStatusText.style.color = 'var(--color-success)';
+        if (qrLoader) qrLoader.classList.add('hidden');
+        if (qrImage) qrImage.classList.add('hidden');
+        if (qrError) qrError.classList.add('hidden');
+        if (qrStatusText) {
+            qrStatusText.textContent = 'WhatsApp Conectado!';
+            qrStatusText.style.color = '#4ade80';
+        }
+        if (qrContainer) qrContainer.style.display = 'none';
     } else {
         statusLed.className = 'control__led control__led--offline';
-        statusText.textContent = 'Offline';
-        statusText.style.color = 'var(--color-text-muted)';
+        statusText.textContent = 'Bot Desativado';
+        statusText.style.color = '#ff3131';
         botToggleSwitch.checked = false;
         
-        // Show QR Loader assuming it's disconnected and waiting for re-auth
-        qrImage.classList.add('hidden');
-        qrError.classList.add('hidden');
-        qrLoader.classList.remove('hidden');
-        qrStatusText.textContent = 'Aguardando leitura...';
-        qrStatusText.style.color = 'var(--color-text-muted)';
+        if (qrImage) qrImage.classList.add('hidden');
+        if (qrError) qrError.classList.add('hidden');
+        if (qrLoader) qrLoader.classList.remove('hidden');
+        if (qrStatusText) {
+            qrStatusText.textContent = 'Aguardando leitura...';
+            qrStatusText.style.color = 'var(--color-text-muted)';
+        }
+        if (qrContainer) qrContainer.style.display = 'flex';
     }
 }
 
 function updateQRCode(qrData) {
-    // Generate QR Image URL using an external API for simplicity, 
-    // or we could use the qrcode.js library. For now, since the backend uses qrcode-terminal,
-    // we will generate a visual QR on the client using the raw qr string
-    
-    qrLoader.classList.add('hidden');
-    qrError.classList.add('hidden');
-    qrImage.classList.remove('hidden');
-    
-    // Using a public QR generator API to turn the raw string into an image
-    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}&color=ffffff&bgcolor=0f172a`;
-    qrStatusText.textContent = 'Escaneie o QR Code abaixo:';
-}
-
-function showErrorState() {
-    qrLoader.classList.add('hidden');
-    qrImage.classList.add('hidden');
-    qrError.classList.remove('hidden');
-    qrStatusText.textContent = 'Erro de Conexão. O Backend está rodando?';
+    if (qrLoader) qrLoader.classList.add('hidden');
+    if (qrError) qrError.classList.add('hidden');
+    if (qrImage) {
+        qrImage.classList.remove('hidden');
+        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}&color=ffffff&bgcolor=0f172a`;
+    }
+    if (qrStatusText) {
+        qrStatusText.textContent = 'Escaneie o QR Code abaixo:';
+        qrStatusText.style.color = 'var(--color-text)';
+    }
 }
 
 // Socket Bindings
-socket.on('connect', () => {
-    console.log('✅ Dashboard Connected to BotArena Backend');
-});
+if (socket) {
+    socket.on('connect', () => {
+        console.log('✅ Dashboard Connected to BotArena Backend');
+        checkAuthAndRedirect();
+    });
 
-socket.on('bot_status', (data) => {
-    console.log('📡 [Socket] bot_status:', data);
-    updateBotStatus(data.active);
-});
+    socket.on('bot_status', (data) => {
+        updateBotStatus(data.active);
+    });
 
-socket.on('bot_online', (data) => {
-    console.log('✅ [Socket] bot_online:', data);
-    updateBotStatus(true);
-});
+    socket.on('bot_online', () => {
+        updateBotStatus(true);
+    });
 
-socket.on('bot_disconnected', (data) => {
-    console.log('⚠️ [Socket] bot_disconnected:', data);
-    updateBotStatus(false);
-});
+    socket.on('bot_disconnected', () => {
+        updateBotStatus(false);
+    });
 
-socket.on('qr', (qrData) => {
-    console.log('📱 [Socket] QR Code Received from WhatsApp:', qrData.substring(0, 20) + '...');
-    updateQRCode(qrData);
-});
+    socket.on('qr', (qrData) => {
+        updateQRCode(qrData);
+    });
 
-socket.on('config_updated', (newConfig) => {
-    console.log('🔄 [Socket] config updated remotely:', newConfig);
-    updateBotStatus(newConfig.bot_active);
-});
+    socket.on('auth_success', () => {
+        console.log('🔐 [Socket] auth_success triggered');
+        if (qrContainer) qrContainer.style.display = 'none';
+        window.location.replace('chat.html');
+    });
 
-// Initialize Settings
-document.addEventListener('DOMContentLoaded', fetchDashboardConfig);
+    socket.on('force_logout', () => {
+        if (window.closeModal) window.closeModal();
+        updateBotStatus(false);
+    });
 
-// Toggle Handling
-if (botToggleSwitch) {
-    botToggleSwitch.addEventListener('change', async (e) => {
-        const isActive = e.target.checked;
-        
-        try {
-            await fetch(`${BASE_URL}/api/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bot_active: isActive })
-            });
-        } catch (err) {
-            console.error('❌ [Config] Error saving toggle state:', err);
-            e.target.checked = !isActive; // Revert on failure
-        }
+    socket.on('config_updated', (newConfig) => {
+        updateBotStatus(newConfig.bot_active);
     });
 }
+
+// ==========================================
+// 🚀 INITIALIZATION
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuthAndRedirect();
+
+    // Listen to config loaded from utils.js
+    window.addEventListener('configLoaded', (e) => {
+        const config = e.detail;
+        updateBotStatus(config.bot_active);
+    });
+
+    if (botToggleSwitch) {
+        botToggleSwitch.addEventListener('change', async (e) => {
+            const isActive = e.target.checked;
+            updateBotStatus(isActive);
+            try {
+                await fetch(`${window.BASE_URL}/api/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bot_active: isActive })
+                });
+            } catch (err) { 
+                updateBotStatus(!isActive); 
+                if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err); 
+            }
+        });
+    }
+
+
+    // --- Menu File Preview (Sprint: Menu Asset Management) ---
+    const menuFile = document.getElementById('menuFile');
+    const filePreview = document.getElementById('filePreview');
+
+    if (menuFile && filePreview) {
+        menuFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                filePreview.classList.add('has-file');
+                const isImg = file.type.startsWith('image/');
+                const iconClass = isImg ? 'fa-image' : 'fa-file-pdf';
+                const fileSize = (file.size / 1024).toFixed(1);
+                
+                filePreview.innerHTML = `
+                    <i class="fa-solid ${iconClass}"></i>
+                    <div style="text-align: center;">
+                        <strong style="display: block; font-size: 0.9rem;">${file.name}</strong>
+                        <small style="color: var(--color-text-muted);">${fileSize} KB</small>
+                    </div>
+                `;
+            } else {
+                filePreview.classList.remove('has-file');
+                filePreview.innerHTML = `
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Selecione PDF ou Imagem</span>
+                `;
+            }
+        });
+    }
+});
