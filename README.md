@@ -49,6 +49,16 @@ O projeto segue princípios de **Clean Architecture** e **Modular Design**, gara
 
 ---
 
+## ⚙️ CI/CD & Automação
+
+O BotArena utiliza **GitHub Actions** para garantir a qualidade do código através de uma pipeline de Integração Contínua (CI) automatizada:
+
+*   **Testes Rápidos (`test-fast`):** Execução de testes unitários, testes de banco de dados e auditoria de segurança em cada push para `qa` ou `main`.
+*   **Testes E2E (`test-e2e`):** Validação visual e de fluxo completo utilizando **Playwright** em ambientes isolados.
+*   **Sentry Release:** Automatização da criação de releases no Sentry após o sucesso dos testes em `main`, garantindo rastreabilidade total de erros.
+
+---
+
 ## 📂 Estrutura do Repositório
 
 ```text
