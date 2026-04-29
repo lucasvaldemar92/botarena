@@ -1,6 +1,9 @@
 // ==========================================
 // 🛡️ SENTRY INITIALIZATION (must load first)
 // ==========================================
+require('dotenv').config();
+process.env.TZ = process.env.TZ || 'America/Sao_Paulo';
+
 const Sentry = require("@sentry/node");
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
