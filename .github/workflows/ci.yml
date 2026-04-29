@@ -1,0 +1,69 @@
+name: BotArena CI
+
+on:
+  push:
+    branches: [ qa, main ]
+
+jobs:
+  test-fast:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: botarena-back
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: botarena-back/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: |
+          npm run test
+          npm run teste-banco
+          npm run teste-seg
+
+  test-e2e:
+    needs: test-fast
+    if: github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: botarena-back
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: botarena-back/package-lock.json
+
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx playwright test
+
+  sentry-release:
+    needs: test-e2e
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: botarena-back
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Sentry Release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
