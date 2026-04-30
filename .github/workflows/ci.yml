@@ -23,6 +23,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Setup CI Environment
+        run: |
+          cp .env.example .env
+          node scripts/ci_setup_db.js
+
       - name: Run Tests
         run: |
           npm run test
