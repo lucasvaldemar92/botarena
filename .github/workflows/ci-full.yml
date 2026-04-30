@@ -1,41 +1,30 @@
-name: BotArena CI
-
+name: BotArena CI Full
 on:
   push:
-    branches: [ qa, main ]
-
+    branches:
+      - 'homolog'
+      - 'main'
 jobs:
-  test-fast:
+  test-full:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: botarena-back
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: botarena-back/package-lock.json
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Setup CI Environment
-        run: |
-          cp .env.example .env
-          node scripts/ci_setup_db.js
-
-      - name: Run Tests
-        run: |
-          npm run test
-          npm run teste-banco
-          npm run teste-seg
-
+      - run: cp .env.example .env
+      - run: npm ci
+      - run: node scripts/ci_setup_db.js
+      - run: npm run test
+      - run: npm run teste-banco
+      - run: npm run teste-seg
   sentry-release:
-    needs: test-fast
+    needs: test-full
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     defaults:
@@ -43,7 +32,6 @@ jobs:
         working-directory: botarena-back
     steps:
       - uses: actions/checkout@v4
-
       - name: Sentry Release
         uses: getsentry/action-release@v3
         env:
