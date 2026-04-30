@@ -21,7 +21,7 @@ O projeto segue princípios de **Clean Architecture** e **Modular Design**, gara
 ## 🛠️ Tech Stack
 
 ### **Backend**
-*   **Runtime:** Node.js (v18+)
+*   **Runtime:** Node.js (v22+)
 *   **Framework:** Express
 *   **Real-time:** Socket.IO (v4)
 *   **WhatsApp Engine:** `whatsapp-web.js` (com suporte a Multi-Device)
@@ -51,11 +51,25 @@ O projeto segue princípios de **Clean Architecture** e **Modular Design**, gara
 
 ## ⚙️ CI/CD & Automação
 
-O BotArena utiliza **GitHub Actions** para garantir a qualidade do código através de uma pipeline de Integração Contínua (CI) automatizada:
+O BotArena utiliza **GitHub Actions** com uma arquitetura de pipeline dividida para otimizar o ciclo de feedback:
 
-*   **Testes Rápidos (`test-fast`):** Execução de testes unitários, testes de banco de dados e auditoria de segurança em cada push para `qa` ou `main`.
-*   **Testes E2E (`test-e2e`):** Validação visual e de fluxo completo utilizando **Playwright** em ambientes isolados.
-*   **Sentry Release:** Automatização da criação de releases no Sentry após o sucesso dos testes em `main`, garantindo rastreabilidade total de erros.
+*   **⚡ BotArena CI Fast (`ci-fast.yml`):** Executado em cada push para `feat/**`, `fix/**`, `chore/**` e `qa`. Focado em velocidade, realiza a instalação limpa (`npm ci`), prepara o banco de dados temporário (`ci_setup_db.js`) e executa os testes unitários, de integridade de banco e auditoria de segurança.
+*   **🛡️ BotArena CI Full (`ci-full.yml`):** Executado em pushes para `homolog` e `main`. Além de todos os testes do workflow rápido, este pipeline gerencia o **Sentry Release** automaticamente ao atingir a branch `main`, garantindo que a versão em produção esteja devidamente monitorada.
+*   **🗄️ Database Automation:** O ambiente de CI conta com um script de bootstrap (`scripts/ci_setup_db.js`) que inicializa o esquema SQLite e aplica migrações dinamicamente, garantindo testes determinísticos sem necessidade de um banco persistente no runner.
+
+---
+
+## 🔄 Fluxo de Trabalho (Git Workflow)
+
+Para garantir a estabilidade do sistema, seguimos um fluxo rigoroso de promoção de código:
+
+1.  **Desenvolvimento**: Branches `feat/BA-XX`, `fix/BA-XX` ou `chore/BA-XX`.
+2.  **QA (Qualidade)**: Merge para a branch `qa` para testes integrados automatizados.
+3.  **Homologação**: Promoção para a branch `homolog` para validação pré-produção.
+4.  **Produção**: Merge final para a branch `main`, disparando o release oficial e monitoramento no Sentry.
+
+> [!TIP]
+> As branches `main` e `homolog` possuem regras de proteção que exigem o sucesso do workflow **BotArena CI Full** antes de permitir o merge.
 
 ---
 
