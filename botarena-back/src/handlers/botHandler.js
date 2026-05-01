@@ -39,6 +39,9 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
     client.removeAllListeners('message');
     client.removeAllListeners('message_create');
     client.on('message_create', async (msg) => {
+        // 🛡️ Ignore WhatsApp status/stories — must be the FIRST check
+        if (msg.isStatus) return;
+
         // Ignore messages sent by the system (fromMe) – Bot only reacts to external messages
         if (msg.fromMe === true || msg.id.fromMe === true) {
             return; // Completely ignore any message sent by the system/operator
