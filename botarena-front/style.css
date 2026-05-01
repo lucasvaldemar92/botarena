@@ -902,6 +902,7 @@ body.theme-light .glass-panel {
     padding: 8px 14px;
     background: #ffffff;
     border-bottom: 1px solid #e9edef;
+    min-width: 0;
     overflow-x: auto;
     scrollbar-width: none;
 }
