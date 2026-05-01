@@ -921,6 +921,7 @@ body.theme-light .glass-panel {
     font-family: var(--font-main);
     cursor: pointer;
     white-space: nowrap;
+    flex-shrink: 0;
     transition: var(--transition-fast);
 }
 
