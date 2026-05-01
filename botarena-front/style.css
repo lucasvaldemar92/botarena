@@ -854,7 +854,6 @@ body.theme-light .glass-panel {
     background: #ffffff !important;
     border-right: 1px solid #e9edef;
     border-radius: 0 !important;
-    overflow-y: hidden;
 }
 
 .chat-sidebar__header {
@@ -898,11 +897,11 @@ body.theme-light .glass-panel {
 /* Chat Sidebar Filters */
 .chat-sidebar__filters {
     display: flex;
-    gap: 0.5rem;
-    padding: 8px 14px;
+    gap: 6px;
+    padding: 8px 10px;
     background: #ffffff;
     border-bottom: 1px solid #e9edef;
-    min-width: 0;
+    flex-shrink: 0;
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -915,9 +914,9 @@ body.theme-light .glass-panel {
     background: #f0f2f5;
     border: none;
     color: #54656f;
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 20px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
     font-family: var(--font-main);
     cursor: pointer;

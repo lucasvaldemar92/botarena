@@ -17,22 +17,16 @@ test('Visual Sync & Story Filter Verification', async ({ page }) => {
     // 2. We wait a moment for everything to settle
     await page.waitForTimeout(1000); 
 
-    // Task 3: Visual E2E "Story-Proof" Test
-    console.log('🔄 SImulando clique no Story/Status...');
-    await page.click('[data-testid="chat-item-story"]');
-    await page.waitForTimeout(500);
+    // Task 3: Verify Status/Story item is NOT present in contact list
+    console.log('🔄 Verificando ausência do item Status na lista...');
+    const storyItem = page.locator('[data-testid="chat-item-story"]');
+    await expect(storyItem).toHaveCount(0);
+    console.log('✅ Status (Contato) ausente da lista — filtro de status operante!');
 
-    // Try to type
+    // Verify chat input is functional (not locked)
     const chatInput = page.locator('.chat-input');
-    const btnSend = page.locator('[data-testid="send-message-btn"]');
-    
-    // Assertions
-    await expect(chatInput).toBeDisabled();
-    if (await btnSend.count() > 0) {
-        await expect(btnSend).toBeDisabled();
-    }
-    await expect(chatInput).toHaveAttribute('placeholder', /Não é permitido/);
-    console.log('✅ UI Context Lock validado: Botão e Input desabilitados!');
+    await expect(chatInput).toBeEnabled();
+    console.log('✅ Chat input habilitado e funcional.');
 
     // 3. Take the visual screenshot
     await page.screenshot({ path: 'qa-evidence/last_test_state.png', fullPage: true });

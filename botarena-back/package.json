@@ -11,10 +11,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "migrate": "node scripts/migrate_add_company_id.js",
-    "qa": "node --check server.js src/routes/api.js src/container.js && npm run teste-codigo && npm run teste-seg && npm run test",
-    "testes": "npm run qa && npm run teste-banco && npm run teste-e2e",
-    "qa:full": "node scripts/run_qa_full.js",
-    "qa:extreme": "node scripts/run_qa_full.js --full"
+    "qa": "node scripts/run_qa_full.js",
+    "qa:full": "node scripts/run_qa_full.js --full"
   },
   "keywords": [],
   "author": "",
