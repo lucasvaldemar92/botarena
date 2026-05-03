@@ -1405,6 +1405,32 @@ body.theme-light .glass-panel {
     line-height: 1.4;
 }
 
+/* Quick Replies Area */
+.quick-replies-container {
+    padding: 10px 20px;
+    background: #f0f2f5;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.quick-reply-btn {
+    background: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111b21;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: background 0.2s;
+}
+
+.quick-reply-btn:hover {
+    background: #e9edef;
+}
+
 /* Input Area */
 .chat-main__input-area {
     background: #f0f2f5;

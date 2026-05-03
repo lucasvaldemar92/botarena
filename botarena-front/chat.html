@@ -241,6 +241,13 @@
                         </div>
                     </div>
 
+                    <!-- Quick Replies -->
+                    <div class="quick-replies-container">
+                        <button class="quick-reply-btn" data-testid="quick-reply-pix" id="quick-reply-pix">Chave Pix</button>
+                        <button class="quick-reply-btn" id="quick-reply-rota">Pedido em Rota</button>
+                        <button class="quick-reply-btn" id="quick-reply-menu">Cardápio</button>
+                    </div>
+
                     <footer class="chat-main__input-area">
                         <button class="icon-btn"><i class="fa-solid fa-plus"></i></button>
                         <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
@@ -269,6 +276,23 @@
                             <label class="settings-form__label">Nome da Empresa</label>
                             <input type="text" class="settings-form__input" value="Lanchonete X" placeholder="Ex: Burguer King" data-testid="cfg-company-name">
                         </div>
+                    </div>
+                    <!-- Section: Pix -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <label class="settings-form__label">Chave Pix</label>
+                                <input type="text" id="cfg-pix-key" class="settings-form__input" placeholder="CNPJ, Email ou Celular" data-testid="cfg-pix-key">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="settings-form__label">Nome do favorecido</label>
+                                <input type="text" id="cfg-pix-name" class="settings-form__input" placeholder="Ex: Arena Juvenal" data-testid="cfg-pix-name">
+                            </div>
+                        </div>
+                        <small style="color: #008069; display: flex; align-items: center; gap: 5px; font-weight: 600;">
+                            <i class="fa-solid fa-bolt"></i> Disponível como atalho no menu do chat
+                        </small>
                     </div>
                     <!-- Section: Automação -->
                     <div class="settings-form__section">
