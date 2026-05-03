@@ -22,8 +22,44 @@ const { settingsRepo, knowledgeRepo, menuRepo } = require('./src/container');
 // ==========================================
 const app    = express();
 const server = http.createServer(app);
+
+// ==========================================
+// 🛡️ CORS CONFIGURATION (SEC-001)
+// ==========================================
+const allowedOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',') 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+};
+
+const jwt = require('jsonwebtoken');
+
 const io     = new Server(server, {
-    cors: { origin: '*', methods: ['GET', 'POST'] }
+    cors: corsOptions
+});
+
+// ==========================================
+// 🔐 SOCKET AUTH MIDDLEWARE
+// ==========================================
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Authentication error: token required'));
+  try {
+    socket.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    next(new Error('Autenticação inválida'));
+  }
 });
 
 const PORT = 3000;
@@ -31,7 +67,7 @@ const PORT = 3000;
 // ==========================================
 // 🛡️ MIDDLEWARE
 // ==========================================
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // ==========================================
@@ -39,19 +75,22 @@ app.use(express.json());
 // ==========================================
 app.use(express.static(path.join(__dirname, '../botarena-front')));
 
-// Helper: Serve HTML with injected Sentry DSN
-function serveHTMLWithSentryDSN(res, filePath) {
-    const dsn       = process.env.SENTRY_DSN || '';
-    const injection = `<script>window.__SENTRY_DSN__="${dsn}";</script>`;
+// ==========================================
+// 🚀 IN-MEMORY HTML CACHE (PERF-001)
+// ==========================================
+const htmlCache = {};
+const dsn = process.env.SENTRY_DSN || '';
+const injection = `<script>window.__SENTRY_DSN__="${dsn}";</script>`;
 
-    fs.readFile(filePath, 'utf8', (err, html) => {
-        if (err) {
-            console.error('❌ [Static] Error reading HTML:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-        const injectedHTML = html.replace('</head>', `    ${injection}\n</head>`);
-        res.type('html').send(injectedHTML);
-    });
+try {
+    const dashboardPath = path.join(__dirname, '../botarena-front/dashboard.html');
+    const chatPath = path.join(__dirname, '../botarena-front/chat.html');
+    
+    htmlCache['dashboard'] = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+    htmlCache['chat'] = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+    console.log('✅ [Cache] Static HTML files loaded into memory.');
+} catch (err) {
+    console.error('❌ [Cache] Error loading HTML files:', err);
 }
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
@@ -65,11 +104,11 @@ app.get('/dashboard', async (req, res) => {
     } catch (err) {
         console.error('❌ Middleware checking config failed:', err);
     }
-    serveHTMLWithSentryDSN(res, path.join(__dirname, '../botarena-front/dashboard.html'))
+    res.type('html').send(htmlCache['dashboard']);
 });
 
 app.get('/chat', (req, res) =>
-    serveHTMLWithSentryDSN(res, path.join(__dirname, '../botarena-front/chat.html'))
+    res.type('html').send(htmlCache['chat'])
 );
 
 // ==========================================

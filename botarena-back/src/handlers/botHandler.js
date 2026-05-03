@@ -2,6 +2,7 @@
 // 🤖 BOT INTELLIGENCE (Smart Auto-Reply)
 // ==========================================
 const seenContacts = new Set();
+const sanitizeHtml = require('sanitize-html');
 
 /**
  * safeReply — Wraps msg.reply() with a client readiness guard.
@@ -56,6 +57,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
         console.log(`💬 [WhatsApp] Message ${msg.fromMe ? 'Sent' : 'Received'} - ID: ${msg.id.id}`);
 
         if (msg.body) {
+            msg.body = sanitizeHtml(msg.body, { allowedTags: [], allowedAttributes: {} });
             io.emit('new_message', {
                 id:        msg.id._serialized,
                 from:      msg.from,
