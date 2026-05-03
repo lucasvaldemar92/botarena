@@ -4,173 +4,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>botarena - Chat</title>
-    <!-- Use Outfit font to match the CSS variables -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Bot WhatsApp</title>
+    <!-- Use system font to match WhatsApp Web closely -->
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <!-- 🛡️ Sentry Browser SDK (Tracing + Replay) -->
+    <!-- 🛡️ Sentry Browser SDK -->
     <script src="https://browser.sentry-cdn.com/10.45.0/bundle.tracing.replay.min.js"
         integrity="sha384-EdYeZPKoZvjjRFLx/LmMXczbuvX701VUTBEWUmmiOYvHav+mp5GzqV/kpQjQ6f8F"
         crossorigin="anonymous"></script>
     <script src="sentry-init.js"></script>
     <script>
         (function() {
-            // Force light mode layout for this refactored view
             document.documentElement.className = 'theme-light';
         })();
     </script>
 </head>
 
 <body class="theme-light chat-body">
-    <!-- Header Minimal -->
-    <header class="navbar chat-navbar" data-testid="chat-header">
-        <div class="navbar__container chat-navbar__container">
-            <a href="dashboard.html" class="navbar__logo" data-testid="logo-text">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span id="header-company-logo">botarena</span>
-            </a>
-            <div class="header-controls" style="display: flex; align-items: center; gap: 1rem;">
-                <div class="control__status chat-header-status" data-testid="status-indicator">
-                    <span class="control__led control__led--online" id="header-bot-led" data-testid="status-led"></span>
-                    <span class="control__status-text" id="header-bot-text" data-testid="status-text">Carregando...</span>
-                </div>
-                <!-- Toggle Switch for Bot -->
-                <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label"
-                    title="Ativar/Desativar Bot" aria-label="Ativar/Desativar Bot">
-                    <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle"
-                        data-testid="bot-toggle-switch" aria-label="Ativar/Desativar Bot">
+    <!-- Top Window Title Bar (Faking Desktop Window) -->
+    <div class="window-title-bar">
+        <div class="window-title-left">
+            <i class="fa-brands fa-whatsapp" style="color: #25d366; font-size: 1.1rem;"></i>
+            <span>Bot WhatsApp</span>
+        </div>
+        <div class="window-title-right">
+            <i class="fa-solid fa-minus"></i>
+            <i class="fa-regular fa-square"></i>
+            <i class="fa-solid fa-xmark"></i>
+        </div>
+    </div>
 
-                    <span class="toggle-switch__slider"></span>
-                </label>
-                <!-- Settings Button -->
-                <button class="icon-btn header-settings-btn" id="open-settings-btn" data-testid="open-settings" aria-label="Configurações">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
+    <!-- Application Wrapper -->
+    <div class="app-wrapper">
+        <!-- Application Header (Config & Stop Bot) -->
+        <header class="app-header">
+            <div class="app-header__left" id="open-settings-btn" data-testid="open-settings">
+                <i class="fa-solid fa-gear"></i>
+                <span>Configurações</span>
+            </div>
+            <div class="app-header__right" id="stop-bot-btn">
+                <div class="stop-icon"></div>
+                <span>Parar Bot</span>
+            </div>
+        </header>
+
+        <!-- Main Inner Border Container (Teal border) -->
+        <div class="main-border-container">
+            <div class="whatsapp-layout">
+                
+                <!-- NEW Nav Rail -->
+                <nav class="nav-rail">
+                    <div class="nav-rail__top">
+                        <button class="nav-rail__item nav-rail__item--active">
+                            <i class="fa-regular fa-message"></i>
+                            <span class="nav-rail__badge">40</span>
+                        </button>
+                        <button class="nav-rail__item"><i class="fa-solid fa-phone"></i></button>
+                        <button class="nav-rail__item"><i class="fa-regular fa-circle"></i></button>
+                        <button class="nav-rail__item"><i class="fa-solid fa-users"></i></button>
+                        <!-- meta AI ring mock -->
+                        <button class="nav-rail__item"><div class="meta-ai-ring"></div></button>
+                    </div>
+                    <div class="nav-rail__bottom">
+                        <button class="nav-rail__item"><i class="fa-solid fa-gear"></i></button>
+                        <button class="nav-rail__item nav-rail__avatar">
+                            <img src="https://ui-avatars.com/api/?name=User&background=ddd&color=333" alt="User">
+                        </button>
+                    </div>
+                </nav>
+
+                <!-- Sidebar (Chats List) -->
+                <aside class="chat-sidebar" data-testid="chat-sidebar">
+                    <div class="sidebar-header">
+                        <h2>WhatsApp</h2>
+                        <div class="sidebar-header__actions">
+                            <button><i class="fa-regular fa-pen-to-square"></i></button>
+                            <button><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="search-container">
+                        <div class="search-input-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" placeholder="Pesquisar ou começar uma nova conversa">
+                        </div>
+                    </div>
+
+                    <div class="filter-chips">
+                        <button class="filter-btn filter-btn--active">Tudo</button>
+                        <button class="filter-btn">Não lidas</button>
+                        <button class="filter-btn">Favoritas</button>
+                        <button class="filter-btn">Grupos</button>
+                    </div>
+
+                    <div class="chat-list" data-testid="contact-list">
+                        <div class="chat-list__archived">
+                            <div class="archived-left">
+                                <i class="fa-solid fa-box-archive"></i>
+                                <span>Arquivadas</span>
+                            </div>
+                            <span class="archived-count">2</span>
+                        </div>
+
+                        <!-- Chat Item Active -->
+                        <div class="chat-item chat-item--active" data-chat-id="5517999999999@c.us">
+                            <div class="chat-item__avatar">
+                                <img src="https://ui-avatars.com/api/?name=Gustavo+Cliente&background=e0e0e0&color=333" alt="">
+                            </div>
+                            <div class="chat-item__content">
+                                <div class="chat-item__top">
+                                    <span class="chat-item__name">Gustavo Cliente</span>
+                                    <span class="chat-item__time">11:14</span>
+                                </div>
+                                <div class="chat-item__bottom">
+                                    <span class="chat-item__preview"><i class="fa-solid fa-check-double status-read"></i> Temos algumas opções de sobremesas disponív...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Item -->
+                        <div class="chat-item">
+                            <div class="chat-item__avatar">
+                                <img src="https://ui-avatars.com/api/?name=+55+17+98181-8794&background=e0e0e0&color=333" alt="">
+                            </div>
+                            <div class="chat-item__content">
+                                <div class="chat-item__top">
+                                    <span class="chat-item__name">+55 17 98181-8794</span>
+                                    <span class="chat-item__time">09:53</span>
+                                </div>
+                                <div class="chat-item__bottom">
+                                    <span class="chat-item__preview"><i class="fa-solid fa-check-double status-read"></i> Blz</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Item -->
+                        <div class="chat-item">
+                            <div class="chat-item__avatar">
+                                <img src="https://ui-avatars.com/api/?name=Renan+Fornecedor&background=e0e0e0&color=333" alt="">
+                            </div>
+                            <div class="chat-item__content">
+                                <div class="chat-item__top">
+                                    <span class="chat-item__name">Renan Fornecedor</span>
+                                    <span class="chat-item__time">09:38</span>
+                                </div>
+                                <div class="chat-item__bottom">
+                                    <span class="chat-item__preview"><i class="fa-regular fa-image"></i> Figurinha</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Item -->
+                        <div class="chat-item">
+                            <div class="chat-item__avatar">
+                                <img src="https://ui-avatars.com/api/?name=+55+17+98839-3111&background=e0e0e0&color=333" alt="">
+                            </div>
+                            <div class="chat-item__content">
+                                <div class="chat-item__top">
+                                    <span class="chat-item__name">+55 17 98839-3111</span>
+                                    <span class="chat-item__time">07:37</span>
+                                </div>
+                                <div class="chat-item__bottom">
+                                    <span class="chat-item__preview"><i class="fa-solid fa-check status-sent"></i> ok</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="sidebar-footer-download">
+                        <i class="fa-brands fa-whatsapp"></i>
+                        <span>Baixar o WhatsApp para Windows</span>
+                    </div>
+                </aside>
+
+                <!-- Main Chat Area -->
+                <main class="chat-main" data-testid="chat-main">
+                    <header class="chat-main__header">
+                        <div class="chat-main__contact">
+                            <img src="https://ui-avatars.com/api/?name=Gustavo+Cliente&background=e0e0e0&color=333" alt="">
+                            <span>Gustavo Cliente</span>
+                        </div>
+                        <div class="chat-main__actions">
+                            <button><i class="fa-solid fa-video"></i></button>
+                            <button><i class="fa-solid fa-phone"></i></button>
+                            <button><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <button><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                        </div>
+                    </header>
+
+                    <div class="chat-main__history chat-messages" data-testid="chat-history">
+                        <!-- Message Received (Green) -->
+                        <div class="message message--sent fade-in-section">
+                            <div class="message__bubble">
+                                <span class="message__text">Posso te ajudar em mais alguma coisa? 😊</span>
+                                <div class="message__meta">
+                                    <span class="message__time">10:58</span>
+                                    <i class="fa-solid fa-check-double status-read"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Audio Message Received (White) -->
+                        <div class="message message--received fade-in-section">
+                            <div class="message__bubble audio-message">
+                                <div class="audio-controls">
+                                    <i class="fa-solid fa-play"></i>
+                                    <div class="audio-waveform">
+                                        <div class="audio-dot"></div>
+                                        <div class="bars"></div>
+                                    </div>
+                                    <div class="audio-avatar">
+                                        <img src="https://ui-avatars.com/api/?name=G&background=e0e0e0&color=333" alt="">
+                                        <i class="fa-solid fa-microphone"></i>
+                                    </div>
+                                </div>
+                                <div class="audio-meta">
+                                    <span class="audio-duration">0:02</span>
+                                    <span class="message__time">11:13</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Complex Message Sent (Green) -->
+                        <div class="message message--sent fade-in-section">
+                            <div class="message__bubble complex-message">
+                                <div class="link-preview">
+                                    <div class="link-preview-img"><i class="fa-solid fa-bag-shopping"></i></div>
+                                    <div class="link-preview-text">
+                                        <h4>Consumer Delivery - Cardápio Consumer Delivery São José do Rio Preto</h4>
+                                        <p>Pizzaria Consumer Delivery São José do Rio Preto. Faça Pedidos e acesse o Cardápio do consumerdelivery.menudino.com</p>
+                                    </div>
+                                </div>
+                                <div class="message__text">
+                                    <p>Temos algumas opções de sobremesas disponíveis! 😋</p>
+                                    <br>
+                                    <p>• Godoy's Cream: Sorvete artesanal envolto em bolacha. Consulte os sabores disponíveis por R$ 17,00.</p>
+                                    <p>• Mousse de Chocolate: Deliciosa mousse de chocolate meio amargo por R$ 12,00.</p>
+                                    <br>
+                                    <p>Para mais detalhes e sabores disponíveis, confira o link no topo!</p>
+                                </div>
+                                <div class="message__meta">
+                                    <span class="message__time">11:14</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <footer class="chat-main__input-area">
+                        <button class="icon-btn"><i class="fa-solid fa-plus"></i></button>
+                        <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
+                        <input type="text" class="chat-input" placeholder="Digite uma mensagem">
+                        <button class="icon-btn send-btn" data-testid="send-message-btn"><i class="fa-solid fa-microphone"></i></button>
+                    </footer>
+                </main>
             </div>
         </div>
-    </header>
-
-    <main class="chat-layout" data-testid="chat-layout">
-        <!-- Sidebar: Chat List -->
-        <aside class="chat-sidebar sidebar" data-testid="chat-sidebar">
-            <div class="chat-sidebar__header">
-                <h2>Chats</h2>
-                <div class="chat-sidebar__actions">
-                    <button class="icon-btn" aria-label="Novo chat"><i class="fa-solid fa-plus"></i></button>
-                    <button class="icon-btn" aria-label="Menu"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                </div>
+        
+        <!-- Bottom Status Footer -->
+        <footer class="app-footer">
+            <div class="app-footer__left">
+                <!-- Toggle switch / Pause Bot -->
+                <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label">
+                    <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle" data-testid="bot-toggle-switch">
+                    <span class="toggle-switch__slider"></span>
+                </label>
+                <span>Pausar Bot na Conversa</span>
             </div>
-            <div class="chat-sidebar__search">
-                <div class="search-input-wrapper">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" placeholder="Buscar ou iniciar conversa" aria-label="Buscar conversa">
-                </div>
+            <div class="app-footer__right">
+                <i class="fa-solid fa-play" style="color: #25d366; margin-right: 5px;"></i> <span id="header-bot-text">O Bot está ativo.</span>
+                <span id="header-bot-led" class="control__led" style="display: none;"></span>
             </div>
+        </footer>
+    </div>
 
-            <!-- WhatsApp-style Filter Bar -->
-            <div class="chat-sidebar__filters">
-                <button class="filter-btn filter-btn--active" data-testid="filter-all">Tudo</button>
-                <button class="filter-btn" data-testid="filter-unread">Não lidas</button>
-                <button class="filter-btn" data-testid="filter-orders">Pedidos</button>
-                <button class="filter-btn" data-testid="filter-favorites">Favoritos</button>
-                <button class="filter-btn" data-testid="filter-groups">Grupos</button>
-            </div>
-
-            <div class="chat-sidebar__list" data-testid="contact-list">
-                <!-- Chat Item 1 (Active) -->
-                <div class="chat-item chat-item--active" data-testid="chat-item-1" data-chat-id="554499824696@c.us">
-                    <div class="chat-item__avatar">
-                        <img src="https://ui-avatars.com/api/?name=João+Silva&background=3b82f6&color=fff" alt="Avatar">
-                    </div>
-                    <div class="chat-item__content">
-                        <div class="chat-item__header">
-                            <span class="chat-item__name">João Silva <span class="badge badge--orange" data-testid="badge-order">Novo Pedido</span></span>
-                            <span class="chat-item__time">10:45 AM</span>
-                        </div>
-                        <div class="chat-item__snippet">Claro, o cardápio está pronto!</div>
-                    </div>
-                </div>
-                <!-- Chat Item 2 -->
-                <div class="chat-item" data-testid="chat-item-2" data-chat-id="5511999999999@c.us">
-                    <div class="chat-item__avatar">
-                        <img src="https://ui-avatars.com/api/?name=Maria+Oliveira&background=10b981&color=fff"
-                            alt="Avatar">
-                    </div>
-                    <div class="chat-item__content">
-                        <div class="chat-item__header">
-                            <span class="chat-item__name">Maria Oliveira</span>
-                            <span class="chat-item__time">Yesterday</span>
-                        </div>
-                        <div class="chat-item__snippet">Vocês entregam nessa região?</div>
-                    </div>
-                </div>
-
-            </div>
-        </aside>
-
-        <!-- Main Chat Area -->
-        <section class="chat-main" data-testid="chat-main">
-            <!-- Active Chat Header (Hidden for Global Header compliance) -->
-            <header class="chat-main__header" style="display: none;">
-                <div class="chat-main__contact-info">
-                    <button class="icon-btn mobile-only chat-main__back-btn" id="back-to-list-btn" aria-label="Voltar para lista">
-                        <i class="fa-solid fa-arrow-left"></i>
-                    </button>
-                    <div class="chat-item__avatar">
-                        <img src="https://ui-avatars.com/api/?name=João+Silva&background=3b82f6&color=fff" alt="Avatar">
-                    </div>
-                    <div class="contact-details">
-                        <span class="contact-name">João Silva</span>
-                        <span class="contact-status">online</span>
-                    </div>
-                </div>
-                <div class="chat-main__actions">
-                    <button class="icon-btn" aria-label="Buscar na conversa"><i class="fa-solid fa-magnifying-glass"></i></button>
-                    <button class="icon-btn" aria-label="Menu da conversa"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                </div>
-            </header>
-
-            <!-- Chat History -->
-            <div class="chat-main__history chat-messages" data-testid="chat-history">
-                <!-- Received Message -->
-                <div class="message message--received fade-in-section">
-                    <div class="message__bubble">
-                        <p class="message__text">Olá, gostaria de saber se vocês têm o cardápio de hoje.</p>
-                        <span class="message__time">10:42 AM</span>
-                    </div>
-                </div>
-                <!-- Sent Message -->
-                <div class="message message--sent fade-in-section" style="animation-delay: 0.1s;">
-                    <div class="message__bubble">
-                        <p class="message__text">Olá João! Claro, o cardápio está pronto!</p>
-                        <span class="message__time">10:45 AM</span>
-                        <span class="message__status"><i class="fa-solid fa-check-double"
-                                style="color: #3b82f6;"></i></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Input Area -->
-            <div class="chat-main__footer">
-                <div class="chat-main__quick-replies">
-                    <button class="quick-reply-btn" id="quick-reply-pix" data-testid="quick-reply-pix">Chave Pix</button>
-                    <button class="quick-reply-btn" id="quick-reply-rota">Pedido em Rota</button>
-                    <button class="quick-reply-btn" id="quick-reply-menu">Cardápio</button>
-                </div>
-                <footer class="chat-main__input-area">
-                    <button class="icon-btn" aria-label="Emoji"><i class="fa-regular fa-face-smile"></i></button>
-                    <button class="icon-btn" aria-label="Anexar arquivo"><i class="fa-solid fa-paperclip"></i></button>
-                    <input type="text" class="chat-input" placeholder="Type a message" aria-label="Digite uma mensagem">
-                    <button class="icon-btn send-btn" data-testid="send-message-btn" aria-label="Enviar mensagem"><i
-                            class="fa-solid fa-paper-plane"></i></button>
-                </footer>
-            </div>
-        </section>
-    </main>
-
-    <!-- Settings Overlay Modal -->
+    <!-- Settings Overlay Modal (Preserved for functionality) -->
     <div class="settings-modal" id="settings-modal" data-testid="settings-modal">
         <div class="settings-modal__backdrop" id="settings-backdrop"></div>
         <aside class="settings-modal__panel glass-panel">
@@ -180,7 +289,6 @@
             </header>
             <div class="settings-modal__content">
                 <form id="settings-form" class="settings-form">
-                    
                     <!-- Section: Identidade -->
                     <div class="settings-form__section">
                         <h3 class="settings-form__section-title"><i class="fa-solid fa-store"></i> Identidade</h3>
@@ -189,30 +297,6 @@
                             <input type="text" class="settings-form__input" value="Lanchonete X" placeholder="Ex: Burguer King" data-testid="cfg-company-name">
                         </div>
                     </div>
-
-                    <!-- Section: Cadastro Chave Pix -->
-                    <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Chave Pix</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
-                                    data-testid="pix-input-masked" id="cfg-pix-key">
-                            </div>
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Nome do favorecido</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
-                                    data-testid="pix-name" id="cfg-pix-name">
-                            </div>
-                        </div>
-                        <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
-                            <i class="fa-solid fa-bolt" style="color: var(--color-primary); margin-right: 0.25rem;"></i>
-                            Disponível como atalho no menu do chat
-                        </p>
-                    </div>
-
-
-
                     <!-- Section: Automação -->
                     <div class="settings-form__section">
                         <h3 class="settings-form__section-title"><i class="fa-solid fa-robot"></i> Automação</h3>
@@ -226,13 +310,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="settings-form__group" style="margin-top: 1.5rem;">
-                            <button type="button" class="btn-animado btn-secondary" style="width: 100%; justify-content: center; gap: 0.5rem;" id="test-bot-btn" data-testid="btn-test-bot">
-                                <i class="fa-solid fa-play"></i> Visualizar Simulação de Venda
-                            </button>
-                        </div>
                     </div>
-
                 </form>
             </div>
             <footer class="settings-modal__footer" style="flex-direction: column; gap: 0.5rem;">
@@ -247,35 +325,6 @@
         </aside>
     </div>
 
-    <!-- Test Bot Simulation Bubble -->
-    <div class="test-bot-bubble" id="test-bot-bubble">
-        <div class="test-bot-bubble__header">
-            <h4><i class="fa-solid fa-robot"></i> Simulação do Bot</h4>
-            <button class="icon-btn" id="close-test-bot-btn" aria-label="Fechar simulação"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="test-bot-bubble__content">
-            <div class="message message--sent fade-in-section">
-                <div class="message__bubble" style="font-size: 0.85rem;">
-                    <p>Olá! Aqui é o atendimento virtual da <strong data-testid="sim-company-name">{{ company_name }}</strong> 🍔.</p>
-                    <p>Para ver nossas opções e fazer seu pedido, acesse nosso cardápio digital:</p>
-                    <a href="#" style="color: white; font-weight: bold; text-decoration: underline;" data-testid="sim-cardapio-link">👉 Acessar Cardápio</a>
-                    <span class="message__time">Agora</span>
-                </div>
-            </div>
-            <div class="message message--sent fade-in-section" style="animation-delay: 0.5s;">
-                <div class="message__bubble" style="font-size: 0.85rem;">
-                    <p>Seu pedido foi confirmado! 🎉</p>
-                    <p>O total é <strong>R$ 45,90</strong>.</p>
-                    <p>Nossa chave PIX é:<br><strong data-testid="sim-pix">11999999999</strong></p>
-                    <span class="message__time">Agora</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-
-    
     <!-- Socket.IO & Backend Sync -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="src/assets/js/utils.js?v=20260427"></script>
