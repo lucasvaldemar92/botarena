@@ -843,8 +843,8 @@ body.theme-light .glass-panel {
 
 .app-wrapper {
     width: 100%;
-    height: calc(100vh - 30px);
-    margin-top: 30px;
+    height: 100vh;
+    margin-top: 0;
     background: #ffffff;
     display: flex;
     flex-direction: column;
