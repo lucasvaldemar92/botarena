@@ -23,16 +23,10 @@
 </head>
 
 <body class="theme-light chat-body">
-    <!-- Top Window Title Bar (Faking Desktop Window) -->
     <div class="window-title-bar">
         <div class="window-title-left">
             <i class="fa-brands fa-whatsapp" style="color: #25d366; font-size: 1.1rem;"></i>
-            <span>Bot WhatsApp</span>
-        </div>
-        <div class="window-title-right">
-            <i class="fa-solid fa-minus"></i>
-            <i class="fa-regular fa-square"></i>
-            <i class="fa-solid fa-xmark"></i>
+            <span id="header-company-logo" style="margin-left: 5px; font-weight: 600;">Carregando...</span>
         </div>
     </div>
 
@@ -44,9 +38,15 @@
                 <i class="fa-solid fa-gear"></i>
                 <span>Configurações</span>
             </div>
-            <div class="app-header__right" id="stop-bot-btn">
-                <div class="stop-icon"></div>
-                <span>Parar Bot</span>
+            <div class="app-header__right" style="display: flex; align-items: center; gap: 15px;">
+                <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label">
+                    <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle" data-testid="bot-toggle-switch">
+                    <span class="toggle-switch__slider"></span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <i class="fa-solid fa-play" style="color: #25d366;" id="header-bot-led"></i> 
+                    <span id="header-bot-text">Carregando...</span>
+                </div>
             </div>
         </header>
 
@@ -62,7 +62,6 @@
                             <span class="nav-rail__badge">40</span>
                         </button>
                         <button class="nav-rail__item"><i class="fa-solid fa-phone"></i></button>
-                        <button class="nav-rail__item"><i class="fa-regular fa-circle"></i></button>
                         <button class="nav-rail__item"><i class="fa-solid fa-users"></i></button>
                         <!-- meta AI ring mock -->
                         <button class="nav-rail__item"><div class="meta-ai-ring"></div></button>
@@ -172,11 +171,6 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="sidebar-footer-download">
-                        <i class="fa-brands fa-whatsapp"></i>
-                        <span>Baixar o WhatsApp para Windows</span>
-                    </div>
                 </aside>
 
                 <!-- Main Chat Area -->
@@ -261,22 +255,6 @@
                 </main>
             </div>
         </div>
-        
-        <!-- Bottom Status Footer -->
-        <footer class="app-footer">
-            <div class="app-footer__left">
-                <!-- Toggle switch / Pause Bot -->
-                <label class="toggle-switch toggle-switch--small" data-testid="bot-toggle-label">
-                    <input type="checkbox" class="toggle-switch__input" id="header-bot-toggle" data-testid="bot-toggle-switch">
-                    <span class="toggle-switch__slider"></span>
-                </label>
-                <span>Pausar Bot na Conversa</span>
-            </div>
-            <div class="app-footer__right">
-                <i class="fa-solid fa-play" style="color: #25d366; margin-right: 5px;"></i> <span id="header-bot-text">O Bot está ativo.</span>
-                <span id="header-bot-led" class="control__led" style="display: none;"></span>
-            </div>
-        </footer>
     </div>
 
     <!-- Settings Overlay Modal (Preserved for functionality) -->

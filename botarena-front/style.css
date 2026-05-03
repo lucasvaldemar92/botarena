@@ -889,12 +889,12 @@ body.theme-light .glass-panel {
     border-radius: 2px;
 }
 
-/* Main inner layout with Teal Border */
+/* Main inner layout without Teal Border */
 .main-border-container {
     flex: 1;
-    margin: 5px 20px;
-    border: 4px solid #48cfcb;
-    border-radius: 4px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
     display: flex;
     overflow: hidden;
     position: relative;
