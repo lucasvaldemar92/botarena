@@ -104,12 +104,27 @@ app.get('/dashboard', async (req, res) => {
     } catch (err) {
         console.error('❌ Middleware checking config failed:', err);
     }
+    
+    // Dynamic read in development, memory cache in production
+    if (process.env.NODE_ENV !== 'production') {
+        const dashboardPath = path.join(__dirname, '../botarena-front/dashboard.html');
+        const content = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+        return res.type('html').send(content);
+    }
+    
     res.type('html').send(htmlCache['dashboard']);
 });
 
-app.get('/chat', (req, res) =>
-    res.type('html').send(htmlCache['chat'])
-);
+app.get('/chat', (req, res) => {
+    // Dynamic read in development, memory cache in production
+    if (process.env.NODE_ENV !== 'production') {
+        const chatPath = path.join(__dirname, '../botarena-front/chat.html');
+        const content = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+        return res.type('html').send(content);
+    }
+    
+    res.type('html').send(htmlCache['chat']);
+});
 
 // ==========================================
 // 📡 API ROUTES (modular)
