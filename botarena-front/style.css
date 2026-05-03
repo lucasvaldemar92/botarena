@@ -382,8 +382,9 @@ body.theme-light .glass-panel {
 }
 
 .btn-animado.btn-secondary {
-    background: var(--color-surface-hover);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #f0f2f5;
+    color: #111b21;
+    border: 1px solid #d1d7db;
     box-shadow: none;
 }
 
