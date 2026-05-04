@@ -1922,8 +1922,6 @@ body.theme-light .glass-panel {
 =            Input Visibility Fixes           =
 =============================================*/
 /* Correção de legibilidade para todos os inputs dentro do modal */
-.settings-modal__content input, 
-.settings-modal__content textarea,
 .test-bot-bubble__content input,
 .test-bot-bubble__content textarea {
     background-color: #1a1e2a !important; /* Fundo escuro */
@@ -1934,13 +1932,12 @@ body.theme-light .glass-panel {
 }
 
 /* Garante que o texto fique visível mesmo quando não selecionado */
-.settings-modal__content input::placeholder,
 .test-bot-bubble__content input::placeholder {
     color: #666;                        /* Placeholder cinza claro */
 }
 
-/* Ajuste específico para o seletor de arquivo */
-.settings-modal__content input[type="file"] {
+/* Ajuste específico para o seletor de arquivo - Mantido caso haja no bot bubble */
+.test-bot-bubble__content input[type="file"] {
     color: #cccccc !important;          /* Texto do arquivo */
 }
 
@@ -1956,18 +1953,18 @@ body.theme-light .glass-panel {
 .settings-form__input--file {
     width: 100%;
     padding: 0.75rem;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px dashed rgba(255, 255, 255, 0.1);
+    background: #f0f2f5;
+    border: 1px dashed #d1d7db;
     border-radius: var(--radius-md);
-    color: var(--color-text-main);
+    color: #111b21;
     cursor: pointer;
     font-family: var(--font-main);
 }
 
 .settings-form__input--file::-file-selector-button {
-    background: var(--color-primary);
-    color: white;
-    border: none;
+    background: #ffffff;
+    color: #54656f;
+    border: 1px solid #d1d7db;
     padding: 0.4rem 0.8rem;
     border-radius: var(--radius-md);
     margin-right: 1rem;
