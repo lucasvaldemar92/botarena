@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputEmpresa = document.getElementById('cfg-company-name');
     const inputPix = document.getElementById('cfg-pix-key');
     const inputPixName = document.getElementById('cfg-pix-name');
+    const btnDeleteIdentity = document.getElementById('btn-delete-identity');
     const inputCardapio = document.querySelector('[data-testid="cfg-menu-link"]');
     const headerCompanyLogo = document.getElementById('header-company-logo');
 
@@ -150,28 +151,98 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Delete Identity Action
+    if (btnDeleteIdentity) {
+        btnDeleteIdentity.addEventListener('click', async () => {
+            if (!confirm('Deseja realmente excluir a identidade da empresa? Isso apagará o nome e chave PIX.')) return;
+            
+            const originalText = btnDeleteIdentity.innerHTML;
+            btnDeleteIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Excluindo...';
+            btnDeleteIdentity.disabled = true;
+
+            const payload = {
+                empresa: '',
+                pix: '',
+                nome_favorecido: ''
+            };
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    btnDeleteIdentity.innerHTML = '<i class="fa-solid fa-check"></i> Excluído';
+                    setTimeout(() => {
+                        btnDeleteIdentity.innerHTML = originalText;
+                        btnDeleteIdentity.disabled = false;
+                        if (inputEmpresa) inputEmpresa.value = '';
+                        if (inputPix) inputPix.value = '';
+                        if (inputPixName) inputPixName.value = '';
+                        syncGlobalHeader(); 
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Error deleting identity:', err);
+                btnDeleteIdentity.innerHTML = 'Erro!';
+                btnDeleteIdentity.disabled = false;
+                if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err);
+                setTimeout(() => btnDeleteIdentity.innerHTML = originalText, 2000);
+            }
+        });
+    }
+
     // Pix Masking Engine
     function formatPixKey(value) {
         if (!value) return '';
+        
+        // Se for email (contém @)
         if (value.includes('@')) return value.replace(/\s/g, '').toLowerCase();
-        let clean = value.replace(/[^a-zA-Z0-9]/g, '');
 
-        if (clean.length === 14) {
-            return clean.toUpperCase().replace(/^(.{2})(.{3})(.{3})(.{4})(.{2})$/, '$1.$2.$3/$4-$5');
+        const cleanDigits = value.replace(/\D/g, '');
+        const cleanAlphanum = value.replace(/[^a-zA-Z0-9]/g, '');
+
+        // Se tem letra, consideramos Chave Aleatória (UUID)
+        if (/[a-zA-Z]/.test(cleanAlphanum)) {
+            let v = cleanAlphanum.toLowerCase().substring(0, 32);
+            v = v.replace(/^([a-z0-9]{8})([a-z0-9]{1,4})?([a-z0-9]{1,4})?([a-z0-9]{1,4})?([a-z0-9]{1,12})?$/, (m, p1, p2, p3, p4, p5) => {
+                let f = p1;
+                if (p2) f += '-' + p2;
+                if (p3) f += '-' + p3;
+                if (p4) f += '-' + p4;
+                if (p5) f += '-' + p5;
+                return f;
+            });
+            return v;
         }
-        if (clean.length === 11 && (clean[2] !== '9' || /^\d+$/.test(clean) === false)) {
-             if (/^\d+$/.test(clean)) {
-                return clean.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
-             }
+
+        // Apenas números: Telefone, CPF ou CNPJ
+        let v = cleanDigits;
+        if (v.length <= 11) {
+            // Se o tamanho for 11 e o 3º digito for 9, é celular
+            if (v.length === 11 && v[2] === '9') {
+                return v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            }
+            // Se o tamanho for 10, é telefone fixo
+            if (v.length === 10) {
+                return v.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+            }
+            // Caso contrário, formata dinamicamente como CPF
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            return v;
+        } else {
+            // Formata dinamicamente como CNPJ
+            v = v.substring(0, 14);
+            v = v.replace(/(\d{2})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1/$2');
+            v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            return v;
         }
-        if ((clean.length === 10 || clean.length === 11) && /^\d+$/.test(clean)) {
-             if (clean.length === 11) {
-                 return clean.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
-             } else {
-                 return clean.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
-             }
-        }
-        return value;
     }
 
     if (inputPix) {
