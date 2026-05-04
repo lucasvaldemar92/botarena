@@ -270,17 +270,17 @@
             <div class="settings-modal__content">
                 <form id="settings-form" class="settings-form">
 
-                    <!-- Section: Pix -->
+                    <!-- Section: Pagamento (Pix) -->
                     <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
                         <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <label class="settings-form__label">Nome do Favorecido</label>
+                                <input type="text" id="cfg-pix-name" class="settings-form__input" placeholder="Ex: Arena Juvenal" data-testid="cfg-pix-name">
+                            </div>
                             <div style="flex: 1;">
                                 <label class="settings-form__label">Chave Pix</label>
                                 <input type="text" id="cfg-pix-key" class="settings-form__input" placeholder="CNPJ, Email ou Celular" data-testid="cfg-pix-key">
-                            </div>
-                            <div style="flex: 1;">
-                                <label class="settings-form__label">Nome do favorecido</label>
-                                <input type="text" id="cfg-pix-name" class="settings-form__input" placeholder="Ex: Arena Juvenal" data-testid="cfg-pix-name">
                             </div>
                         </div>
                         <small style="color: #008069; display: flex; align-items: center; gap: 5px; font-weight: 600;">

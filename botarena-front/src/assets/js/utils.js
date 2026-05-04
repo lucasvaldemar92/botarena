@@ -201,6 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Se for email (contém @)
         if (value.includes('@')) return value.replace(/\s/g, '').toLowerCase();
 
+        // Se começar com + (telefone E.164)
+        if (value.trim().startsWith('+')) {
+            const digits = value.replace(/\D/g, '');
+            return digits ? '+' + digits : '+';
+        }
+
         const cleanDigits = value.replace(/\D/g, '');
         const cleanAlphanum = value.replace(/[^a-zA-Z0-9]/g, '');
 
@@ -252,8 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
         inputPix.addEventListener('paste', (e) => {
             e.preventDefault();
             const pastedData = (e.clipboardData || window.clipboardData).getData('text');
-            const sanitized = pastedData.replace(/[^a-zA-Z0-9@.-]/g, '');
+            // Sanitizar: delegamos a sanitização principal para a função de formatação
+            // Mas removemos quebras de linha e espaços excedentes nas pontas
+            const sanitized = pastedData.replace(/[\r\n]+/g, '').trim();
             e.target.value = formatPixKey(sanitized);
+            e.target.dispatchEvent(new Event('input', { bubbles: true }));
         });
     }
 

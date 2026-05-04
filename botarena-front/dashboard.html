@@ -131,19 +131,19 @@
 
 
 
-                    <!-- Section: Cadastro Chave Pix -->
+                    <!-- Section: Pagamento (Pix) -->
                     <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Nome do Favorecido</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                    data-testid="pix-name" id="cfg-pix-name">
+                            </div>
                             <div class="settings-form__group" style="margin-bottom: 0;">
                                 <label class="settings-form__label">Chave Pix</label>
                                 <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
                                     data-testid="pix-input-masked" id="cfg-pix-key">
-                            </div>
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Nome do favorecido</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
-                                    data-testid="pix-name" id="cfg-pix-name">
                             </div>
                         </div>
                         <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
