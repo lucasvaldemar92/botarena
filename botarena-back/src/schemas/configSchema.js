@@ -13,6 +13,11 @@ const configSchema = z.object({
     nome_favorecido: z.string().max(100).optional().or(z.literal('')),
     cardapio_url:    z.string().url('URL do cardápio inválida').optional().or(z.literal('')),
     boas_vindas:     z.string().min(5, 'Mensagem de boas-vindas deve ter no mínimo 5 caracteres').max(500).optional(),
+    operation_days:  z.string().optional(),
+    operation_start: z.string().optional(),
+    operation_end:   z.string().optional(),
+    operation_periods: z.string().optional(),
+    mensagem_ausencia: z.string().optional(),
     bot_active:      z.boolean().optional()
 }).refine(data => Object.keys(data).length > 0, {
     message: 'Pelo menos um campo deve ser enviado.'

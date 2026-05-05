@@ -1615,6 +1615,24 @@ body.theme-light .glass-panel {
     box-shadow: 0 0 0 2px rgba(0, 128, 105, 0.2);
 }
 
+.day-pill {
+    background: #f0f2f5;
+    border: 1px solid #d1d7db;
+    border-radius: 20px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #54656f;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-pill.active {
+    background: #dcf8c6;
+    border-color: #008069;
+    color: #008069;
+}
+
 .file-preview-box {
     padding: 0.5rem;
     font-size: 0.85rem;

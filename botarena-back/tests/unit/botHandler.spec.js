@@ -34,11 +34,16 @@ describe('botHandler Unit Tests', () => {
                     bot_active: true,
                     empresa: 'Test',
                     boas_vindas: 'Olá! Bem-vindo à {{empresa}}!',
-                    pix: '123.456.789-00'
+                    pix: '123.456.789-00',
+                    operation_days: '0,1,2,3,4,5,6',
+                    operation_start: '00:00',
+                    operation_end: '23:59',
+                    mensagem_ausencia: 'No momento estamos fora do horário de atendimento.'
                 })
             },
             knowledgeRepo: { findByKeyword: jest.fn().mockResolvedValue(null) },
-            menuRepo: { getActive: jest.fn().mockResolvedValue(null) }
+            menuRepo: { getActive: jest.fn().mockResolvedValue(null) },
+            menuRepo: { getLatestAsset: jest.fn().mockResolvedValue(null) } // Updated mock for new DB schema
         };
     });
 
