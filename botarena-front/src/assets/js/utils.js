@@ -22,7 +22,13 @@ window.fetch = async function() {
         config.headers = config.headers || {};
         config.headers['Authorization'] = `Bearer ${localStorage.getItem('botarena-token')}`;
     }
-    return originalFetch(resource, config);
+    const response = await originalFetch(resource, config);
+    if (response.status === 401 && typeof resource === 'string' && !resource.includes('/dev-login')) {
+        console.warn('⚠️ [Auth] Token inválido ou expirado. Removendo e recarregando...');
+        localStorage.removeItem('botarena-token');
+        window.location.reload();
+    }
+    return response;
 };
 if (window.io) {
     const originalIo = window.io;
@@ -53,8 +59,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputEmpresa = document.getElementById('cfg-company-name');
     const inputPix = document.getElementById('cfg-pix-key');
     const inputPixName = document.getElementById('cfg-pix-name');
+    const btnDeleteIdentity = document.getElementById('btn-delete-identity');
     const inputCardapio = document.querySelector('[data-testid="cfg-menu-link"]');
     const headerCompanyLogo = document.getElementById('header-company-logo');
+
+    // Operation Hours Elements
+    const periodsContainer = document.getElementById('operation-periods-container');
+    const btnAddPeriod = document.getElementById('btn-add-period');
+    const inputOpAbsence = document.getElementById('cfg-op-absence');
+
+    function createPeriodBlock(period = { days: '1,2,3,4,5', start: '08:00', end: '18:00' }) {
+        if (!periodsContainer) return;
+        
+        const block = document.createElement('div');
+        block.className = 'operation-period-block';
+        block.style.cssText = 'background: #fcfcfc; border: 1px solid #e9edef; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.02);';
+        
+        const daySet = new Set(period.days ? period.days.split(',') : []);
+        
+        block.innerHTML = `
+            <button type="button" class="btn-remove-period" title="Remover Período" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1.1rem; padding: 0.25rem;">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+            
+            <div class="settings-form__group">
+                <label class="settings-form__label" style="margin-right: 2rem;">Dias de Funcionamento</label>
+                <div class="days-pills" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="day-pill ${daySet.has('0') ? 'active' : ''}" data-day="0">Dom</button>
+                    <button type="button" class="day-pill ${daySet.has('1') ? 'active' : ''}" data-day="1">Seg</button>
+                    <button type="button" class="day-pill ${daySet.has('2') ? 'active' : ''}" data-day="2">Ter</button>
+                    <button type="button" class="day-pill ${daySet.has('3') ? 'active' : ''}" data-day="3">Qua</button>
+                    <button type="button" class="day-pill ${daySet.has('4') ? 'active' : ''}" data-day="4">Qui</button>
+                    <button type="button" class="day-pill ${daySet.has('5') ? 'active' : ''}" data-day="5">Sex</button>
+                    <button type="button" class="day-pill ${daySet.has('6') ? 'active' : ''}" data-day="6">Sáb</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; width: 100%;">
+                <div class="settings-form__group" style="margin-bottom: 0; flex: 1;">
+                    <label class="settings-form__label">Início</label>
+                    <input type="time" class="settings-form__input period-start" value="${period.start || '08:00'}">
+                </div>
+                <div class="settings-form__group" style="margin-bottom: 0; flex: 1;">
+                    <label class="settings-form__label">Término</label>
+                    <input type="time" class="settings-form__input period-end" value="${period.end || '18:00'}">
+                </div>
+            </div>
+        `;
+
+        const pills = block.querySelectorAll('.day-pill');
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => pill.classList.toggle('active'));
+        });
+
+        const removeBtn = block.querySelector('.btn-remove-period');
+        removeBtn.addEventListener('click', () => block.remove());
+
+        periodsContainer.appendChild(block);
+    }
+
+    if (btnAddPeriod) {
+        btnAddPeriod.addEventListener('click', () => createPeriodBlock());
+    }
 
     function openModal() {
         if (!settingsModal) return;
@@ -96,10 +162,27 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSaveConfig.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
             btnSaveConfig.disabled = true;
 
+            const periods = [];
+            if (periodsContainer) {
+                const blocks = periodsContainer.querySelectorAll('.operation-period-block');
+                blocks.forEach(block => {
+                    const activeDays = Array.from(block.querySelectorAll('.day-pill.active'))
+                                            .map(p => p.dataset.day)
+                                            .join(',');
+                    const start = block.querySelector('.period-start').value;
+                    const end = block.querySelector('.period-end').value;
+                    if (activeDays || (start && end)) {
+                        periods.push({ days: activeDays, start, end });
+                    }
+                });
+            }
+
             const payload = {
                 empresa: inputEmpresa ? inputEmpresa.value : undefined,
                 pix: inputPix ? inputPix.value : undefined,
-                nome_favorecido: inputPixName ? inputPixName.value : undefined
+                nome_favorecido: inputPixName ? inputPixName.value : undefined,
+                operation_periods: JSON.stringify(periods),
+                mensagem_ausencia: inputOpAbsence ? inputOpAbsence.value : undefined
             };
 
             try {
@@ -139,6 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         closeModal();
                         syncGlobalHeader(); 
                     }, 1000);
+                } else {
+                    const errData = await response.json();
+                    throw new Error(errData.error || 'Erro ao salvar configurações');
                 }
             } catch (err) {
                 console.error('Error saving config:', err);
@@ -150,28 +236,104 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Delete Identity Action
+    if (btnDeleteIdentity) {
+        btnDeleteIdentity.addEventListener('click', async () => {
+            if (!confirm('Deseja realmente excluir a identidade da empresa? Isso apagará o nome e chave PIX.')) return;
+            
+            const originalText = btnDeleteIdentity.innerHTML;
+            btnDeleteIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Excluindo...';
+            btnDeleteIdentity.disabled = true;
+
+            const payload = {
+                empresa: '',
+                pix: '',
+                nome_favorecido: ''
+            };
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    btnDeleteIdentity.innerHTML = '<i class="fa-solid fa-check"></i> Excluído';
+                    setTimeout(() => {
+                        btnDeleteIdentity.innerHTML = originalText;
+                        btnDeleteIdentity.disabled = false;
+                        if (inputEmpresa) inputEmpresa.value = '';
+                        if (inputPix) inputPix.value = '';
+                        if (inputPixName) inputPixName.value = '';
+                        syncGlobalHeader(); 
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Error deleting identity:', err);
+                btnDeleteIdentity.innerHTML = 'Erro!';
+                btnDeleteIdentity.disabled = false;
+                if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err);
+                setTimeout(() => btnDeleteIdentity.innerHTML = originalText, 2000);
+            }
+        });
+    }
+
     // Pix Masking Engine
     function formatPixKey(value) {
         if (!value) return '';
+        
+        // Se for email (contém @)
         if (value.includes('@')) return value.replace(/\s/g, '').toLowerCase();
-        let clean = value.replace(/[^a-zA-Z0-9]/g, '');
 
-        if (clean.length === 14) {
-            return clean.toUpperCase().replace(/^(.{2})(.{3})(.{3})(.{4})(.{2})$/, '$1.$2.$3/$4-$5');
+        // Se começar com + (telefone E.164)
+        if (value.trim().startsWith('+')) {
+            const digits = value.replace(/\D/g, '');
+            return digits ? '+' + digits : '+';
         }
-        if (clean.length === 11 && (clean[2] !== '9' || /^\d+$/.test(clean) === false)) {
-             if (/^\d+$/.test(clean)) {
-                return clean.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
-             }
+
+        const cleanDigits = value.replace(/\D/g, '');
+        const cleanAlphanum = value.replace(/[^a-zA-Z0-9]/g, '');
+
+        // Se tem letra, consideramos Chave Aleatória (UUID)
+        if (/[a-zA-Z]/.test(cleanAlphanum)) {
+            let v = cleanAlphanum.toLowerCase().substring(0, 32);
+            v = v.replace(/^([a-z0-9]{8})([a-z0-9]{1,4})?([a-z0-9]{1,4})?([a-z0-9]{1,4})?([a-z0-9]{1,12})?$/, (m, p1, p2, p3, p4, p5) => {
+                let f = p1;
+                if (p2) f += '-' + p2;
+                if (p3) f += '-' + p3;
+                if (p4) f += '-' + p4;
+                if (p5) f += '-' + p5;
+                return f;
+            });
+            return v;
         }
-        if ((clean.length === 10 || clean.length === 11) && /^\d+$/.test(clean)) {
-             if (clean.length === 11) {
-                 return clean.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
-             } else {
-                 return clean.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
-             }
+
+        // Apenas números: Telefone, CPF ou CNPJ
+        let v = cleanDigits;
+        if (v.length <= 11) {
+            // Se o tamanho for 11 e o 3º digito for 9, é celular
+            if (v.length === 11 && v[2] === '9') {
+                return v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            }
+            // Se o tamanho for 10, é telefone fixo
+            if (v.length === 10) {
+                return v.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+            }
+            // Caso contrário, formata dinamicamente como CPF
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            return v;
+        } else {
+            // Formata dinamicamente como CNPJ
+            v = v.substring(0, 14);
+            v = v.replace(/(\d{2})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1.$2');
+            v = v.replace(/(\d{3})(\d)/, '$1/$2');
+            v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            return v;
         }
-        return value;
     }
 
     if (inputPix) {
@@ -181,8 +343,11 @@ document.addEventListener('DOMContentLoaded', () => {
         inputPix.addEventListener('paste', (e) => {
             e.preventDefault();
             const pastedData = (e.clipboardData || window.clipboardData).getData('text');
-            const sanitized = pastedData.replace(/[^a-zA-Z0-9@.-]/g, '');
+            // Sanitizar: delegamos a sanitização principal para a função de formatação
+            // Mas removemos quebras de linha e espaços excedentes nas pontas
+            const sanitized = pastedData.replace(/[\r\n]+/g, '').trim();
             e.target.value = formatPixKey(sanitized);
+            e.target.dispatchEvent(new Event('input', { bubbles: true }));
         });
     }
 
@@ -211,6 +376,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (inputPix) inputPix.value = config.pix || '';
                 if (inputPixName) inputPixName.value = config.nome_favorecido || '';
                 if (inputCardapio) inputCardapio.value = config.cardapio_url || '';
+                if (inputOpAbsence) inputOpAbsence.value = config.mensagem_ausencia || '';
+                
+                if (periodsContainer) {
+                    periodsContainer.innerHTML = '';
+                    let periods = [];
+                    try {
+                        if (config.operation_periods) {
+                            periods = JSON.parse(config.operation_periods);
+                        } else if (config.operation_start) {
+                            periods = [{ days: config.operation_days, start: config.operation_start, end: config.operation_end }];
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse periods', e);
+                    }
+                    if (periods.length === 0) {
+                        createPeriodBlock(); // Default 1 period
+                    } else {
+                        periods.forEach(p => createPeriodBlock(p));
+                    }
+                }
 
                 if (config.empresa) {
                     updateInitials(config.empresa);

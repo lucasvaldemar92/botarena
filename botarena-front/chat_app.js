@@ -211,7 +211,11 @@ document.querySelectorAll('.chat-item').forEach(item => {
         btnQuickPix.addEventListener('click', () => {
             if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
             const pixKey = (currentConfig && currentConfig.pix) ? currentConfig.pix : 'Não configurada';
-            chatInput.value = `Nossa chave PIX comercial é: ${pixKey}. Após o pagamento, envie o comprovante por aqui! 🚀`;
+            chatInput.value = `Nossa chave PIX:
+
+${pixKey}
+
+Após o pagamento, envie o comprovante por aqui para validação imediata! 🚀`;
             chatInput.focus();
         });
 

@@ -129,47 +129,42 @@
             <div class="settings-modal__content">
                 <form id="settings-form" class="settings-form">
 
-                    <!-- Section: Identidade -->
-                    <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-store"></i> Identidade</h3>
-                        
-                        <div class="profile-sync-block" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--color-surface-hover); border-radius: 8px; border: 1px dashed var(--color-border);">
-                            <div class="profile-avatar" style="width: 64px; height: 64px; font-size: 1.5rem;">
-                                <span id="profile-initials">--</span>
-                                <span class="profile-badge" style="font-size: 0.6rem; bottom: -8px;">automático</span>
-                            </div>
-                            <div class="profile-sync-info" style="margin-top: 0.75rem; text-align: center;">
-                                <h4 style="margin:0; font-size: 0.9rem; color: var(--color-text);">Foto de Perfil</h4>
-                                <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: var(--color-text-muted);">Sincronizada via WhatsApp</p>
-                            </div>
-                        </div>
 
-                        <div class="settings-form__group">
-                            <label class="settings-form__label">Nome da Empresa</label>
-                            <input type="text" class="settings-form__input" placeholder="Ex: Arena Juvenal"
-                                data-testid="cfg-company-name" id="cfg-company-name">
-                        </div>
-                    </div>
 
-                    <!-- Section: Cadastro Chave Pix -->
+                    <!-- Section: Pagamento (Pix) -->
                     <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Cadastro chave pix</h3>
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Nome do Favorecido</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                    data-testid="pix-name" id="cfg-pix-name">
+                            </div>
                             <div class="settings-form__group" style="margin-bottom: 0;">
                                 <label class="settings-form__label">Chave Pix</label>
                                 <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
                                     data-testid="pix-input-masked" id="cfg-pix-key">
-                            </div>
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Nome do favorecido</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
-                                    data-testid="pix-name" id="cfg-pix-name">
                             </div>
                         </div>
                         <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
                             <i class="fa-solid fa-bolt" style="color: var(--color-primary); margin-right: 0.25rem;"></i>
                             Disponível como atalho no menu do chat
                         </p>
+                    </div>                    <!-- Section: Horário de Atendimento -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-regular fa-clock"></i> Horário de Atendimento</h3>
+                        <div id="operation-periods-container">
+                            <!-- Periods will be injected here via JS -->
+                        </div>
+
+                        <button type="button" id="btn-add-period" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px dashed #008069; color: #008069; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">
+                            <i class="fa-solid fa-plus" style="margin-right: 0.5rem;"></i> Novo Período
+                        </button>
+
+                        <div class="settings-form__group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e9edef;">
+                            <label class="settings-form__label">Mensagem de Ausência (Global)</label>
+                            <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="3" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
+                        </div>
                     </div>
 
                     <!-- Section: Automação -->

@@ -44,6 +44,11 @@ class SettingsRepository extends BaseRepository {
                 cardapio_url    = CASE WHEN ? IS NOT NULL THEN ? ELSE cardapio_url END,
                 boas_vindas     = CASE WHEN ? IS NOT NULL THEN ? ELSE boas_vindas END,
                 bot_active      = CASE WHEN ? IS NOT NULL THEN ? ELSE bot_active END,
+                operation_days  = CASE WHEN ? IS NOT NULL THEN ? ELSE operation_days END,
+                operation_start = CASE WHEN ? IS NOT NULL THEN ? ELSE operation_start END,
+                operation_end   = CASE WHEN ? IS NOT NULL THEN ? ELSE operation_end END,
+                mensagem_ausencia = CASE WHEN ? IS NOT NULL THEN ? ELSE mensagem_ausencia END,
+                operation_periods = CASE WHEN ? IS NOT NULL THEN ? ELSE operation_periods END,
                 updated_at      = CURRENT_TIMESTAMP
             WHERE company_id = ?
         `, [
@@ -59,6 +64,16 @@ class SettingsRepository extends BaseRepository {
             fields.boas_vindas  !== undefined ? fields.boas_vindas : null,
             botVal,
             botVal,
+            fields.operation_days !== undefined ? fields.operation_days : null,
+            fields.operation_days !== undefined ? fields.operation_days : null,
+            fields.operation_start !== undefined ? fields.operation_start : null,
+            fields.operation_start !== undefined ? fields.operation_start : null,
+            fields.operation_end !== undefined ? fields.operation_end : null,
+            fields.operation_end !== undefined ? fields.operation_end : null,
+            fields.mensagem_ausencia !== undefined ? fields.mensagem_ausencia : null,
+            fields.mensagem_ausencia !== undefined ? fields.mensagem_ausencia : null,
+            fields.operation_periods !== undefined ? fields.operation_periods : null,
+            fields.operation_periods !== undefined ? fields.operation_periods : null,
             this.companyId
         ]);
         return result.changes;

@@ -55,6 +55,9 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     // 🔐 AUTH — DEV LOGIN (public, dev-only)
     // ==========================================
     router.post('/auth/dev-login', (req, res) => {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(404).json({ error: 'Not found' });
+        }
         const token = AuthService.generateMockToken();
         if (!token) return res.status(403).json({ error: 'Only available in development' });
         console.log('🔑 [Auth] Dev mock token generated.');

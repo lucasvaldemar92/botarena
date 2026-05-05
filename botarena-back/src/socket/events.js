@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const sanitizeHtml = require('sanitize-html');
 
 /**
  * setupSocket — Configures Socket.IO authentication and connection handlers.
@@ -50,6 +51,9 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
         });
 
         socket.on('send_message', async (data) => {
+            if (data.body) {
+                data.body = sanitizeHtml(data.body, { allowedTags: [], allowedAttributes: {} });
+            }
             console.log(`💬 [Frontend] Outbound: ${data.body.substring(0, 30)}...`);
             try {
                 if (!isClientReady()) {

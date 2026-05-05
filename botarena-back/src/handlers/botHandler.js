@@ -2,6 +2,7 @@
 // 🤖 BOT INTELLIGENCE (Smart Auto-Reply)
 // ==========================================
 const seenContacts = new Set();
+const sanitizeHtml = require('sanitize-html');
 
 /**
  * safeReply — Wraps msg.reply() with a client readiness guard.
@@ -39,6 +40,9 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
     client.removeAllListeners('message');
     client.removeAllListeners('message_create');
     client.on('message_create', async (msg) => {
+        // 🛡️ Ignore WhatsApp status/stories — must be the FIRST check
+        if (msg.isStatus) return;
+
         // Ignore messages sent by the system (fromMe) – Bot only reacts to external messages
         if (msg.fromMe === true || msg.id.fromMe === true) {
             return; // Completely ignore any message sent by the system/operator
@@ -53,6 +57,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
         console.log(`💬 [WhatsApp] Message ${msg.fromMe ? 'Sent' : 'Received'} - ID: ${msg.id.id}`);
 
         if (msg.body) {
+            msg.body = sanitizeHtml(msg.body, { allowedTags: [], allowedAttributes: {} });
             io.emit('new_message', {
                 id:        msg.id._serialized,
                 from:      msg.from,
@@ -75,7 +80,53 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             const contactId = msg.fromMe ? msg.to : msg.from;
 
-            // Welcome message (first contact only)
+            // Schedule Validation (Operation Hours)
+            const now = new Date();
+            const currentDay = now.getDay().toString(); // 0 (Sun) to 6 (Sat)
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            const msgAusencia = config.mensagem_ausencia || 'No momento estamos fora do horário de atendimento. Deixe sua mensagem e retornaremos em breve.';
+
+            let isOperatingTime = false;
+            let periods = [];
+            
+            try {
+                if (config.operation_periods) {
+                    periods = JSON.parse(config.operation_periods);
+                } else if (config.operation_start) {
+                    // Fallback to legacy single period
+                    periods = [{
+                        days: config.operation_days || '1,2,3,4,5',
+                        start: config.operation_start,
+                        end: config.operation_end
+                    }];
+                }
+            } catch (e) {
+                console.error('❌ [Bot] Failed to parse operation_periods:', e.message);
+            }
+
+            // If no periods defined, assume 24/7 or fallback behavior. Let's assume 24/7 if empty.
+            if (!periods || periods.length === 0) {
+                isOperatingTime = true;
+            } else {
+                for (const period of periods) {
+                    const opDays = period.days ? period.days.split(',') : [];
+                    if (opDays.includes(currentDay) && currentTime >= period.start && currentTime <= period.end) {
+                        isOperatingTime = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isOperatingTime) {
+                if (!seenContacts.has(contactId)) {
+                    seenContacts.add(contactId);
+                    await safeReply(msg, msgAusencia, isClientReadyFn);
+                    console.log(`⏰ [Bot] Outside operation hours (${currentDay} ${currentTime}). Absence message sent to ${contactId}`);
+                }
+                return; // Do not process other commands outside hours
+            }
+
+            // Welcome message (first contact only inside operation hours)
             if (!seenContacts.has(contactId)) {
                 seenContacts.add(contactId);
                 const greeting = (config.boas_vindas || 'Olá! Como podemos ajudar?')

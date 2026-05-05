@@ -40,6 +40,11 @@ describe('SettingsRepository Unit Tests', () => {
             null,       null,       // cardapio_url
             null,       null,       // boas_vindas
             0,          0,          // bot_active
+            null,       null,       // operation_days
+            null,       null,       // operation_start
+            null,       null,       // operation_end
+            null,       null,       // mensagem_ausencia
+            null,       null,       // operation_periods
             1                       // company_id
         ]);
     });

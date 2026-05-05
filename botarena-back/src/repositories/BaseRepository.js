@@ -36,6 +36,10 @@ class BaseRepository {
      * @returns {Promise<Array>}
      */
     async findAll(orderBy = 'id ASC') {
+        const allowedColumns = ['id', 'created_at', 'name', 'keyword', 'id DESC', 'id ASC', 'created_at DESC', 'created_at ASC'];
+        if (!allowedColumns.includes(orderBy)) {
+            throw new Error('Coluna de ordenação inválida');
+        }
         return this.db.all(
             `SELECT * FROM ${this.tableName} WHERE company_id = ? ORDER BY ${orderBy}`,
             [this.companyId]

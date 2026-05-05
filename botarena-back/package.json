@@ -11,10 +11,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "migrate": "node scripts/migrate_add_company_id.js",
-    "qa": "node --check server.js src/routes/api.js src/container.js && npm run teste-codigo && npm run teste-seg && npm run test",
-    "testes": "npm run qa && npm run teste-banco && npm run teste-e2e",
-    "qa:full": "node scripts/run_qa_full.js",
-    "qa:extreme": "node scripts/run_qa_full.js --full"
+    "qa": "node scripts/run_qa_full.js",
+    "qa:full": "node scripts/run_qa_full.js --full"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +27,7 @@
     "express-rate-limit": "^8.4.1",
     "jsonwebtoken": "^9.0.3",
     "qrcode-terminal": "^0.12.0",
+    "sanitize-html": "^2.17.3",
     "socket.io": "^4.8.3",
     "sqlite3": "^6.0.1",
     "whatsapp-web.js": "^1.34.6",
