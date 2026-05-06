@@ -56,11 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSaveConfig = document.getElementById('btn-save-config');
     const btnLogout = document.getElementById('btn-logout');
 
-    const inputEmpresa = document.getElementById('cfg-company-name');
     const inputPix = document.getElementById('cfg-pix-key');
     const inputPixName = document.getElementById('cfg-pix-name');
-    const btnDeleteIdentity = document.getElementById('btn-delete-identity');
-    const inputCardapio = document.querySelector('[data-testid="cfg-menu-link"]');
     const headerCompanyLogo = document.getElementById('header-company-logo');
 
     // Operation Hours Elements
@@ -178,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const payload = {
-                empresa: inputEmpresa ? inputEmpresa.value : undefined,
                 pix: inputPix ? inputPix.value : undefined,
                 nome_favorecido: inputPixName ? inputPixName.value : undefined,
                 operation_periods: JSON.stringify(periods),
@@ -236,48 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Delete Identity Action
-    if (btnDeleteIdentity) {
-        btnDeleteIdentity.addEventListener('click', async () => {
-            if (!confirm('Deseja realmente excluir a identidade da empresa? Isso apagará o nome e chave PIX.')) return;
-            
-            const originalText = btnDeleteIdentity.innerHTML;
-            btnDeleteIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Excluindo...';
-            btnDeleteIdentity.disabled = true;
-
-            const payload = {
-                empresa: '',
-                pix: '',
-                nome_favorecido: ''
-            };
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/config`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (response.ok) {
-                    btnDeleteIdentity.innerHTML = '<i class="fa-solid fa-check"></i> Excluído';
-                    setTimeout(() => {
-                        btnDeleteIdentity.innerHTML = originalText;
-                        btnDeleteIdentity.disabled = false;
-                        if (inputEmpresa) inputEmpresa.value = '';
-                        if (inputPix) inputPix.value = '';
-                        if (inputPixName) inputPixName.value = '';
-                        syncGlobalHeader(); 
-                    }, 1000);
-                }
-            } catch (err) {
-                console.error('Error deleting identity:', err);
-                btnDeleteIdentity.innerHTML = 'Erro!';
-                btnDeleteIdentity.disabled = false;
-                if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err);
-                setTimeout(() => btnDeleteIdentity.innerHTML = originalText, 2000);
-            }
-        });
-    }
 
     // Pix Masking Engine
     function formatPixKey(value) {
@@ -372,10 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const config = await response.json();
                 const company = config.empresa || 'botarena';
                 if (headerCompanyLogo) headerCompanyLogo.textContent = company;
-                if (inputEmpresa) inputEmpresa.value = config.empresa || '';
                 if (inputPix) inputPix.value = config.pix || '';
                 if (inputPixName) inputPixName.value = config.nome_favorecido || '';
-                if (inputCardapio) inputCardapio.value = config.cardapio_url || '';
                 if (inputOpAbsence) inputOpAbsence.value = config.mensagem_ausencia || '';
                 
                 if (periodsContainer) {

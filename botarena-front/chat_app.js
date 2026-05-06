@@ -369,6 +369,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    // --- Settings Rail Button ---
+    const openSettingsBtnRail = document.getElementById('open-settings-btn-rail');
+    if (openSettingsBtnRail && window.openModal) {
+        openSettingsBtnRail.addEventListener('click', window.openModal);
+    }
+
+    // --- Simulated Buttons Feedback ---
+    const simulatedButtons = document.querySelectorAll('.nav-rail__item:not(#open-settings-btn-rail), .sidebar-header__actions button, .chat-main__actions button, .chat-main__input-area .icon-btn:not(.send-btn)');
+    simulatedButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('💡 [Simulação] Este botão faz parte da interface visual do WhatsApp e não possui função neste dashboard.');
+            // Optional: Simple visual feedback could be added here
+        });
+    });
+
     // --- Menu File Preview (Sprint: Menu Asset Management) ---
     const menuFile = document.getElementById('menuFile');
     const filePreview = document.getElementById('filePreview');

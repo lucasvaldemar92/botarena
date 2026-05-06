@@ -150,6 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    // --- QR Retry Button ---
+    const qrRetryBtn = document.getElementById('qr-retry-btn');
+    if (qrRetryBtn) {
+        qrRetryBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+    }
+
     // --- Menu File Preview (Sprint: Menu Asset Management) ---
     const menuFile = document.getElementById('menuFile');
     const filePreview = document.getElementById('filePreview');
