@@ -72,7 +72,7 @@
                     <div class="sidebar-header">
                         <h2>WhatsApp</h2>
                         <div class="sidebar-header__actions">
-                            <button><i class="fa-regular fa-pen-to-square"></i></button>
+                            <button id="open-new-chat-btn" title="Nova Conversa"><i class="fa-regular fa-pen-to-square"></i></button>
                             <button><i class="fa-solid fa-ellipsis-vertical"></i></button>
                         </div>
                     </div>
@@ -324,6 +324,44 @@
                     <button type="button" class="btn-animado" style="flex: 1.5;" id="btn-save-config" data-testid="btn-save-config">Salvar Tudo</button>
                 </div>
             </footer>
+        </aside>
+    </div>
+
+    <!-- Modal: Nova Conversa -->
+    <div class="settings-modal" id="new-chat-modal" data-testid="new-chat-modal">
+        <div class="settings-modal__backdrop" id="new-chat-backdrop"></div>
+        <aside class="settings-modal__panel" style="background: #ffffff;">
+            <header class="settings-modal__header" style="background: var(--color-primary); color: white;">
+                <div class="settings-modal__title-box">
+                    <i class="fa-solid fa-arrow-left" id="close-new-chat-btn" style="cursor: pointer; margin-right: 20px;"></i>
+                    <h2 style="color: white; font-size: 1.2rem;">Nova conversa</h2>
+                </div>
+            </header>
+            
+            <div class="search-container" style="padding: 1rem; background: #ffffff;">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="contact-search-input" placeholder="Pesquisar nome ou número" data-testid="contact-search-input">
+                </div>
+            </div>
+
+            <div id="contacts-list" class="contacts-list" data-testid="contacts-list">
+                <!-- Skeletons loading... -->
+                <div class="contact-item">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="contact-info">
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text--short skeleton"></div>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="contact-info">
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text--short skeleton"></div>
+                    </div>
+                </div>
+            </div>
         </aside>
     </div>
 

@@ -375,13 +375,179 @@ document.addEventListener('DOMContentLoaded', () => {
         openSettingsBtnRail.addEventListener('click', window.openModal);
     }
 
+    // --- New Chat Modal Logic (BA-NOVA-CONVERSA) ---
+    const newChatModal = document.getElementById('new-chat-modal');
+    const openNewChatBtn = document.getElementById('open-new-chat-btn');
+    const closeNewChatBtn = document.getElementById('close-new-chat-btn');
+    const newChatBackdrop = document.getElementById('new-chat-backdrop');
+    const contactsListEl = document.getElementById('contacts-list');
+    const contactSearchInput = document.getElementById('contact-search-input');
+
+    let allContacts = [];
+
+    function openNewChatModal() {
+        if (!newChatModal) return;
+        newChatModal.classList.add('settings-modal--active');
+        loadContacts();
+    }
+
+    function closeNewChatModal() {
+        if (!newChatModal) return;
+        newChatModal.classList.remove('settings-modal--active');
+        if (contactSearchInput) contactSearchInput.value = '';
+    }
+
+    if (openNewChatBtn) openNewChatBtn.addEventListener('click', openNewChatModal);
+    if (closeNewChatBtn) closeNewChatBtn.addEventListener('click', closeNewChatModal);
+    if (newChatBackdrop) newChatBackdrop.addEventListener('click', closeNewChatModal);
+
+    async function loadContacts() {
+        if (!contactsListEl) return;
+        
+        // Show Skeleton
+        renderSkeletons();
+
+        try {
+            const token = localStorage.getItem('botarena_token');
+            const resp = await fetch(`${window.BASE_URL || ''}/api/contacts`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.error || 'Erro ao carregar contatos');
+            }
+
+            allContacts = await resp.json();
+            renderContacts(allContacts);
+        } catch (err) {
+            console.error('❌ [Contacts] Error:', err);
+            contactsListEl.innerHTML = `
+                <div class="no-contacts">
+                    <i class="fa-solid fa-circle-exclamation" style="color: var(--color-danger);"></i>
+                    <p style="margin-top: 10px;">${err.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    function renderSkeletons() {
+        contactsListEl.innerHTML = Array(4).fill(0).map(() => `
+            <div class="contact-item">
+                <div class="skeleton-avatar skeleton"></div>
+                <div class="contact-info">
+                    <div class="skeleton-text skeleton"></div>
+                    <div class="skeleton-text--short skeleton"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getInitials(name) {
+        return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    }
+
+    function getRandomColor(name) {
+        const colors = ['#128c7e', '#075e54', '#34b7f1', '#25d366', '#54656f', '#f15c5c', '#9c27b0'];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    }
+
+    function renderContacts(list, searchTerm = '') {
+        if (!contactsListEl) return;
+        
+        if (list.length === 0 && !searchTerm) {
+            contactsListEl.innerHTML = `
+                <div class="no-contacts">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <p>Nenhum contato encontrado.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = list.map(c => `
+            <div class="contact-item" onclick="window.selectContact('${c.id}', '${c.name.replace(/'/g, "\\'")}')">
+                <div class="contact-avatar" style="background-color: ${getRandomColor(c.name)}">
+                    ${getInitials(c.name)}
+                </div>
+                <div class="contact-info">
+                    <div class="contact-name">${sanitizeHTML(c.name)}</div>
+                    <div class="contact-number">${c.number}</div>
+                </div>
+            </div>
+        `).join('');
+
+        // If search term is 4+ digits, show "Start chat with number"
+        const cleanSearch = searchTerm.replace(/\D/g, '');
+        if (cleanSearch.length >= 4) {
+            html += `
+                <div class="contact-item" onclick="window.selectContact('${cleanSearch}@c.us', '${cleanSearch}')" style="border-top: 2px solid #eee; margin-top: 10px; background: #f0f2f5;">
+                    <div class="contact-avatar" style="background-color: var(--color-primary)">
+                        <i class="fa-solid fa-plus"></i>
+                    </div>
+                    <div class="contact-info">
+                        <div class="contact-name">Iniciar conversa com o número</div>
+                        <div class="contact-number">${cleanSearch}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        contactsListEl.innerHTML = html || `<div class="no-contacts"><p>Nenhum resultado para "${searchTerm}"</p></div>`;
+    }
+
+    // Expose selection to window for the onclick handler
+    window.selectContact = (id, name) => {
+        activeChatID = id; // Update global let
+        console.log('🚀 [NewChat] Selecionado:', id, name);
+        
+        closeNewChatModal();
+
+        // Update Header
+        const chatHeaderName = document.querySelector('.chat-main__header span');
+        if (chatHeaderName) chatHeaderName.textContent = name;
+        
+        // Update Sidebar items
+        document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('chat-item--active'));
+        const existingItem = document.querySelector(`.chat-item[data-chat-id="${id}"]`);
+        
+        if (existingItem) {
+            existingItem.classList.add('chat-item--active');
+        } else {
+            // If new, we could potentially inject a temp item in sidebar, but for now just clear history
+            const chatHistoryEl = document.querySelector('[data-testid="chat-history"]');
+            if (chatHistoryEl) chatHistoryEl.innerHTML = '';
+        }
+
+        // Enable inputs
+        if (chatInput) {
+            chatInput.disabled = false;
+            chatInput.placeholder = "Type a message";
+        }
+        if (btnSendMessage) btnSendMessage.disabled = false;
+    };
+
+    if (contactSearchInput) {
+        contactSearchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allContacts.filter(c => 
+                c.name.toLowerCase().includes(term) || 
+                c.number.includes(term)
+            );
+            renderContacts(filtered, term);
+        });
+    }
+
     // --- Simulated Buttons Feedback ---
-    const simulatedButtons = document.querySelectorAll('.nav-rail__item:not(#open-settings-btn-rail), .sidebar-header__actions button, .chat-main__actions button, .chat-main__input-area .icon-btn:not(.send-btn)');
+    const simulatedButtons = document.querySelectorAll('.nav-rail__item:not(#open-settings-btn-rail), .chat-main__actions button, .chat-main__input-area .icon-btn:not(.send-btn)');
     simulatedButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             console.log('💡 [Simulação] Este botão faz parte da interface visual do WhatsApp e não possui função neste dashboard.');
-            // Optional: Simple visual feedback could be added here
         });
     });
 

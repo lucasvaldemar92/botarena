@@ -191,6 +191,41 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
+    // ==========================================
+    // 👥 CONTACTS ROUTES (🔒 Protected)
+    // ==========================================
+    router.get('/contacts', authMiddleware, async (req, res) => {
+        console.log('📡 [API] GET /api/contacts');
+        
+        if (!isClientReady()) {
+            return res.status(503).json({ error: 'Bot desconectado. Conecte o WhatsApp para ver os contatos.' });
+        }
+
+        try {
+            const client = getClient();
+            const allContacts = await client.getContacts();
+
+            // Filter: WA Contacts only, No Groups, Individual server only
+            const filtered = allContacts
+                .filter(c => c.isWAContact && !c.isGroup && c.id.server === 'c.us')
+                .map(c => ({
+                    id: c.id._serialized,
+                    name: c.name || c.pushname || 'Sem nome',
+                    pushname: c.pushname || '',
+                    number: c.number || ''
+                }))
+                // Sort alphabetically by name
+                .sort((a, b) => a.name.localeCompare(b.name))
+                // Limit to 200 to prevent frontend lag
+                .slice(0, 200);
+
+            res.json(filtered);
+        } catch (e) {
+            console.error('❌ [API] Error fetching contacts:', e);
+            res.status(500).json({ error: 'Erro ao buscar contatos no WhatsApp.' });
+        }
+    });
+
     return router;
 }
 

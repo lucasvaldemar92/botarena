@@ -1885,3 +1885,102 @@ body.theme-light .glass-panel {
 }
 
 
+
+/*=============================================
+=            Contacts List & New Chat         =
+=============================================*/
+.contacts-list {
+    flex: 1;
+    overflow-y: auto;
+    background: #ffffff;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid #f5f6f6;
+}
+
+.contact-item:hover {
+    background: #f5f6f6;
+}
+
+.contact-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.contact-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.contact-name {
+    font-size: 1rem;
+    color: #111b21;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.contact-number {
+    font-size: 0.85rem;
+    color: #667781;
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: #eee;
+    background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+    border-radius: 5px;
+    background-size: 200% 100%;
+    animation: 1.5s shine linear infinite;
+}
+
+@keyframes shine {
+    to {
+        background-position-x: -200%;
+    }
+}
+
+.skeleton-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+}
+
+.skeleton-text {
+    height: 12px;
+    margin-bottom: 8px;
+    width: 60%;
+}
+
+.skeleton-text--short {
+    width: 30%;
+}
+
+.no-contacts {
+    padding: 2rem;
+    text-align: center;
+    color: #667781;
+}
+
+.no-contacts i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
