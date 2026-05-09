@@ -19,7 +19,7 @@ jobs:
           cache-dependency-path: botarena-back/package-lock.json
       - run: cp .env.example .env
       - run: npm ci
-      - run: node scripts/ci_setup_db.js
+      - run: node ../execution/ci_setup_db.js
       - run: npm run test
       - run: npm run teste-banco
       - run: npm run teste-seg
