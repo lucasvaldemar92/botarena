@@ -130,6 +130,44 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
                 console.error('❌ [Socket] Error sending menu media:', err);
             }
         });
+        // ==========================================
+        // 🧪 SIMULATION ENGINE (Test only)
+        // ==========================================
+        socket.on('simulate_inbound_message', async (data) => {
+            // console.log(`🧪 [Simulation] Incoming virtual message: "${data.body}" from ${data.pushname}`);
+            
+            // Mocking the WhatsApp Message object for the handler
+            const mockMsg = {
+                id: { _serialized: 'sim_' + Date.now(), fromMe: false },
+                from: data.from || '5511999999999@c.us',
+                to: 'me',
+                body: data.body,
+                pushname: data.pushname || 'Cliente Simulado',
+                timestamp: Math.floor(Date.now() / 1000),
+                fromMe: false,
+                isStatus: false,
+                // Mocking the reply function to redirect to Socket.IO instead of WhatsApp
+                reply: async (text) => {
+                    // console.log(`🤖 [Bot Simulation] Replying: "${text}"`);
+                    io.emit('new_message', {
+                        id: 'sim_reply_' + Date.now(),
+                        from: 'me',
+                        to: data.from || '5511999999999@c.us',
+                        body: text,
+                        fromMe: true,
+                        timestamp: Math.floor(Date.now() / 1000)
+                    });
+                }
+            };
+
+            // Trigger the bot logic manually
+            // We need to access the bot logic. Since it's attached via client.on, 
+            // we can just emit it on the client if we have it, or call the handler logic.
+            const client = getClient();
+            if (client) {
+                client.emit('message_create', mockMsg);
+            }
+        });
     });
 }
 

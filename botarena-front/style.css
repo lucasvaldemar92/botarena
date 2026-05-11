@@ -1324,6 +1324,34 @@ body.theme-light .glass-panel {
     outline: none;
 }
 
+/* Enhanced Send Button */
+.send-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.send-btn--active {
+    background-color: #00a884 !important; /* WhatsApp Teal */
+    color: white !important;
+    transform: scale(1.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.send-btn i {
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+}
+
+.send-btn--active i {
+    transform: translateX(1px); /* Perfect centering for chevron */
+    font-weight: 900;
+}
+
 /* App Footer */
 .app-footer {
     height: 40px;
