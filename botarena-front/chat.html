@@ -56,13 +56,11 @@
                             <i class="fa-regular fa-message"></i>
                             <span class="nav-rail__badge">40</span>
                         </button>
-                        <button class="nav-rail__item"><i class="fa-solid fa-phone"></i></button>
-                        <button class="nav-rail__item"><i class="fa-solid fa-users"></i></button>
                         <!-- meta AI ring mock -->
                         <button class="nav-rail__item"><div class="meta-ai-ring"></div></button>
                     </div>
                     <div class="nav-rail__bottom">
-                        <button class="nav-rail__item"><i class="fa-solid fa-gear"></i></button>
+                        <button class="nav-rail__item" id="open-settings-btn-rail"><i class="fa-solid fa-gear"></i></button>
                         <button class="nav-rail__item nav-rail__avatar">
                             <img src="https://ui-avatars.com/api/?name=User&background=ddd&color=333" alt="User">
                         </button>
@@ -74,7 +72,7 @@
                     <div class="sidebar-header">
                         <h2>WhatsApp</h2>
                         <div class="sidebar-header__actions">
-                            <button><i class="fa-regular fa-pen-to-square"></i></button>
+                            <button id="open-new-chat-btn" title="Nova Conversa"><i class="fa-regular fa-pen-to-square"></i></button>
                             <button><i class="fa-solid fa-ellipsis-vertical"></i></button>
                         </div>
                     </div>
@@ -176,8 +174,6 @@
                             <span>Gustavo Cliente</span>
                         </div>
                         <div class="chat-main__actions">
-                            <button><i class="fa-solid fa-video"></i></button>
-                            <button><i class="fa-solid fa-phone"></i></button>
                             <button><i class="fa-solid fa-magnifying-glass"></i></button>
                             <button><i class="fa-solid fa-ellipsis-vertical"></i></button>
                         </div>
@@ -251,8 +247,8 @@
                     <footer class="chat-main__input-area">
                         <button class="icon-btn"><i class="fa-solid fa-plus"></i></button>
                         <button class="icon-btn"><i class="fa-regular fa-face-smile"></i></button>
-                        <input type="text" class="chat-input" placeholder="Digite uma mensagem">
-                        <button class="icon-btn send-btn" data-testid="send-message-btn"><i class="fa-solid fa-microphone"></i></button>
+                        <input type="text" id="main-chat-input" class="chat-input" placeholder="Digite uma mensagem" data-testid="chat-input">
+                        <button id="main-send-btn" class="icon-btn send-btn" data-testid="send-message-btn"><i class="fa-solid fa-microphone"></i></button>
                     </footer>
                 </main>
             </div>
@@ -331,10 +327,48 @@
         </aside>
     </div>
 
+    <!-- Modal: Nova Conversa -->
+    <div class="settings-modal" id="new-chat-modal" data-testid="new-chat-modal">
+        <div class="settings-modal__backdrop" id="new-chat-backdrop"></div>
+        <aside class="settings-modal__panel" style="background: #ffffff;">
+            <header class="settings-modal__header" style="background: var(--color-primary); color: white;">
+                <div class="settings-modal__title-box">
+                    <i class="fa-solid fa-arrow-left" id="close-new-chat-btn" style="cursor: pointer; margin-right: 20px;"></i>
+                    <h2 style="color: white; font-size: 1.2rem;">Nova conversa</h2>
+                </div>
+            </header>
+            
+            <div class="search-container" style="padding: 1rem; background: #ffffff;">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="contact-search-input" placeholder="Pesquisar nome ou número" data-testid="contact-search-input">
+                </div>
+            </div>
+
+            <div id="contacts-list" class="contacts-list" data-testid="contacts-list">
+                <!-- Skeletons loading... -->
+                <div class="contact-item">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="contact-info">
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text--short skeleton"></div>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="contact-info">
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text--short skeleton"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
     <!-- Socket.IO & Backend Sync -->
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="src/assets/js/utils.js?v=20260427"></script>
-    <script src="chat_app.js?v=20260427"></script>
+    <script src="src/assets/js/utils.js?v=20260511"></script>
+    <script src="chat_app.js?v=20260511"></script>
 </body>
 
 </html>

@@ -19,7 +19,7 @@ jobs:
           cache-dependency-path: botarena-back/package-lock.json
       - run: cp .env.example .env
       - run: npm ci
-      - run: node scripts/ci_setup_db.js
+      - run: node ../execution/ci_setup_db.js
       - run: npm run test
       - run: npm run teste-banco
       - run: npm run teste-seg
@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Sentry Release
-        uses: getsentry/action-release@v3
+        uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}

@@ -14,6 +14,6 @@ if (DB_TYPE === 'postgres') {
     driver = require('./drivers/sqlite');
 }
 
-console.log(`📦 [DB] Driver loaded: ${DB_TYPE}`);
+// console.log(`📦 [DB] Driver loaded: ${DB_TYPE}`);
 
 module.exports = driver;

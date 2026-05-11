@@ -31,10 +31,10 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
     // 🔌 CONNECTION HANDLERS
     // ==========================================
     io.on('connection', async (socket) => {
-        console.log(`🔌 [Socket] Authenticated connection: ${socket.id} (user: ${socket.user?.email || 'unknown'})`);
+        // console.log(`🔌 [Socket] Authenticated connection: ${socket.id} (user: ${socket.user?.email || 'unknown'})`);
 
         const currentConfig = await settingsRepo.get();
-        console.log(`📡 [Socket] Sending bot_active = ${currentConfig.bot_active}`);
+        // console.log(`📡 [Socket] Sending bot_active = ${currentConfig.bot_active}`);
         socket.emit('bot_status', {
             active:  currentConfig.bot_active === true,
             message: currentConfig.bot_active ? 'Bot Ativo' : 'Bot Inativo'
@@ -42,19 +42,19 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
 
         const lastQR = getLastQR();
         if (lastQR && !currentConfig.bot_active) {
-            console.log(`📡 [Socket] Sending cached QR to ${socket.id}`);
+            // console.log(`📡 [Socket] Sending cached QR to ${socket.id}`);
             socket.emit('qr', lastQR);
         }
 
         socket.on('disconnect', () => {
-            console.log(`🔌 [Socket] Disconnected: ${socket.id}`);
+            // console.log(`🔌 [Socket] Disconnected: ${socket.id}`);
         });
 
         socket.on('send_message', async (data) => {
             if (data.body) {
                 data.body = sanitizeHtml(data.body, { allowedTags: [], allowedAttributes: {} });
             }
-            console.log(`💬 [Frontend] Outbound: ${data.body.substring(0, 30)}...`);
+            // console.log(`💬 [Frontend] Outbound: ${data.body.substring(0, 30)}...`);
             try {
                 if (!isClientReady()) {
                     console.error('🚫 [Frontend] send_message blocked — client not ready.');
@@ -81,7 +81,7 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
 
                 const client = getClient();
                 await client.sendMessage(target, data.body);
-                console.log(`✅ [WhatsApp] Message sent to ${target}`);
+                // console.log(`✅ [WhatsApp] Message sent to ${target}`);
             } catch (err) {
                 console.error('❌ [WhatsApp] Error sending message:', err.message);
             }
@@ -98,7 +98,7 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
 
         // --- Sprint: Menu Asset Management (Direct Trigger) ---
         socket.on('send_menu_media', async (data) => {
-            console.log(`🍽️ [Socket] Triggering media menu send to ${data.to}...`);
+            // console.log(`🍽️ [Socket] Triggering media menu send to ${data.to}...`);
             try {
                 if (!isClientReady()) return;
                 
@@ -111,7 +111,7 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
                     const target = (data.to && !data.to.includes('@')) ? `${data.to}@c.us` : data.to;
                     await client.sendMessage(target, media);
                     
-                    console.log(`✅ [WhatsApp] Media menu sent to ${target}`);
+                    // console.log(`✅ [WhatsApp] Media menu sent to ${target}`);
                     
                     // Notify UI of the media message
                     io.emit('new_message', {
@@ -128,6 +128,44 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
                 }
             } catch (err) {
                 console.error('❌ [Socket] Error sending menu media:', err);
+            }
+        });
+        // ==========================================
+        // 🧪 SIMULATION ENGINE (Test only)
+        // ==========================================
+        socket.on('simulate_inbound_message', async (data) => {
+            // console.log(`🧪 [Simulation] Incoming virtual message: "${data.body}" from ${data.pushname}`);
+            
+            // Mocking the WhatsApp Message object for the handler
+            const mockMsg = {
+                id: { _serialized: 'sim_' + Date.now(), fromMe: false },
+                from: data.from || '5511999999999@c.us',
+                to: 'me',
+                body: data.body,
+                pushname: data.pushname || 'Cliente Simulado',
+                timestamp: Math.floor(Date.now() / 1000),
+                fromMe: false,
+                isStatus: false,
+                // Mocking the reply function to redirect to Socket.IO instead of WhatsApp
+                reply: async (text) => {
+                    // console.log(`🤖 [Bot Simulation] Replying: "${text}"`);
+                    io.emit('new_message', {
+                        id: 'sim_reply_' + Date.now(),
+                        from: 'me',
+                        to: data.from || '5511999999999@c.us',
+                        body: text,
+                        fromMe: true,
+                        timestamp: Math.floor(Date.now() / 1000)
+                    });
+                }
+            };
+
+            // Trigger the bot logic manually
+            // We need to access the bot logic. Since it's attached via client.on, 
+            // we can just emit it on the client if we have it, or call the handler logic.
+            const client = getClient();
+            if (client) {
+                client.emit('message_create', mockMsg);
             }
         });
     });

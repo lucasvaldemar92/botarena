@@ -8,7 +8,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 require('dotenv').config();
 
-console.log('--- Iniciando Migração: company_id ---');
+// // console.log('--- Iniciando Migração: company_id ---');
 const start = performance.now();
 
 // Resolve DB path (same logic as connection.js)
@@ -53,14 +53,14 @@ async function migrate() {
         const exists = await hasColumn(table, 'company_id');
         if (!exists) {
             await runSQL(`ALTER TABLE ${table} ADD COLUMN company_id INTEGER DEFAULT 1`);
-            console.log(`✅ [Migration] Added company_id to "${table}"`);
+            // // console.log(`✅ [Migration] Added company_id to "${table}"`);
         } else {
-            console.log(`⏭️ [Migration] company_id already exists in "${table}"`);
+            // // console.log(`⏭️ [Migration] company_id already exists in "${table}"`);
         }
     }
 
     const end = performance.now();
-    console.log(`\n✅ Migração concluída! Tempo: ${(end - start).toFixed(2)}ms`);
+    // // console.log(`\n✅ Migração concluída! Tempo: ${(end - start).toFixed(2)}ms`);
 
     db.close();
     process.exit(0);

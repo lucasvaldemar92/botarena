@@ -57,6 +57,6 @@ test.describe('Configurações Menu', () => {
 
         // Tira um print para evidência
         await page.screenshot({ path: 'qa-evidence/settings_menu_test.png', fullPage: true });
-        console.log('✅ Teste de configurações concluído com sucesso!');
+        // console.log('✅ Teste de configurações concluído com sucesso!');
     });
 });

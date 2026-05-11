@@ -21,7 +21,7 @@ let _isClientReady = false; // 🔒 Safety flag — true only when client.on('re
 function initWhatsApp(io, repos) {
     const { settingsRepo } = repos;
 
-    console.log('🔄 [WhatsApp] Initializing Client...');
+    // // console.log('🔄 [WhatsApp] Initializing Client...');
     client = new Client({
         authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
         webVersionCache: {
@@ -35,15 +35,15 @@ function initWhatsApp(io, repos) {
     });
 
     client.on('qr', (qr) => {
-        console.log('📱 [WhatsApp] QR Code generated! Awaiting scan...');
+        // // console.log('📱 [WhatsApp] QR Code generated! Awaiting scan...');
         qrcode.generate(qr, { small: true });
         lastQR = qr;
         io.emit('qr', qr);
-        console.log('📡 [Socket] Emitted "qr" event.');
+        // // console.log('📡 [Socket] Emitted "qr" event.');
     });
 
     client.on('ready', async () => {
-        console.log('✅ [WhatsApp] Bot is Online!');
+        // // console.log('✅ [WhatsApp] Bot is Online!');
         _isClientReady = true;  // ✅ Client fully ready — safe to send messages
         lastQR = '';            // ✅ Clear QR cache — no QR needed while connected
         await settingsRepo.update({ bot_active: true });
@@ -52,21 +52,21 @@ function initWhatsApp(io, repos) {
         // Task 3: Connection Handshake Fix (Small delay)
         setTimeout(() => {
             io.emit('auth_success');
-            console.log('📡 [Socket] Emitted "auth_success" event after delay.');
+            // // console.log('📡 [Socket] Emitted "auth_success" event after delay.');
         }, 500);
-        console.log('📡 [Socket] Emitted "bot_online" + "auth_success" events.');
+        // // console.log('📡 [Socket] Emitted "bot_online" + "auth_success" events.');
     });
 
     client.on('authenticated', () => {
-        console.log('🔐 [WhatsApp] Session Authenticated.');
+        // // console.log('🔐 [WhatsApp] Session Authenticated.');
         lastQR = '';
 
         // Task 3: Connection Handshake Fix
         setTimeout(() => {
             io.emit('auth_success');
-            console.log('📡 [Socket] Emitted "auth_success" event after delay.');
+            // // console.log('📡 [Socket] Emitted "auth_success" event after delay.');
         }, 500);
-        console.log('📡 [Socket] Emitted "auth_success" event.');
+        // // console.log('📡 [Socket] Emitted "auth_success" event.');
     });
 
     client.on('auth_failure', msg => {
@@ -76,7 +76,7 @@ function initWhatsApp(io, repos) {
 
     client.on('disconnected', async (reason) => {
         _isClientReady = false; // ❌ Disconnected — block outgoing messages
-        console.log('⚠️ [WhatsApp] Client Disconnected:', reason);
+        // // console.log('⚠️ [WhatsApp] Client Disconnected:', reason);
         await settingsRepo.update({ bot_active: false });
         io.emit('bot_disconnected', { status: 'Bot Inativo', active: false });
     });

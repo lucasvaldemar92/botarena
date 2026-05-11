@@ -25,6 +25,6 @@ const { chromium } = require('playwright');
     };
   });
   
-  console.log(JSON.stringify(layoutMetrics, null, 2));
+  // console.log(JSON.stringify(layoutMetrics, null, 2));
   await browser.close();
 })();
