@@ -7,7 +7,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 require('dotenv').config();
 
-console.log('--- Iniciando Migração: operation_periods ---');
+// // console.log('--- Iniciando Migração: operation_periods ---');
 const start = performance.now();
 
 // Resolve DB path
@@ -52,13 +52,13 @@ async function migrate() {
     const exists = await hasColumn('settings', colName);
     if (!exists) {
         await runSQL(`ALTER TABLE settings ADD COLUMN ${colName} ${colType}`);
-        console.log(`✅ [Migration] Added ${colName} to "settings"`);
+        // // console.log(`✅ [Migration] Added ${colName} to "settings"`);
     } else {
-        console.log(`⏭️ [Migration] ${colName} already exists in "settings"`);
+        // // console.log(`⏭️ [Migration] ${colName} already exists in "settings"`);
     }
 
     const end = performance.now();
-    console.log(`\n✅ Migração concluída! Tempo: ${(end - start).toFixed(2)}ms`);
+    // // console.log(`\n✅ Migração concluída! Tempo: ${(end - start).toFixed(2)}ms`);
 
     db.close();
     process.exit(0);

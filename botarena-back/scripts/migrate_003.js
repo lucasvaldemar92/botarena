@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 require('dotenv').config();
 
-console.log('--- Iniciando Migração: 003_menu_asset ---');
+// // console.log('--- Iniciando Migração: 003_menu_asset ---');
 
 let dbPath;
 const dbUrl = process.env.DATABASE_URL;
@@ -43,13 +43,13 @@ async function migrate() {
         const exists = await hasColumn('daily_menu', col.name);
         if (!exists) {
             await runSQL(`ALTER TABLE daily_menu ADD COLUMN ${col.name} ${col.type}`);
-            console.log(`✅ [Migration] Added ${col.name} to "daily_menu"`);
+            // // console.log(`✅ [Migration] Added ${col.name} to "daily_menu"`);
         } else {
-            console.log(`⏭️ [Migration] ${col.name} already exists in "daily_menu"`);
+            // // console.log(`⏭️ [Migration] ${col.name} already exists in "daily_menu"`);
         }
     }
 
-    console.log('✅ Migração concluída!');
+    // // console.log('✅ Migração concluída!');
     db.close();
     process.exit(0);
 }

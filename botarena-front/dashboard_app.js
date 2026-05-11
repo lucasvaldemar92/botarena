@@ -84,7 +84,7 @@ function updateQRCode(qrData) {
 // Socket Bindings
 if (socket) {
     socket.on('connect', () => {
-        console.log('✅ Dashboard Connected to BotArena Backend');
+        // console.log('✅ Dashboard Connected to BotArena Backend');
         checkAuthAndRedirect();
     });
 
@@ -105,7 +105,7 @@ if (socket) {
     });
 
     socket.on('auth_success', () => {
-        console.log('🔐 [Socket] auth_success triggered');
+        // console.log('🔐 [Socket] auth_success triggered');
         if (qrContainer) qrContainer.style.display = 'none';
         window.location.replace('chat.html');
     });

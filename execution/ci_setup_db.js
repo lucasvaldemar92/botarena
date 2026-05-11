@@ -22,7 +22,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         console.error('❌ [CI Setup] Cannot create database:', err.message);
         process.exit(1);
     }
-    console.log('✅ [CI Setup] SQLite database created at:', DB_PATH);
+    // console.log('✅ [CI Setup] SQLite database created at:', DB_PATH);
 });
 
 function runSQL(sql) {
@@ -46,17 +46,17 @@ async function setup() {
 
         // Skip empty migration files (like 002_cleanup.sql)
         if (sql.trim().length === 0 || !sql.match(/\b(CREATE|ALTER|INSERT|UPDATE|DELETE|DROP)\b/i)) {
-            console.log(`⏭️ [CI Setup] Skipping ${file} (no executable SQL)`);
+            // console.log(`⏭️ [CI Setup] Skipping ${file} (no executable SQL)`);
             continue;
         }
 
         try {
             await runSQL(sql);
-            console.log(`✅ [CI Setup] Applied ${file}`);
+            // console.log(`✅ [CI Setup] Applied ${file}`);
         } catch (err) {
             // ALTER TABLE may fail if column already exists — that's OK
             if (err.message.includes('duplicate column name')) {
-                console.log(`⏭️ [CI Setup] ${file} — column already exists, skipping.`);
+                // console.log(`⏭️ [CI Setup] ${file} — column already exists, skipping.`);
             } else {
                 throw err;
             }
@@ -68,17 +68,17 @@ async function setup() {
     for (const table of tables) {
         try {
             await runSQL(`ALTER TABLE ${table} ADD COLUMN company_id INTEGER DEFAULT 1`);
-            console.log(`✅ [CI Setup] Added company_id to "${table}"`);
+            // console.log(`✅ [CI Setup] Added company_id to "${table}"`);
         } catch (err) {
             if (err.message.includes('duplicate column name')) {
-                console.log(`⏭️ [CI Setup] company_id already exists in "${table}"`);
+                // console.log(`⏭️ [CI Setup] company_id already exists in "${table}"`);
             } else {
                 throw err;
             }
         }
     }
 
-    console.log('\n✅ [CI Setup] Database ready for testing.');
+    // console.log('\n✅ [CI Setup] Database ready for testing.');
     db.close();
     process.exit(0);
 }

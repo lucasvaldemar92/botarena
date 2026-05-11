@@ -20,5 +20,5 @@ const { chromium } = require('playwright');
     await modal.screenshot({ path: '../../artifacts/pix_section_redesign.png' });
     
     await browser.close();
-    console.log('Screenshot saved to artifacts/pix_section_redesign.png');
+    // // console.log('Screenshot saved to artifacts/pix_section_redesign.png');
 })();

@@ -50,11 +50,8 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
         // Task 1: Strict JID Lockdown
         if (msg.from === 'status@broadcast' || msg.from.includes('@g.us')) {
-            console.log("🚫 [Bot] Ignorando Status/Grupo para evitar spam.");
             return;
         }
-
-        console.log(`💬 [WhatsApp] Message ${msg.fromMe ? 'Sent' : 'Received'} - ID: ${msg.id.id}`);
 
         if (msg.body) {
             msg.body = sanitizeHtml(msg.body, { allowedTags: [], allowedAttributes: {} });
@@ -74,7 +71,6 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
             const config = await settingsRepo.get();
 
             if (!config.bot_active) {
-                console.log('🔇 [Bot] Bot is OFF — skipping auto-reply.');
                 return;
             }
 
@@ -121,7 +117,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 if (!seenContacts.has(contactId)) {
                     seenContacts.add(contactId);
                     await safeReply(msg, msgAusencia, isClientReadyFn);
-                    console.log(`⏰ [Bot] Outside operation hours (${currentDay} ${currentTime}). Absence message sent to ${contactId}`);
+                    // console.log(`⏰ [Bot] Outside operation hours (${currentDay} ${currentTime}). Absence message sent to ${contactId}`);
                 }
                 return; // Do not process other commands outside hours
             }
@@ -131,38 +127,35 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 seenContacts.add(contactId);
                 const greeting = (config.boas_vindas || 'Olá! Como podemos ajudar?')
                     .replace(/\{\{empresa\}\}/g, config.empresa || 'BotArena');
-                const sent = await safeReply(msg, greeting, isClientReadyFn);
-                if (sent) console.log(`👋 [Bot] Welcome message sent to ${contactId}`);
+                await safeReply(msg, greeting, isClientReadyFn);
             }
 
             const text = msg.body.toLowerCase().trim();
 
             // Cardápio trigger (Dynamic Asset Management)
             if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
-                console.log(`🍽️ [Bot] Cardápio trigger detected for ${contactId} (fromMe: ${msg.fromMe})`);
+                // console.log(`🍽️ [Bot] Cardápio trigger detected for ${contactId} (fromMe: ${msg.fromMe})`);
                 const dailyMenu = await menuRepo.getLatestAsset();
                 
                 if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
-                    console.log(`📦 [Bot] Found binary menu: ${dailyMenu.mimetype}, size: ${dailyMenu.base64_data.length} chars`);
+                    // console.log(`📦 [Bot] Found binary menu: ${dailyMenu.mimetype}, size: ${dailyMenu.base64_data.length} chars`);
                     try {
                         const { MessageMedia } = require('whatsapp-web.js');
                         const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
                         await client.sendMessage(contactId, media);
-                        console.log(`🍽️ [Bot] Media menu sent SUCCESSFULLY to ${contactId}`);
+                        // console.log(`🍽️ [Bot] Media menu sent SUCCESSFULLY to ${contactId}`);
                         return;
                     } catch (mediaErr) {
                         console.error('❌ [Bot] Error sending media menu:', mediaErr);
                     }
                 } else {
-                    console.log('⚠️ [Bot] No binary menu found in DB, falling back to text.');
+                    // console.log('⚠️ [Bot] No binary menu found in DB, falling back to text.');
                 }
 
                 if (dailyMenu?.extracted_text) {
-                    if (await safeReply(msg, dailyMenu.extracted_text, isClientReadyFn))
-                        console.log(`🍽️ [Bot] Daily menu (text) sent to ${contactId}`);
+                    await safeReply(msg, dailyMenu.extracted_text, isClientReadyFn);
                 } else if (config.cardapio_url) {
-                    if (await safeReply(msg, `📋 Confira nosso cardápio: ${config.cardapio_url}`, isClientReadyFn))
-                        console.log(`🔗 [Bot] Cardápio URL sent to ${contactId}`);
+                    await safeReply(msg, `📋 Confira nosso cardápio: ${config.cardapio_url}`, isClientReadyFn);
                 } else {
                     await safeReply(msg, 'Nosso cardápio ainda não está disponível. Tente novamente mais tarde!', isClientReadyFn);
                 }
@@ -171,20 +164,18 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             // Pix trigger
             if (text.includes('pix') && config.pix) {
-                if (await safeReply(msg, `💰 Nossa chave PIX é: ${config.pix}`, isClientReadyFn))
-                    console.log(`💰 [Bot] Pix key sent to ${contactId}`);
+                await safeReply(msg, `💰 Nossa chave PIX é: ${config.pix}`, isClientReadyFn);
                 return;
             }
 
             // Knowledge Base lookup
             const kbMatch = await knowledgeRepo.findByKeyword(text);
             if (kbMatch) {
-                if (await safeReply(msg, kbMatch.response, isClientReadyFn))
-                    console.log(`📚 [Bot] KB match "${kbMatch.keyword}" → replied to ${contactId}`);
+                await safeReply(msg, kbMatch.response, isClientReadyFn);
                 return;
             }
 
-            console.log(`🔍 [Bot] No keyword match for: "${text.substring(0, 50)}"`);
+            // console.log(`🔍 [Bot] No keyword match for: "${text.substring(0, 50)}"`);
 
         } catch (err) {
             console.error('❌ [Bot] Error in auto-reply:', err);

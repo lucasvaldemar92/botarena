@@ -38,7 +38,7 @@ if (window.io) {
         opts = opts || {};
         opts.auth = opts.auth || {};
         opts.auth.token = localStorage.getItem('botarena-token');
-        console.log(`🔌 [Socket] Connecting to: ${targetUrl}`);
+        // console.log(`🔌 [Socket] Connecting to: ${targetUrl}`);
         return originalIo(targetUrl, opts);
     };
 }
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             base64_data: base64
                         })
                     });
-                    console.log('✅ [Assets] Menu file uploaded successfully.');
+                    // console.log('✅ [Assets] Menu file uploaded successfully.');
                 }
 
                 const response = await fetch(`${BASE_URL}/api/config`, {
@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.dispatchEvent(new CustomEvent('configLoaded', { detail: config }));
             }
         } catch (err) { 
-            console.log('Backend not reached'); 
+            // console.log('Backend not reached'); 
             if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err); 
         }
     }

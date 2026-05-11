@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('--- Iniciando Teste de Segurança Modular (Serverless Guard) ---');
+// // console.log('--- Iniciando Teste de Segurança Modular (Serverless Guard) ---');
 const start = performance.now();
 
 /**
@@ -35,7 +35,7 @@ try {
     const allFiles = [serverPath, ...collectJsFiles(srcDir)];
     const code = allFiles.map(f => fs.readFileSync(f, 'utf8')).join('\n');
 
-    console.log(`📂 Escaneando ${allFiles.length} arquivo(s) de código-fonte...`);
+    // // console.log(`📂 Escaneando ${allFiles.length} arquivo(s) de código-fonte...`);
 
     // MOCK VIRTUAL: Validação por Inspecão de AST / RegEx rígida
     // Garante que o desenvolvedor não removeu a trava global.
@@ -61,7 +61,7 @@ try {
          process.exit(1);
     }
 
-    console.log('🛡️ MOCK VIRTUAL Aprovado: As travas de status/grupos estão ativas na camada de serviço.');
+    // // console.log('🛡️ MOCK VIRTUAL Aprovado: As travas de status/grupos estão ativas na camada de serviço.');
 
     // ==========================================
     // 🔐 AUTH SECURITY RULES
@@ -73,7 +73,7 @@ try {
         console.error('❌ FATAL: authMiddleware NÃO está importado no código-fonte!');
         process.exit(1);
     }
-    console.log('🔐 Regra 4 OK: authMiddleware importado.');
+    // // console.log('🔐 Regra 4 OK: authMiddleware importado.');
 
     // Regra 5: Socket.IO io.use() auth middleware must be present
     const hasSocketAuth = code.includes('io.use(') && code.includes('Authentication error');
@@ -81,7 +81,7 @@ try {
         console.error('❌ FATAL: Middleware de autenticação Socket.IO (io.use) AUSENTE!');
         process.exit(1);
     }
-    console.log('🔐 Regra 5 OK: Socket.IO auth middleware presente.');
+    // // console.log('🔐 Regra 5 OK: Socket.IO auth middleware presente.');
 
     // Regra 6: JWT_SECRET must come from process.env (not hardcoded)
     const hasEnvJwtSecret = code.includes('process.env.JWT_SECRET');
@@ -89,7 +89,7 @@ try {
         console.error('❌ FATAL: JWT_SECRET não está sendo lido de process.env!');
         process.exit(1);
     }
-    console.log('🔐 Regra 6 OK: JWT_SECRET via process.env.');
+    // // console.log('🔐 Regra 6 OK: JWT_SECRET via process.env.');
 
     // Regra 7: Rate limiter must be imported and applied to sensitive routes
     const hasRateLimiterImport = code.includes("require('../middleware/rateLimiter')") || code.includes("require('./src/middleware/rateLimiter')");
@@ -98,11 +98,11 @@ try {
         console.error('❌ FATAL: Rate limiter (sensitiveLimiter) não está importado ou aplicado nas rotas!');
         process.exit(1);
     }
-    console.log('🔐 Regra 7 OK: Rate limiter aplicado em rotas sensíveis.');
+    // // console.log('🔐 Regra 7 OK: Rate limiter aplicado em rotas sensíveis.');
 
     const end = performance.now();
-    console.log(`✅ Segurança validada! Status: Verde.`);
-    console.log(`⏱️ Tempo: ${(end - start).toFixed(2)}ms`);
+    // // console.log(`✅ Segurança validada! Status: Verde.`);
+    // // console.log(`⏱️ Tempo: ${(end - start).toFixed(2)}ms`);
     process.exit(0);
 
 } catch (err) {

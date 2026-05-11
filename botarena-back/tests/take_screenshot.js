@@ -8,5 +8,5 @@ const fs = require('fs');
   await page.waitForTimeout(2000);
   await page.screenshot({ path: 'qa-evidence/gigantic_bug.png' });
   await browser.close();
-  console.log('Screenshot saved to qa-evidence/gigantic_bug.png');
+  // console.log('Screenshot saved to qa-evidence/gigantic_bug.png');
 })();

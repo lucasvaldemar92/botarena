@@ -97,31 +97,31 @@ function updateStatus(isActive) {
 }
 
 socket.on('connect', () => {
-    console.log('✅ Connected to BotArena Backend:', socket.id);
+    // console.log('✅ Connected to BotArena Backend:', socket.id);
 });
 
 socket.on('bot_status', (data) => {
-    console.log('📡 [Socket] bot_status:', data);
+    // console.log('📡 [Socket] bot_status:', data);
     updateStatus(data.active);
 });
 
 socket.on('bot_online', (data) => {
-    console.log('✅ [Socket] bot_online:', data);
+    // console.log('✅ [Socket] bot_online:', data);
     updateStatus(true);
 });
 
 socket.on('bot_disconnected', (data) => {
-    console.log('⚠️ [Socket] bot_disconnected:', data);
+    // console.log('⚠️ [Socket] bot_disconnected:', data);
     updateStatus(false);
 });
 
 socket.on('config_updated', (newConfig) => {
-    console.log('🔄 [Socket] config updated remotely:', newConfig);
+    // console.log('🔄 [Socket] config updated remotely:', newConfig);
     populateUI(newConfig);
 });
 
 socket.on('new_message', (msg) => {
-    console.log('💬 [Socket] new_message received:', msg);
+    // console.log('💬 [Socket] new_message received:', msg);
     if (!chatHistory) return;
 
     const msgId = msg.id || ('temp_' + Date.now());
@@ -134,7 +134,7 @@ socket.on('new_message', (msg) => {
     // Dynamic Binding: update the active target to the last person who texted!
     if (!msg.fromMe && msg.from && !msg.from.includes('broadcast')) {
         activeChatID = msg.from;
-        console.log('🔄 [UI] Chat ativo atualizado dinamicamente para:', activeChatID);
+        // console.log('🔄 [UI] Chat ativo atualizado dinamicamente para:', activeChatID);
     }
 
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -236,7 +236,7 @@ Após o pagamento, envie o comprovante por aqui para validação imediata! 🚀`
             btnQuickMenu.onclick = () => {
                 if (activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'))) return;
                 socket.emit('send_menu_media', { to: activeChatID });
-                console.log('🍽️ [Frontend] Triggered send_menu_media event.');
+                // console.log('🍽️ [Frontend] Triggered send_menu_media event.');
             };
         }
 
@@ -503,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose selection to window for the onclick handler
     window.selectContact = (id, name) => {
         activeChatID = id; // Update global let
-        console.log('🚀 [NewChat] Selecionado:', id, name);
+        // console.log('🚀 [NewChat] Selecionado:', id, name);
         
         closeNewChatModal();
 
@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
     simulatedButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('💡 [Simulação] Este botão faz parte da interface visual do WhatsApp e não possui função neste dashboard.');
+            // console.log('💡 [Simulação] Este botão faz parte da interface visual do WhatsApp e não possui função neste dashboard.');
         });
     });
 

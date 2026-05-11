@@ -15,7 +15,7 @@ class PostgresDriver {
             this.pool = new Pool({
                 connectionString: process.env.DATABASE_URL,
             });
-            console.log('✅ [DB] Connected to PostgreSQL database.');
+            // console.log('✅ [DB] Connected to PostgreSQL database.');
         } catch {
             console.warn('⚠️ [DB] PostgreSQL driver loaded but `pg` package is not installed.');
             console.warn('    Run: npm install pg');

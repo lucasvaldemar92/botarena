@@ -22,7 +22,6 @@ class SQLiteDriver {
 
         this._db = new sqlite3.Database(dbPath, (err) => {
             if (err) console.error('❌ [DB] Error opening SQLite database:', err);
-            else console.log('✅ [DB] Connected to SQLite database.');
         });
 
         // Enable WAL mode for better concurrency

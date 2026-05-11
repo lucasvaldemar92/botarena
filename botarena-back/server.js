@@ -74,6 +74,7 @@ app.use(express.json());
 // 🌐 STATIC FRONTEND FILES
 // ==========================================
 app.use(express.static(path.join(__dirname, '../botarena-front')));
+app.use('/qa-evidence', express.static(path.join(__dirname, '../qa-evidence')));
 
 // ==========================================
 // 🚀 IN-MEMORY HTML CACHE (PERF-001)
@@ -88,7 +89,6 @@ try {
     
     htmlCache['dashboard'] = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
     htmlCache['chat'] = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
-    console.log('✅ [Cache] Static HTML files loaded into memory.');
 } catch (err) {
     console.error('❌ [Cache] Error loading HTML files:', err);
 }
@@ -155,8 +155,8 @@ setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, menuRepo })
 // 🚀 SERVER START
 // ==========================================
 server.listen(PORT, () => {
-    console.log('==========================================');
-    console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
-    console.log(`📡 [Socket] WebSocket listening on port ${PORT}`);
-    console.log('==========================================');
+    // console.log('==========================================');
+    // console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
+    // console.log(`📡 [Socket] WebSocket listening on port ${PORT}`);
+    // console.log('==========================================');
 });
