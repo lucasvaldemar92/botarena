@@ -117,7 +117,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 if (!seenContacts.has(contactId)) {
                     seenContacts.add(contactId);
                     await safeReply(msg, msgAusencia, isClientReadyFn);
-                    // console.log(`⏰ [Bot] Outside operation hours (${currentDay} ${currentTime}). Absence message sent to ${contactId}`);
+                    // // console.log(`⏰ [Bot] Outside operation hours (${currentDay} ${currentTime}). Absence message sent to ${contactId}`);
                 }
                 return; // Do not process other commands outside hours
             }
@@ -134,22 +134,22 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             // Cardápio trigger (Dynamic Asset Management)
             if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
-                // console.log(`🍽️ [Bot] Cardápio trigger detected for ${contactId} (fromMe: ${msg.fromMe})`);
+                // // console.log(`🍽️ [Bot] Cardápio trigger detected for ${contactId} (fromMe: ${msg.fromMe})`);
                 const dailyMenu = await menuRepo.getLatestAsset();
                 
                 if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
-                    // console.log(`📦 [Bot] Found binary menu: ${dailyMenu.mimetype}, size: ${dailyMenu.base64_data.length} chars`);
+                    // // console.log(`📦 [Bot] Found binary menu: ${dailyMenu.mimetype}, size: ${dailyMenu.base64_data.length} chars`);
                     try {
                         const { MessageMedia } = require('whatsapp-web.js');
                         const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
                         await client.sendMessage(contactId, media);
-                        // console.log(`🍽️ [Bot] Media menu sent SUCCESSFULLY to ${contactId}`);
+                        // // console.log(`🍽️ [Bot] Media menu sent SUCCESSFULLY to ${contactId}`);
                         return;
                     } catch (mediaErr) {
                         console.error('❌ [Bot] Error sending media menu:', mediaErr);
                     }
                 } else {
-                    // console.log('⚠️ [Bot] No binary menu found in DB, falling back to text.');
+                    // // console.log('⚠️ [Bot] No binary menu found in DB, falling back to text.');
                 }
 
                 if (dailyMenu?.extracted_text) {
@@ -175,7 +175,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 return;
             }
 
-            // console.log(`🔍 [Bot] No keyword match for: "${text.substring(0, 50)}"`);
+            // // console.log(`🔍 [Bot] No keyword match for: "${text.substring(0, 50)}"`);
 
         } catch (err) {
             console.error('❌ [Bot] Error in auto-reply:', err);

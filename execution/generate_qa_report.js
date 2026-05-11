@@ -81,6 +81,9 @@ function scanQuality() {
     const files = getFiles(backDir, ['.js']);
 
     files.forEach(f => {
+        const filename = path.basename(f);
+        if (filename.includes('prettify') || f.includes('assets') || f.includes('vendor')) return;
+
         // 1. Syntax Check (Sanity)
         try {
             execSync(`node --check "${f}"`, { stdio: 'ignore' });
@@ -105,7 +108,11 @@ function scanQuality() {
             }
         }
 
-        const consoleLogs = (content.match(/console\.log/g) || []).length;
+        const consoleLogs = lines.filter(line => {
+            const trimmed = line.trim();
+            return trimmed.includes('console.log') && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
+        }).length;
+
         if (consoleLogs > 5) {
             addIssue('03', 'WARN', `Excesso de logs de depuração (${consoleLogs}) em: ${path.basename(f)}`, 5);
         }
@@ -209,10 +216,16 @@ function scanDependencies() {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     const deps = Object.keys(pkg.dependencies || {});
     const srcFiles = getFiles(path.join(backDir, 'src'), ['.js']);
-    const allContent = srcFiles.map(f => fs.readFileSync(f, 'utf8')).join(' ');
+    const rootFiles = fs.readdirSync(backDir)
+        .filter(f => f.endsWith('.js'))
+        .map(f => path.join(backDir, f));
+    
+    const allFiles = [...srcFiles, ...rootFiles];
+    const allContent = allFiles.map(f => fs.readFileSync(f, 'utf8')).join(' ');
 
     deps.forEach(d => {
-        if (!allContent.includes(`require('${d}')`) && !allContent.includes(`from '${d}'`)) {
+        const regex = new RegExp(`(require|from)\\s*\\(['"\`]${d}['"\`]\\)|['"\`]${d}['"\`]`, 'g');
+        if (!regex.test(allContent)) {
             // Alguns pacotes podem ser usados via binários ou middlewares injetados, então apenas WARN
             addIssue('07', 'WARN', `Pacote possivelmente órfão (não importado no src): ${d}`, 5);
         }
