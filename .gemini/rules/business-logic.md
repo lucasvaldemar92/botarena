@@ -1,18 +1,18 @@
-# Business Logic - BotArena
+# Business Logic — BotArena
 
-## Pagamento PIX
-- A chave PIX deve ser validada e formatada no frontend e backend.
-- **Padrão de Mensagem**: Sempre fornecer o formato "Copia e Cola" para facilitar o pagamento pelo cliente.
+## PIX Payment
+- PIX key must be validated and formatted on both frontend and backend
+- **Message pattern:** Always provide "Copy and Paste" format to facilitate payment by the client
 
-## Horário de Atendimento
-- O bot deve verificar se o horário atual está dentro dos períodos configurados antes de responder.
-- Mensagem de ausência global deve ser enviada fora do horário.
+## Business Hours
+- The bot must verify if the current time is within configured periods before responding
+- Global absence message must be sent outside business hours
 
-## Regras de Negócio Específicas
-### Almoço Executivo
-- Gestão de refil e acompanhamentos.
-- Fluxo de pedido prioritário entre 11:30 e 14:30.
+## Menu and Catalog
+- Items are configured via the admin panel — not hardcoded
+- The bot reads active items from the database at runtime
 
-### Gelados e Açaí
-- Escala de complementos e montagem dinâmica.
-- Verificação de estoque em tempo real.
+## Prohibited
+- Hardcoding business hours in the bot logic
+- Hardcoding PIX keys anywhere outside the database
+- Processing messages outside configured business hours without sending the absence message
