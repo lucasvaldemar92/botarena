@@ -1,11 +1,11 @@
-# QA Conventions - BotArena
+# QA Conventions — BotArena
 
 ## UI Purge Policy
-- Botões de "Chamada de Vídeo" e "Voz" devem ser REMOVIDOS do DOM (purge), não apenas escondidos.
-- Botões de "Nova Conversa", "Menu Principal" e "Busca no Chat" devem ser preservados para gestão administrativa e histórico.
+- "Video Call" and "Voice Call" buttons must be physically REMOVED from the DOM — never hidden with CSS
+- "New Conversation", "Main Menu" and "Chat Search" buttons must be preserved for admin management and history
 
 ## Database
-- Sempre rodar `execution/ci_setup_db.js` antes de iniciar qualquer suite de testes para garantir a integridade do SQLite.
+- Always run `execution/ci_setup_db.js` before any test suite to ensure SQLite integrity
 
 ## CI/CD
-- Deploys em produção (main) exigem aprovação do `ci-full.yml`.
+- Production deploys (main) require `ci-full.yml` approval

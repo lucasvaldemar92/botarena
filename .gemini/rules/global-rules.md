@@ -1,18 +1,18 @@
-# Global Rules - BotArena
+# Global Rules — BotArena
 
 ## Elite Agent Architecture (3 Layers)
 
 ### Layer 1: Directive (Rules)
-- Localizada em `.gemini/rules/`.
-- Contém a "Constituição" do projeto, regras de negócio e convenções de código.
-- Nenhuma execução deve violar as diretrizes desta camada.
+- Location: `.gemini/rules/`
+- Contains the project "Constitution" — business rules and code conventions
+- No execution may violate the directives of this layer
 
 ### Layer 2: Orchestration (Skills)
-- Localizada em `.gemini/skills/`.
-- Documenta as capacidades técnicas do agente (DB, UI, Automação).
-- Serve como ponte entre as regras e a execução.
+- Location: `.gemini/skills/`
+- Documents the agent's technical capabilities (DB, UI, Automation)
+- Acts as the bridge between rules and execution
 
 ### Layer 3: Execution (Scripts)
-- Localizada em `execution/`.
-- Contém scripts determinísticos e ferramentas de automação.
-- Garante resultados consistentes e repetíveis.
+- Location: `execution/`
+- Contains deterministic scripts and automation tools
+- Ensures consistent and repeatable results
