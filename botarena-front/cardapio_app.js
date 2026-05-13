@@ -7,41 +7,42 @@ let items = [];
 let editingId = null;
 
 // ── DOM ──
-const emptyState  = document.getElementById('empty-state');
-const itemListEl  = document.getElementById('item-list');
-const itemCount   = document.getElementById('item-count');
+const emptyState   = document.getElementById('empty-state');
+const itemListEl   = document.getElementById('item-list');
+const itemCount    = document.getElementById('item-count');
 const modalOverlay = document.getElementById('modal-overlay');
-const modalTitle  = document.getElementById('modal-title');
-const modalSave   = document.getElementById('modal-save');
-const modalCancel = document.getElementById('modal-cancel');
-const modalClose  = document.getElementById('modal-close');
-const toast       = document.getElementById('toast');
-const toastMsg    = document.getElementById('toast-msg');
-const toastIcon   = toast.querySelector('i');
+const modalTitle   = document.getElementById('modal-title');
+const modalSave    = document.getElementById('modal-save');
+const modalCancel  = document.getElementById('modal-cancel');
+const modalClose   = document.getElementById('modal-close');
+const toast        = document.getElementById('toast');
+const toastMsg     = document.getElementById('toast-msg');
+const toastIcon    = toast.querySelector('i');
 
 // ── TOAST ──
 let toastTimer;
 function showToast(msg, type = 'success') {
     toastMsg.textContent = msg;
-    toast.className = `toast toast--${type} show`;
+    toast.className = 'toast toast--' + type + ' show';
     toastIcon.className = type === 'success'
         ? 'fa-solid fa-circle-check'
         : 'fa-solid fa-trash-can';
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+    toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
 }
 
 // ── MODAL ──
-function openModal(item = null) {
+function openModal(item) {
+    item = item || null;
     editingId = item ? item.id : null;
     modalTitle.textContent = item ? 'Editar item' : 'Novo item';
 
-    document.getElementById('item-name').value      = item?.name      || '';
-    document.getElementById('item-category').value  = item?.category  || '';
-    document.getElementById('item-price').value     = item?.price     || '';
-    document.getElementById('item-desc').value      = item?.desc      || '';
+    document.getElementById('item-name').value        = item && item.name      ? item.name      : '';
+    document.getElementById('item-category').value    = item && item.category  ? item.category  : '';
+    document.getElementById('item-price').value       = item && item.price     ? item.price     : '';
+    document.getElementById('item-desc').value        = item && item.desc      ? item.desc      : '';
     document.getElementById('item-available').checked = item ? item.available : true;
-    document.getElementById('item-edit-id').value   = item?.id        || '';
+    document.getElementById('item-edit-id').value     = item && item.id        ? item.id        : '';
 
     modalOverlay.classList.add('active');
     document.getElementById('item-name').focus();
@@ -52,26 +53,26 @@ function closeModal() {
     editingId = null;
 }
 
-document.getElementById('btn-novo-item').onclick = () => openModal();
+document.getElementById('btn-novo-item').onclick = function() { openModal(); };
 modalClose.onclick  = closeModal;
 modalCancel.onclick = closeModal;
-modalOverlay.addEventListener('click', (e) => {
+modalOverlay.addEventListener('click', function(e) {
     if (e.target === modalOverlay) closeModal();
 });
 
 // ── FORMAT PRICE ──
-const priceInput = document.getElementById('item-price');
-priceInput.addEventListener('input', (e) => {
-    let v = e.target.value.replace(/\D/g, '');
+var priceInput = document.getElementById('item-price');
+priceInput.addEventListener('input', function(e) {
+    var v = e.target.value.replace(/\D/g, '');
     if (!v) { e.target.value = ''; return; }
     v = (parseInt(v) / 100).toFixed(2);
     e.target.value = v.replace('.', ',');
 });
 
-// ── RENDER ──
+// ── RENDER (agrupado por categoria) ──
 function renderItems() {
-    const count = items.length;
-    itemCount.textContent = `${count} ${count === 1 ? 'item cadastrado' : 'itens cadastrado(s)'}`;
+    var count = items.length;
+    itemCount.textContent = count + ' ' + (count === 1 ? 'item cadastrado' : 'itens cadastrado(s)');
 
     if (count === 0) {
         emptyState.style.display = 'flex';
@@ -83,56 +84,80 @@ function renderItems() {
     itemListEl.style.display = 'flex';
     itemListEl.innerHTML = '';
 
-    items.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'item-card';
-        div.dataset.id = item.id;
+    // Agrupa por categoria
+    var groups = {};
+    items.forEach(function(item) {
+        var cat = (item.category && item.category.trim()) ? item.category.trim() : 'Sem categoria';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(item);
+    });
 
-        const priceFormatted = item.price
-            ? `R$ ${item.price}`
-            : '—';
+    // Renderiza cada grupo
+    Object.keys(groups).forEach(function(catName) {
+        var catItems = groups[catName];
+        var groupEl  = document.createElement('div');
+        groupEl.className = 'category-group';
 
-        div.innerHTML = `
-            <div class="item-card__info">
-                <div class="item-card__category">${item.category || 'Sem categoria'}</div>
-                <div class="item-card__name">${item.name}</div>
-                ${item.desc ? `<div class="item-card__desc">${item.desc}</div>` : ''}
-            </div>
-            <div class="item-card__right">
-                <span class="item-card__price">${priceFormatted}</span>
-                <span class="item-card__badge ${item.available ? 'item-card__badge--on' : 'item-card__badge--off'}">
-                    ${item.available ? 'Disponível' : 'Indisponível'}
-                </span>
-                <div class="item-card__actions">
-                    <button class="icon-btn" title="Editar" data-action="edit" data-id="${item.id}">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="icon-btn icon-btn--danger" title="Excluir" data-action="delete" data-id="${item.id}">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-        itemListEl.appendChild(div);
+        // Cabeçalho do grupo
+        var header = document.createElement('div');
+        header.className = 'category-group__header';
+        header.innerHTML =
+            '<span class="category-group__title">' + catName + '</span>' +
+            '<span class="category-group__count">' + catItems.length + ' item(ns)</span>';
+        groupEl.appendChild(header);
+
+        // Lista de itens do grupo
+        var listEl = document.createElement('div');
+        listEl.className = 'category-group__list';
+
+        catItems.forEach(function(item) {
+            var priceFormatted = item.price ? 'R$ ' + item.price : '—';
+            var row = document.createElement('div');
+            row.className = 'item-card';
+            row.dataset.id = item.id;
+            row.innerHTML =
+                '<div class="item-card__info">' +
+                    '<div class="item-card__name">' + item.name + '</div>' +
+                    (item.desc ? '<div class="item-card__desc">' + item.desc + '</div>' : '') +
+                '</div>' +
+                '<div class="item-card__right">' +
+                    '<span class="item-card__price">' + priceFormatted + '</span>' +
+                    '<span class="item-card__badge ' + (item.available ? 'item-card__badge--on' : 'item-card__badge--off') + '">' +
+                        (item.available ? 'Disponível' : 'Indisponível') +
+                    '</span>' +
+                    '<div class="item-card__actions">' +
+                        '<button class="icon-btn" title="Editar" data-action="edit" data-id="' + item.id + '">' +
+                            '<i class="fa-solid fa-pen"></i>' +
+                        '</button>' +
+                        '<button class="icon-btn icon-btn--danger" title="Excluir" data-action="delete" data-id="' + item.id + '">' +
+                            '<i class="fa-solid fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            listEl.appendChild(row);
+        });
+
+        groupEl.appendChild(listEl);
+        itemListEl.appendChild(groupEl);
     });
 }
 
 // ── DELEGATED EVENTS NA LISTA ──
-itemListEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action]');
+itemListEl.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
     if (!btn) return;
 
-    const id     = btn.dataset.id;
-    const action = btn.dataset.action;
+    var id     = btn.dataset.id;
+    var action = btn.dataset.action;
 
     if (action === 'edit') {
-        const item = items.find(i => i.id === id);
+        var item = items.find(function(i) { return i.id === id; });
         if (item) openModal(item);
     }
 
     if (action === 'delete') {
         if (!confirm('Tem certeza que deseja excluir este item?')) return;
-        items = items.filter(i => i.id !== id);
+        items = items.filter(function(i) { return i.id !== id; });
         renderItems();
         showToast('Item excluído.', 'delete');
         syncToBackend();
@@ -140,20 +165,20 @@ itemListEl.addEventListener('click', (e) => {
 });
 
 // ── SALVAR ──
-modalSave.addEventListener('click', () => {
-    const name      = document.getElementById('item-name').value.trim();
-    const category  = document.getElementById('item-category').value.trim();
-    const price     = document.getElementById('item-price').value.trim();
-    const desc      = document.getElementById('item-desc').value.trim();
-    const available = document.getElementById('item-available').checked;
+modalSave.addEventListener('click', function() {
+    var name      = document.getElementById('item-name').value.trim();
+    var category  = document.getElementById('item-category').value.trim();
+    var price     = document.getElementById('item-price').value.trim();
+    var desc      = document.getElementById('item-desc').value.trim();
+    var available = document.getElementById('item-available').checked;
 
     // Validação: nome obrigatório
     if (!name) {
-        const nameInput = document.getElementById('item-name');
+        var nameInput = document.getElementById('item-name');
         nameInput.focus();
         nameInput.style.borderColor = '#ef4444';
         nameInput.style.boxShadow   = '0 0 0 3px rgba(239,68,68,0.15)';
-        setTimeout(() => {
+        setTimeout(function() {
             nameInput.style.borderColor = '';
             nameInput.style.boxShadow   = '';
         }, 1600);
@@ -165,17 +190,16 @@ modalSave.addEventListener('click', () => {
     editingId = null;
 
     // 2. Atualiza o estado
-    if (document.getElementById('item-edit-id').value) {
-        const id  = document.getElementById('item-edit-id').value;
-        const idx = items.findIndex(i => i.id === id);
-        if (idx !== -1) items[idx] = { ...items[idx], name, category, price, desc, available };
+    var editId = document.getElementById('item-edit-id').value;
+    if (editId) {
+        var idx = items.findIndex(function(i) { return i.id === editId; });
+        if (idx !== -1) {
+            items[idx] = Object.assign({}, items[idx], { name: name, category: category, price: price, desc: desc, available: available });
+        }
         showToast('Item atualizado!');
     } else {
-        items.push({
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-            name, category, price, desc, available,
-            createdAt: new Date().toISOString()
-        });
+        var newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
+        items.push({ id: newId, name: name, category: category, price: price, desc: desc, available: available, createdAt: new Date().toISOString() });
         showToast('Item adicionado!');
     }
 
@@ -188,10 +212,10 @@ modalSave.addEventListener('click', () => {
 async function syncToBackend() {
     if (!window.BASE_URL) return;
     try {
-        await fetch(`${window.BASE_URL}/api/menu-items`, {
+        await fetch(window.BASE_URL + '/api/menu-items', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items })
+            body: JSON.stringify({ items: items })
         });
     } catch (e) {
         // Backend pode não ter esta rota ainda — falha silenciosa
@@ -202,9 +226,9 @@ async function syncToBackend() {
 async function loadFromBackend() {
     if (!window.BASE_URL) { renderItems(); return; }
     try {
-        const res = await fetch(`${window.BASE_URL}/api/menu-items`);
+        var res = await fetch(window.BASE_URL + '/api/menu-items');
         if (res.ok) {
-            const data = await res.json();
+            var data = await res.json();
             items = Array.isArray(data.items) ? data.items : [];
         }
     } catch (e) {
@@ -214,6 +238,6 @@ async function loadFromBackend() {
 }
 
 // ── INIT ──
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     loadFromBackend();
 });
