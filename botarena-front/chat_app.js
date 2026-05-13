@@ -64,6 +64,11 @@
     // 🔌 SOCKET.IO EVENTS (REALTIME)
     // ==========================================
     function updateStatus(isActive) {
+        // Sincroniza o checkbox do toggle (sem disparar o evento 'change')
+        if (headerBotToggle && headerBotToggle.checked !== isActive) {
+            headerBotToggle.checked = isActive;
+        }
+
         if(headerStatusBadge && headerStatusText) {
             if (isActive) {
                 headerStatusBadge.className = 'header__status-badge header__status-badge--online pulse';
@@ -91,6 +96,16 @@
 
     if (socket) {
         socket.on('bot_status', (data) => updateStatus(data.active));
+
+        // Sincroniza quando o admin salva configurações
+        socket.on('config_updated', (newConfig) => {
+            if (typeof newConfig.bot_active !== 'undefined') {
+                updateStatus(newConfig.bot_active);
+            }
+        });
+
+        socket.on('bot_online',      () => updateStatus(true));
+        socket.on('bot_disconnected', () => updateStatus(false));
 
         socket.on('new_message', (msg) => {
             const chatHistory = document.querySelector('.chat-messages');
