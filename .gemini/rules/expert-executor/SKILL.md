@@ -18,13 +18,13 @@ description: Use this skill for BotArena project tasks. Activates on: code revie
 - **Clean Code JS:** No `console.log` outside `instrument.js`, no duplicated global variables.
 
 ## Business Logic & UI
-- **Scale Focus:** Prioritize automation for high-volume flows (**Almoço/Açaí**).
+- **Scale Focus:** Prioritize automation for high-volume flows (**Almoço/Quadra esportiva/Outros**).
 - **Payment Pattern:** PIX messages must strictly follow the "Copia e Cola" (Copy and Paste) standard defined in Global Brain.
 - **UI Consistency:** Preserve management buttons (New Chat and Menu) and ensure the Settings Sidebar Modal triggers correctly.
 
 ## Execution Rules
 1. Read `.gemini/rules/` before any technical task.
-2. Identify whether the task requires `ci-fast` or `ci-full` workflow.
+2. Identify whether  the task requires `ci-fast` or `ci-full` workflow.
 3. Follow `large-file-protection` and `dynamic-dom-frontend` on every edit.
 
 ## Global Constraints
