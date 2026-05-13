@@ -4,7 +4,9 @@
 
 // Estado em memória
 let items = [];
+let categories = [];
 let editingId = null;
+let editingCategoryId = null;
 
 // ── DOM ──
 const emptyState   = document.getElementById('empty-state');
@@ -15,6 +17,14 @@ const modalTitle   = document.getElementById('modal-title');
 const modalSave    = document.getElementById('modal-save');
 const modalCancel  = document.getElementById('modal-cancel');
 const modalClose   = document.getElementById('modal-close');
+
+// Modal Categoria
+const modalCatOverlay = document.getElementById('modal-category-overlay');
+const modalCatTitle   = document.getElementById('modal-category-title');
+const modalCatSave    = document.getElementById('modal-category-save');
+const modalCatCancel  = document.getElementById('modal-category-cancel');
+const modalCatClose   = document.getElementById('modal-category-close');
+
 const toast        = document.getElementById('toast');
 const toastMsg     = document.getElementById('toast-msg');
 const toastIcon    = toast.querySelector('i');
@@ -31,11 +41,103 @@ function showToast(msg, type = 'success') {
     toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
 }
 
-// ── MODAL ──
+// ── ATUALIZAR SELECT DE CATEGORIAS ──
+function updateCategorySelect() {
+    var select = document.getElementById('item-category');
+    var currentVal = select.value;
+    
+    // Coleta categorias explicitas + categorias ad-hoc já nos itens
+    var allCatNames = categories.map(function(c) { return c.name; });
+    items.forEach(function(i) {
+        if (i.category && !allCatNames.includes(i.category)) {
+            allCatNames.push(i.category);
+        }
+    });
+    
+    select.innerHTML = '<option value="">Sem categoria</option>';
+    allCatNames.forEach(function(name) {
+        var opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+    });
+    
+    if (currentVal && allCatNames.includes(currentVal)) {
+        select.value = currentVal;
+    }
+}
+
+// ── MODAL CATEGORIA ──
+function openCategoryModal(cat) {
+    cat = cat || null;
+    editingCategoryId = cat ? cat.id : null;
+    modalCatTitle.textContent = cat ? 'Editar Categoria' : 'Nova Categoria';
+
+    document.getElementById('category-name').value = cat ? cat.name : '';
+    document.getElementById('category-edit-id').value = cat ? cat.id : '';
+
+    modalCatOverlay.classList.add('active');
+    document.getElementById('category-name').focus();
+}
+
+function closeCategoryModal() {
+    modalCatOverlay.classList.remove('active');
+    editingCategoryId = null;
+}
+
+document.getElementById('btn-nova-categoria').onclick = function() { openCategoryModal(); };
+modalCatClose.onclick = closeCategoryModal;
+modalCatCancel.onclick = closeCategoryModal;
+modalCatOverlay.addEventListener('click', function(e) {
+    if (e.target === modalCatOverlay) closeCategoryModal();
+});
+
+modalCatSave.addEventListener('click', function() {
+    var name = document.getElementById('category-name').value.trim();
+
+    if (!name) {
+        var nameInput = document.getElementById('category-name');
+        nameInput.focus();
+        nameInput.style.borderColor = '#ef4444';
+        nameInput.style.boxShadow   = '0 0 0 3px rgba(239,68,68,0.15)';
+        setTimeout(function() {
+            nameInput.style.borderColor = '';
+            nameInput.style.boxShadow   = '';
+        }, 1600);
+        return;
+    }
+
+    modalCatOverlay.classList.remove('active');
+    
+    if (editingCategoryId) {
+        var idx = categories.findIndex(function(c) { return c.id === editingCategoryId; });
+        if (idx !== -1) {
+            var oldName = categories[idx].name;
+            categories[idx].name = name;
+            // Atualiza o nome da categoria nos itens se ela for editada
+            items.forEach(function(i) {
+                if (i.category === oldName) i.category = name;
+            });
+        }
+        showToast('Categoria atualizada!');
+    } else {
+        var newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
+        categories.push({ id: newId, name: name });
+        showToast('Categoria adicionada!');
+    }
+
+    editingCategoryId = null;
+    updateCategorySelect();
+    renderItems();
+});
+
+// ── MODAL ITEM ──
 function openModal(item) {
     item = item || null;
     editingId = item ? item.id : null;
     modalTitle.textContent = item ? 'Editar item' : 'Novo item';
+    
+    updateCategorySelect();
 
     document.getElementById('item-name').value        = item && item.name      ? item.name      : '';
     document.getElementById('item-category').value    = item && item.category  ? item.category  : '';

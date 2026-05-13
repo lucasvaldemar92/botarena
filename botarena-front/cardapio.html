@@ -617,6 +617,9 @@
             <button class="btn btn--outline" onclick="window.location.href='admin.html'">
                 <i class="fa-solid fa-arrow-left"></i> Voltar
             </button>
+            <button class="btn btn--outline" id="btn-nova-categoria" style="margin-right: 0.5rem;">
+                <i class="fa-solid fa-tags"></i> Categoria
+            </button>
             <button class="btn btn--primary" id="btn-novo-item">
                 <i class="fa-solid fa-plus"></i> Novo item
             </button>
@@ -656,7 +659,9 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="item-category">Categoria</label>
-                        <input class="form-input" type="text" id="item-category" placeholder="Ex: Pizzas, Bebidas">
+                        <select class="form-select" id="item-category">
+                            <option value="">Sem categoria</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="item-price">Preço (R$) *</label>
@@ -681,6 +686,32 @@
             <div class="modal__footer">
                 <button class="btn btn--outline" id="modal-cancel">Cancelar</button>
                 <button class="btn btn--primary" id="modal-save">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nova Categoria -->
+    <div class="modal-overlay" id="modal-category-overlay">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-category-title">
+            <div class="modal__header">
+                <h2 id="modal-category-title">Nova Categoria</h2>
+                <button class="modal__close" id="modal-category-close" aria-label="Fechar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal__body">
+                <input type="hidden" id="category-edit-id">
+
+                <div class="form-group">
+                    <label class="form-label" for="category-name">Nome da Categoria *</label>
+                    <input class="form-input" type="text" id="category-name" placeholder="Ex: Bebidas, Pizzas, Açaí">
+                </div>
+            </div>
+            <div class="modal__footer">
+                <button class="btn btn--outline" id="modal-category-cancel">Cancelar</button>
+                <button class="btn btn--primary" id="modal-category-save">
                     <i class="fa-solid fa-floppy-disk"></i> Salvar
                 </button>
             </div>
