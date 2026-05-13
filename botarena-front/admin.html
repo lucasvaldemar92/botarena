@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle | BotArena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-dark: #111b21;
+            --accent-green: #25d366;
+            --border-color: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+
+        .header {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto 3rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header__info h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            color: var(--text-main);
+        }
+
+        .header__info p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            background: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.status-badge {
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        button.status-badge:hover {
+            background-color: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        .grid {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: #cbd5e1;
+        }
+
+        .card__header {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .card__icon-box {
+            width: 48px;
+            height: 48px;
+            background: #f1f5f9;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            flex-shrink: 0;
+        }
+
+        .card__title-area h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .card__title-area p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .btn {
+            background: var(--accent-dark);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .btn--secondary {
+            background: #f1f5f9;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn--secondary:hover {
+            background: #e2e8f0;
+        }
+
+        /* Status Bot Specific Card */
+        .bot-status-inner {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        .bot-status-info h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .bot-status-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-green);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            animation: slideUp 0.5s ease-out forwards;
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+
+        /* File Preview */
+        .file-preview {
+            display: none;
+            align-items: center;
+            gap: 0.625rem;
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: var(--radius-md);
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #166534;
+            animation: slideUp 0.3s ease-out forwards;
+        }
+
+        .file-preview.visible {
+            display: flex;
+        }
+
+        .file-preview i {
+            color: #22c55e;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .file-preview__name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.875rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-main);
+            z-index: 9999;
+            transform: translateY(120%);
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 340px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast i {
+            color: #22c55e;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* Card selected state */
+        .card.card--selected {
+            border-color: #86efac;
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .header { flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
+            .header__info h1 { font-size: 1.5rem; }
+            .grid { grid-template-columns: 1fr; }
+            .toast { bottom: 1rem; right: 1rem; left: 1rem; max-width: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header__info">
+            <h1>Painel de Controle</h1>
+            <p>Gerencie seu atendimento</p>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button class="status-badge" onclick="window.location.href='chat.html'" title="Ir para o Chat" style="cursor: pointer; hover: opacity 0.8;">
+                <i class="fa-regular fa-message"></i> Chat
+            </button>
+            <div class="status-badge" id="bot-status-badge">
+                Bot offline
+            </div>
+        </div>
+    </header>
+
+    <main class="grid">
+        <!-- Anexo de Cardápio -->
+        <article class="card" id="card-anexo">
+            <div class="card__header">
+                <div class="card__icon-box">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div class="card__title-area">
+                    <h2>Anexo de Cardápio</h2>
+                    <p id="txt-anexo-desc">Envie o arquivo do cardápio</p>
+                </div>
+            </div>
+            <!-- Input file oculto -->
+            <input type="file" id="input-file-cardapio" accept="application/pdf,image/*" style="display:none;">
+            <button class="btn" id="btn-anexar">
+                <i class="fa-solid fa-upload" id="btn-anexar-icon"></i>
+                <span id="btn-anexar-label">Anexar cardápio</span>
+            </button>
+            <!-- Preview do arquivo selecionado -->
+            <div class="file-preview" id="file-preview">
+                <i class="fa-solid fa-circle-check"></i>
+                <span class="file-preview__name" id="file-preview-name"></span>
+            </div>
+        </article>
+
+        <!-- Status do Bot -->
+        <article class="card">
+            <div class="card__header">
+                <div class="card__icon-box">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="card__title-area">
+                    <h2>Status do Bot</h2>
+                    <p>Ative ou desative o atendimento</p>
+                </div>
+            </div>
+            <div class="bot-status-inner">
+                <div class="bot-status-info">
+                    <h3 id="bot-toggle-text">Bot desativado</h3>
+                    <p>Mensagens em espera</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="bot-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </article>
+
+        <!-- Usuários -->
+        <article class="card">
+            <div class="card__header">
+                <div class="card__icon-box">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="card__title-area">
+                    <h2>Usuários</h2>
+                    <p>Visualize e gerencie usuários</p>
+                </div>
+            </div>
+            <button class="btn btn--secondary" id="btn-usuarios">
+                Abrir tela de usuários
+            </button>
+        </article>
+
+        <!-- Cadastro de Cardápio -->
+        <article class="card">
+            <div class="card__header">
+                <div class="card__icon-box">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <div class="card__title-area">
+                    <h2>Cadastro de Cardápio</h2>
+                    <p>Gerencie itens, preços e categorias</p>
+                </div>
+            </div>
+            <button class="btn" id="btn-cadastro">
+                Abrir cadastro
+            </button>
+        </article>
+    </main>
+
+    <!-- Toast de confirmação -->
+    <div class="toast" id="toast-upload">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">Cardápio anexado!</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="src/assets/js/utils.js"></script>
+    <script src="admin_app.js"></script>
+</body>
+</html>
