@@ -126,6 +126,18 @@ app.get('/chat', (req, res) => {
     res.type('html').send(htmlCache['chat']);
 });
 
+app.get('/admin', (req, res) => {
+    const filePath = path.join(__dirname, '../botarena-front/admin.html');
+    const content = fs.readFileSync(filePath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+    res.type('html').send(content);
+});
+
+app.get('/cardapio', (req, res) => {
+    const filePath = path.join(__dirname, '../botarena-front/cardapio.html');
+    const content = fs.readFileSync(filePath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+    res.type('html').send(content);
+});
+
 // ==========================================
 // 📡 API ROUTES (modular)
 // ==========================================
