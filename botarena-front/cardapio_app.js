@@ -147,27 +147,39 @@ modalSave.addEventListener('click', () => {
     const desc      = document.getElementById('item-desc').value.trim();
     const available = document.getElementById('item-available').checked;
 
+    // Validação: nome obrigatório
     if (!name) {
-        document.getElementById('item-name').focus();
-        document.getElementById('item-name').style.borderColor = '#ef4444';
-        setTimeout(() => document.getElementById('item-name').style.borderColor = '', 1500);
+        const nameInput = document.getElementById('item-name');
+        nameInput.focus();
+        nameInput.style.borderColor = '#ef4444';
+        nameInput.style.boxShadow   = '0 0 0 3px rgba(239,68,68,0.15)';
+        setTimeout(() => {
+            nameInput.style.borderColor = '';
+            nameInput.style.boxShadow   = '';
+        }, 1600);
         return;
     }
 
-    if (editingId) {
-        const idx = items.findIndex(i => i.id === editingId);
+    // 1. Fecha o modal imediatamente
+    modalOverlay.classList.remove('active');
+    editingId = null;
+
+    // 2. Atualiza o estado
+    if (document.getElementById('item-edit-id').value) {
+        const id  = document.getElementById('item-edit-id').value;
+        const idx = items.findIndex(i => i.id === id);
         if (idx !== -1) items[idx] = { ...items[idx], name, category, price, desc, available };
         showToast('Item atualizado!');
     } else {
         items.push({
-            id: crypto.randomUUID(),
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
             name, category, price, desc, available,
             createdAt: new Date().toISOString()
         });
         showToast('Item adicionado!');
     }
 
-    closeModal();
+    // 3. Re-renderiza e sincroniza
     renderItems();
     syncToBackend();
 });
