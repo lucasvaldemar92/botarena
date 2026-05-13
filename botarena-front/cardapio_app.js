@@ -208,26 +208,34 @@ function renderItems() {
             '<span class="category-group__count">' + catItems.length + ' item(ns)</span>';
         groupEl.appendChild(header);
 
-        // Lista de itens do grupo
-        var listEl = document.createElement('div');
-        listEl.className = 'category-group__list';
+        // Lista de itens do grupo em formato de tabela
+        var tableWrapper = document.createElement('div');
+        tableWrapper.className = 'category-group__table-wrapper';
+        
+        var tableHTML = '<table class="category-table">' +
+            '<thead>' +
+                '<tr>' +
+                    '<th style="width:25%;">Nome</th>' +
+                    '<th style="width:35%;">Descrição</th>' +
+                    '<th style="width:15%;">Preço</th>' +
+                    '<th style="width:10%;">Disponível</th>' +
+                    '<th style="width:15%; text-align:right;">Ações</th>' +
+                '</tr>' +
+            '</thead>' +
+            '<tbody>';
 
         catItems.forEach(function(item) {
             var priceFormatted = item.price ? 'R$ ' + item.price : '—';
-            var row = document.createElement('div');
-            row.className = 'item-card';
-            row.dataset.id = item.id;
-            row.innerHTML =
-                '<div class="item-card__info">' +
-                    '<div class="item-card__name">' + item.name + '</div>' +
-                    (item.desc ? '<div class="item-card__desc">' + item.desc + '</div>' : '') +
-                '</div>' +
-                '<div class="item-card__right">' +
-                    '<span class="item-card__price">' + priceFormatted + '</span>' +
-                    '<span class="item-card__badge ' + (item.available ? 'item-card__badge--on' : 'item-card__badge--off') + '">' +
-                        (item.available ? 'Disponível' : 'Indisponível') +
-                    '</span>' +
-                    '<div class="item-card__actions">' +
+            var badgeClass = item.available ? 'item-card__badge--on' : 'item-card__badge--off';
+            var badgeText = item.available ? 'Sim' : 'Não';
+            
+            tableHTML += '<tr class="item-row" data-id="' + item.id + '">' +
+                '<td><span class="item-name">' + item.name + '</span></td>' +
+                '<td><span class="item-desc">' + (item.desc || '') + '</span></td>' +
+                '<td><span class="item-price">' + priceFormatted + '</span></td>' +
+                '<td><span class="item-card__badge ' + badgeClass + '">' + badgeText + '</span></td>' +
+                '<td style="text-align:right;">' +
+                    '<div class="item-card__actions" style="justify-content: flex-end;">' +
                         '<button class="icon-btn" title="Editar" data-action="edit" data-id="' + item.id + '">' +
                             '<i class="fa-solid fa-pen"></i>' +
                         '</button>' +
@@ -235,11 +243,14 @@ function renderItems() {
                             '<i class="fa-solid fa-trash"></i>' +
                         '</button>' +
                     '</div>' +
-                '</div>';
-            listEl.appendChild(row);
+                '</td>' +
+            '</tr>';
         });
 
-        groupEl.appendChild(listEl);
+        tableHTML += '</tbody></table>';
+        tableWrapper.innerHTML = tableHTML;
+        
+        groupEl.appendChild(tableWrapper);
         itemListEl.appendChild(groupEl);
     });
 }
