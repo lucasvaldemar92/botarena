@@ -140,6 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.getElementById('btn-cadastro').onclick = () => {
-        alert('Abrindo cadastro de itens do cardápio...');
+        window.location.href = 'cardapio.html';
     };
 });
