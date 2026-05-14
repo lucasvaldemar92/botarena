@@ -62,10 +62,28 @@ function updateCategorySelect() {
         select.appendChild(opt);
     });
     
+    var separator = document.createElement('option');
+    separator.disabled = true;
+    separator.textContent = '──────────';
+    select.appendChild(separator);
+    
+    var newCatOpt = document.createElement('option');
+    newCatOpt.value = '__NEW_CATEGORY__';
+    newCatOpt.textContent = '+ Nova categoria';
+    newCatOpt.style.fontWeight = 'bold';
+    select.appendChild(newCatOpt);
+    
     if (currentVal && allCatNames.includes(currentVal)) {
         select.value = currentVal;
     }
 }
+
+document.getElementById('item-category').addEventListener('change', function(e) {
+    if (e.target.value === '__NEW_CATEGORY__') {
+        e.target.value = ''; // Reseta para caso o usuário cancele
+        openCategoryModal();
+    }
+});
 
 // ── MODAL CATEGORIA ──
 function openCategoryModal(cat) {
@@ -128,6 +146,12 @@ modalCatSave.addEventListener('click', function() {
 
     editingCategoryId = null;
     updateCategorySelect();
+    
+    // Auto-seleciona a categoria que acabou de ser criada (se o modal de item estiver aberto)
+    if (modalOverlay.classList.contains('active')) {
+        document.getElementById('item-category').value = name;
+    }
+    
     renderItems();
 });
 
