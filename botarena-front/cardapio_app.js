@@ -54,7 +54,12 @@ function updateCategorySelect() {
         }
     });
     
-    select.innerHTML = '<option value="">Sem categoria</option>';
+    select.innerHTML = '';
+    
+    if (allCatNames.length === 0) {
+        select.innerHTML = '<option value="">Sem categoria</option>';
+    }
+
     allCatNames.forEach(function(name) {
         var opt = document.createElement('option');
         opt.value = name;
