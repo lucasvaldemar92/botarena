@@ -484,6 +484,22 @@
             transform: translateX(20px);
         }
 
+        .switch--small {
+            width: 32px;
+            height: 18px;
+        }
+
+        .switch--small .slider:before {
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+        }
+
+        .switch--small input:checked+.slider:before {
+            transform: translateX(14px);
+        }
+
         /* ── TOAST ── */
         .toast {
             position: fixed;
@@ -535,6 +551,17 @@
             border-radius: var(--radius-md);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
+            transition: opacity 0.3s ease, filter 0.3s ease;
+        }
+        
+        .category-group--disabled {
+            opacity: 0.55;
+            filter: grayscale(0.8);
+            pointer-events: none;
+        }
+        
+        .category-group--disabled .category-group__header-actions {
+            pointer-events: auto; /* Permite clicar no switch mesmo se a categoria estiver desativada */
         }
 
         .category-group__header {

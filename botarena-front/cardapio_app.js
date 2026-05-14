@@ -198,14 +198,31 @@ function renderItems() {
     Object.keys(groups).forEach(function(catName) {
         var catItems = groups[catName];
         var groupEl  = document.createElement('div');
-        groupEl.className = 'category-group';
+        
+        // Verifica o status da categoria no array global categories
+        var catObj = categories.find(function(c) { return c.name === catName; });
+        var isCatAvailable = catObj && catObj.available !== undefined ? catObj.available : true;
+        
+        groupEl.className = 'category-group' + (isCatAvailable ? '' : ' category-group--disabled');
 
         // Cabeçalho do grupo
         var header = document.createElement('div');
         header.className = 'category-group__header';
+        
+        // Switch de Categoria
+        var toggleHTML = 
+            '<label class="switch switch--small" title="Ativar/Desativar Categoria">' +
+                '<input type="checkbox" class="category-toggle" data-cat="' + catName + '" ' + (isCatAvailable ? 'checked' : '') + '>' +
+                '<span class="slider"></span>' +
+            '</label>';
+
         header.innerHTML =
             '<span class="category-group__title">' + catName + '</span>' +
-            '<span class="category-group__count">' + catItems.length + ' item(ns)</span>';
+            '<div class="category-group__header-actions" style="display: flex; align-items: center; gap: 1rem;">' +
+                '<span class="category-group__count">' + catItems.length + ' item(ns)</span>' +
+                toggleHTML +
+            '</div>';
+        
         groupEl.appendChild(header);
 
         // Lista de itens do grupo em formato de tabela
@@ -256,6 +273,26 @@ function renderItems() {
 }
 
 // ── DELEGATED EVENTS NA LISTA ──
+itemListEl.addEventListener('change', function(e) {
+    if (e.target.classList.contains('category-toggle')) {
+        var catName = e.target.dataset.cat;
+        var isAvailable = e.target.checked;
+        
+        // Procura categoria ou cria se não existir
+        var catObj = categories.find(function(c) { return c.name === catName; });
+        if (catObj) {
+            catObj.available = isAvailable;
+        } else {
+            var newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
+            categories.push({ id: newId, name: catName, available: isAvailable });
+        }
+        
+        renderItems();
+        showToast('Status da categoria atualizado!');
+        syncToBackend();
+    }
+});
+
 itemListEl.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
