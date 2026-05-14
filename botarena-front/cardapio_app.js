@@ -250,7 +250,7 @@ function renderItems() {
                 '<td><span class="item-name">' + item.name + '</span></td>' +
                 '<td><span class="item-desc">' + (item.desc || '') + '</span></td>' +
                 '<td><span class="item-price">' + priceFormatted + '</span></td>' +
-                '<td><span class="item-card__badge ' + badgeClass + '">' + badgeText + '</span></td>' +
+                '<td><button class="item-card__badge ' + badgeClass + '" data-action="toggle-item" data-id="' + item.id + '" style="border:none; cursor:pointer; font-family:inherit;" title="Clique para alterar">' + badgeText + '</button></td>' +
                 '<td style="text-align:right;">' +
                     '<div class="item-card__actions" style="justify-content: flex-end;">' +
                         '<button class="icon-btn" title="Editar" data-action="edit" data-id="' + item.id + '">' +
@@ -297,15 +297,20 @@ itemListEl.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
 
-    var id     = btn.dataset.id;
     var action = btn.dataset.action;
+    var id     = btn.dataset.id;
+    var item   = items.find(function(i) { return i.id === id; });
 
-    if (action === 'edit') {
-        var item = items.find(function(i) { return i.id === id; });
+    if (!item) return;
+
+    if (action === 'toggle-item') {
+        item.available = !item.available;
+        renderItems();
+        showToast('Status do item atualizado!');
+        syncToBackend();
+    } else if (action === 'edit') {
         if (item) openModal(item);
-    }
-
-    if (action === 'delete') {
+    } else if (action === 'delete') {
         if (!confirm('Tem certeza que deseja excluir este item?')) return;
         items = items.filter(function(i) { return i.id !== id; });
         renderItems();
