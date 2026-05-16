@@ -249,6 +249,15 @@
             color: #16a34a;
         }
 
+        @keyframes sync-flash {
+            0% { background-color: rgba(37, 211, 102, 0.2); }
+            100% { background-color: transparent; }
+        }
+
+        .sync-flash {
+            animation: sync-flash 1s ease-out;
+        }
+
         @media (max-width: 640px) {
             body { padding: 1rem; }
             .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -268,7 +277,7 @@
                 <a href="admin.html" class="btn btn--outline">
                     <i class="fa-solid fa-arrow-left"></i> Voltar
                 </a>
-                <button class="btn" id="btn-new-client">
+                <button class="btn" id="btn-new-client" data-testid="btn-new-client">
                     <i class="fa-solid fa-plus"></i> Novo cliente
                 </button>
             </div>
@@ -346,13 +355,14 @@
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-cancel">Cancelar</button>
-                    <button type="submit" class="btn" style="flex: 1;">Salvar Cliente</button>
+                    <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-cancel" data-testid="btn-cancel-client">Cancelar</button>
+                    <button type="submit" class="btn" style="flex: 1;" data-testid="btn-save-client">Salvar Cliente</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script src="src/assets/js/utils.js"></script>
     <script src="clientes_app.js"></script>
 </body>

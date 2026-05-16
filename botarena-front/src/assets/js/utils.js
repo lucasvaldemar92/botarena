@@ -1,5 +1,5 @@
-const BASE_URL = window.location.hostname === 'localhost' && window.location.port === '8080'
-    ? 'http://localhost:3000'
+const BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? `http://${window.location.hostname}:${window.location.port}`
     : window.location.origin;
 
 window.BASE_URL = BASE_URL;
@@ -30,15 +30,40 @@ window.fetch = async function() {
     }
     return response;
 };
+// --- SHARED UTILS ---
+window.utils = {
+    /**
+     * Standardized API fetch wrapper.
+     * Automatically prepends BASE_URL/api and handles auth tokens.
+     */
+    apiFetch: async (endpoint, options = {}) => {
+        const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}/api${endpoint}`;
+        // Auto-inject Content-Type for JSON bodies
+        if (options.body && typeof options.body === 'string') {
+            options.headers = options.headers || {};
+            options.headers['Content-Type'] = options.headers['Content-Type'] || 'application/json';
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Unknown Error' }));
+            throw new Error(error.error || `HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    }
+};
+
 if (window.io) {
     const originalIo = window.io;
     window.io = function(url, opts) {
-        // If url is missing or relative, force BASE_URL
-        const targetUrl = (url && url.startsWith('http')) ? url : BASE_URL;
+        // Handle case where first arg is an options object (no URL given)
+        if (url && typeof url === 'object') {
+            opts = url;
+            url = BASE_URL;
+        }
+        const targetUrl = (typeof url === 'string' && url.startsWith('http')) ? url : BASE_URL;
         opts = opts || {};
         opts.auth = opts.auth || {};
         opts.auth.token = localStorage.getItem('botarena-token');
-        // console.log(`🔌 [Socket] Connecting to: ${targetUrl}`);
         return originalIo(targetUrl, opts);
     };
 }
