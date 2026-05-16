@@ -223,6 +223,22 @@
 
             state.socket.on('connect', () => console.log('📡 [Socket] Connected for client sync.'));
         }
+
+        // Check for pending CRM sync from Chat
+        const pendingSync = localStorage.getItem('botarena_pending_sync');
+        if (pendingSync) {
+            try {
+                const data = JSON.parse(pendingSync);
+                ui.openModal();
+                // We need a tiny delay to allow the modal to render before flashing
+                setTimeout(() => {
+                    if (window.syncFromWhatsApp) window.syncFromWhatsApp(data);
+                }, 100);
+            } catch (e) {
+                console.error('Error parsing pending sync:', e);
+            }
+            localStorage.removeItem('botarena_pending_sync');
+        }
     };
 
     init();
