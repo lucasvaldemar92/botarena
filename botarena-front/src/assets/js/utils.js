@@ -185,23 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // --- Asset Management: Menu File Upload ---
                 const menuFile = document.getElementById('menuFile');
                 if (menuFile && menuFile.files.length > 0) {
-                    const file = menuFile.files[0];
-                    const base64 = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.readAsDataURL(file);
-                    });
-
-                    await fetch(`${BASE_URL}/api/menu`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            extracted_text: `Arquivo: ${file.name}`,
-                            mimetype: file.type,
-                            base64_data: base64
-                        })
-                    });
-                    // console.log('✅ [Assets] Menu file uploaded successfully.');
+                    await window.uploadMenuFile(menuFile.files[0]);
                 }
 
                 const response = await fetch(`${BASE_URL}/api/config`, {
@@ -224,10 +208,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 console.error('Error saving config:', err);
-                btnSaveConfig.innerHTML = 'Erro!';
-                btnSaveConfig.disabled = false;
+                btnSaveConfig.textContent = 'Erro!';
+                btnSaveConfig.classList.add('btn--error');
+                if (typeof window.showToast === 'function') {
+                    window.showToast(`Erro ao salvar: ${err.message}`, 'error');
+                } else {
+                    alert(`Erro ao salvar: ${err.message}`);
+                }
                 if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err);
-                setTimeout(() => btnSaveConfig.innerHTML = originalText, 2000);
+                setTimeout(() => {
+                    btnSaveConfig.innerHTML = originalText;
+                    btnSaveConfig.disabled = false;
+                    btnSaveConfig.classList.remove('btn--error');
+                }, 2000);
             }
         });
     }
@@ -319,6 +312,38 @@ document.addEventListener('DOMContentLoaded', () => {
         initialsEl.textContent = initials;
     }
 
+    // --- SHARED ASSET HELPERS ---
+    window.uploadMenuFile = async function(file) {
+        if (!file) return;
+        const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(file);
+        });
+
+        const response = await fetch(`${BASE_URL}/api/menu`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                extracted_text: `Arquivo: ${file.name}`,
+                mimetype: file.type,
+                base64_data: base64
+            })
+        });
+
+        if (response.ok) {
+            // Notify all parts of the app that menu was updated
+            const menuData = await response.json();
+            window.dispatchEvent(new CustomEvent('menuUpdated', { detail: menuData.menu }));
+            return menuData.menu;
+        } else {
+            if (response.status === 413) {
+                throw new Error('Arquivo muito grande. O limite é 10MB.');
+            }
+            throw new Error('Falha ao fazer upload do cardápio');
+        }
+    };
+
     async function syncGlobalHeader() {
         try {
             const response = await fetch(`${BASE_URL}/api/config`);
@@ -359,6 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Fire custom event to notify apps to update specific toggles
                 window.dispatchEvent(new CustomEvent('configLoaded', { detail: config }));
             }
+
+            // Also sync current menu
+            const menuRes = await fetch(`${BASE_URL}/api/menu`);
+            if (menuRes.ok) {
+                const menu = await menuRes.json();
+                if (menu && menu.extracted_text) {
+                    window.dispatchEvent(new CustomEvent('menuUpdated', { detail: menu }));
+                }
+            }
         } catch (err) { 
             // console.log('Backend not reached'); 
             if (typeof window.Sentry !== 'undefined') window.Sentry.captureException(err); 
@@ -367,7 +401,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Expose globals for specific apps
     window.syncGlobalHeader = syncGlobalHeader;
+    window.openModal = openModal;
     window.closeModal = closeModal;
+
+    // Handle menu updates globally for the settings modal
+    window.addEventListener('menuUpdated', (e) => {
+        const menu = e.detail;
+        const filePreview = document.getElementById('filePreview');
+        if (filePreview && menu && menu.extracted_text) {
+            const fileName = menu.extracted_text.replace('Arquivo: ', '');
+            filePreview.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #25d366;"></i> <span>${fileName}</span>`;
+            filePreview.classList.add('visible');
+        }
+    });
 
     syncGlobalHeader(); // Initial load
 });

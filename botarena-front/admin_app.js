@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filePreview     = document.getElementById('file-preview');
     const filePreviewName = document.getElementById('file-preview-name');
     const cardAnexo       = document.getElementById('card-anexo');
+    const txtAnexoDesc    = document.getElementById('txt-anexo-desc');
     const toast           = document.getElementById('toast-upload');
     const toastMessage    = document.getElementById('toast-message');
 
@@ -109,28 +110,54 @@ document.addEventListener('DOMContentLoaded', () => {
         toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
+    function updateMenuUI(menu) {
+        if (!menu || !menu.extracted_text) return;
+        
+        const fileName = menu.extracted_text.replace('Arquivo: ', '');
+        
+        // Atualiza o botão → "Trocar arquivo"
+        if (btnAnexarIcon) btnAnexarIcon.className = 'fa-solid fa-arrow-up-from-bracket';
+        if (btnAnexarLabel) btnAnexarLabel.textContent = 'Trocar arquivo';
+
+        // Exibe o preview com o nome do arquivo
+        if (filePreviewName) filePreviewName.textContent = fileName;
+        if (filePreview) filePreview.classList.add('visible');
+
+        // Adiciona borda verde no card
+        if (cardAnexo) cardAnexo.classList.add('card--selected');
+        if (txtAnexoDesc) txtAnexoDesc.textContent = 'Cardápio atualizado e ativo';
+    }
+
+    // Listen for global menu updates
+    window.addEventListener('menuUpdated', (e) => {
+        updateMenuUI(e.detail);
+    });
+
     if (btnAnexar && inputFile) {
         // Botão dispara o input oculto
         btnAnexar.addEventListener('click', () => inputFile.click());
 
         // Ao selecionar arquivo
-        inputFile.addEventListener('change', () => {
+        inputFile.addEventListener('change', async () => {
             const file = inputFile.files[0];
             if (!file) return;
 
-            // Atualiza o botão → "Trocar arquivo"
-            btnAnexarIcon.className = 'fa-solid fa-arrow-up-from-bracket';
-            btnAnexarLabel.textContent = 'Trocar arquivo';
+            try {
+                // Desabilita o botão durante o upload
+                btnAnexar.disabled = true;
+                btnAnexarLabel.textContent = 'Enviando...';
 
-            // Exibe o preview com o nome do arquivo
-            filePreviewName.textContent = file.name;
-            filePreview.classList.add('visible');
-
-            // Adiciona borda verde no card
-            cardAnexo.classList.add('card--selected');
-
-            // Exibe o toast
-            showToast(`Cardápio anexado: ${file.name}`);
+                await window.uploadMenuFile(file);
+                
+                // O evento 'menuUpdated' disparado pelo utils.js cuidará de chamar updateMenuUI
+                showToast(`Cardápio enviado com sucesso!`);
+            } catch (err) {
+                console.error('Erro no upload:', err);
+                showToast('Falha ao enviar cardápio');
+                btnAnexarLabel.textContent = 'Tentar novamente';
+            } finally {
+                btnAnexar.disabled = false;
+            }
         });
     }
 
