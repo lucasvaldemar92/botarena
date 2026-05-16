@@ -17,9 +17,10 @@ const { menuSchema }       = require('../schemas/menuSchema');
  * @param {Object}   deps.settingsRepo    - SettingsRepository instance
  * @param {Object}   deps.knowledgeRepo   - KnowledgeRepository instance
  * @param {Object}   deps.menuRepo        - MenuRepository instance
+ * @param {Object}   deps.clientRepo      - ClientRepository instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo }) {
     const router = express.Router();
 
     // ==========================================
@@ -192,7 +193,39 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     });
 
     // ==========================================
-    // 👥 CONTACTS ROUTES (🔒 Protected)
+    // 👥 CLIENTS ROUTES (🔒 Protected)
+    // ==========================================
+    router.get('/clients', authMiddleware, async (req, res) => {
+        try {
+            res.json(await clientRepo.getAll());
+        } catch (e) {
+            console.error('❌ [API] Error fetching clients:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    router.post('/clients', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const client = await clientRepo.add(req.body);
+            res.json({ success: true, client });
+        } catch (e) {
+            console.error('❌ [API] Error creating client:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    router.delete('/clients/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const changes = await clientRepo.remove(req.params.id);
+            res.json({ success: true, deleted: changes });
+        } catch (e) {
+            console.error('❌ [API] Error deleting client:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    // ==========================================
+    // 👥 WHATSAPP CONTACTS ROUTES (🔒 Protected)
     // ==========================================
     router.get('/contacts', authMiddleware, async (req, res) => {
         // // console.log('📡 [API] GET /api/contacts');

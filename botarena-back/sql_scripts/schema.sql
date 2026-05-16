@@ -21,13 +21,33 @@ CREATE TABLE IF NOT EXISTS knowledge_base (
 -- 3. Dynamic Daily Menu (OCR Extracted)
 CREATE TABLE IF NOT EXISTS daily_menu (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER DEFAULT 1,
+    mimetype TEXT,
+    base64_data TEXT,
     file_path TEXT,
     extracted_text TEXT,
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Initial Seed for Arena Juvenal
+-- 4. Clients Database
+CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER DEFAULT 1,
+    name TEXT,
+    birth_date TEXT,
+    phone TEXT,
+    contact_jid TEXT,
+    address TEXT,
+    zip_code TEXT,
+    notes TEXT,
+    source TEXT DEFAULT 'manual',
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. Initial Seed for Arena Juvenal
 INSERT INTO settings (empresa, pix, boas_vindas) 
 VALUES ('Arena Juvenal', '000.000.000-00', 'Bem-vindo à Arena Juvenal! 🏟️');
 

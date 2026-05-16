@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes | BotArena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-dark: #111b21;
+            --accent-green: #25d366;
+            --border-color: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header__title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+        }
+
+        .header__title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .header__actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--accent-dark);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn--outline {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Table Styles */
+        .card-table {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #fcfdfe;
+            padding: 1.25rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1.25rem 1.5rem;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal__content {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.active .modal__content {
+            transform: translateY(0);
+        }
+
+        .modal__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal__header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .modal__close {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group--full {
+            grid-column: span 2;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Badge Styles */
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .source-badge--manual {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .source-badge--whatsapp {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .header__actions { width: 100%; }
+            .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header__title">
+                <h1>Clientes</h1>
+                <p id="client-count">0 cadastrados</p>
+            </div>
+            <div class="header__actions">
+                <a href="admin.html" class="btn btn--outline">
+                    <i class="fa-solid fa-arrow-left"></i> Voltar
+                </a>
+                <button class="btn" id="btn-new-client">
+                    <i class="fa-solid fa-plus"></i> Novo cliente
+                </button>
+            </div>
+        </header>
+
+        <main class="card-table">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Nascimento</th>
+                            <th>Telefone</th>
+                            <th>Contato</th>
+                            <th>Endereço</th>
+                            <th>CEP</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-table-body">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                Nenhum cliente cadastrado.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Cadastro -->
+    <div class="modal" id="modal-registration">
+        <div class="modal__content">
+            <header class="modal__header">
+                <h2>Cadastro de Cliente</h2>
+                <button class="modal__close" id="modal-close">&times;</button>
+            </header>
+
+            <div id="client-source-badge" class="source-badge source-badge--manual">
+                <i class="fa-solid fa-pen"></i> [Manual]
+            </div>
+
+            <form id="form-client">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="client-name">Nome do Cliente</label>
+                        <input type="text" id="client-name" class="form-input" placeholder="Ex: João Silva" data-testid="client-name-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="client-birth">Data de Nascimento</label>
+                        <input type="date" id="client-birth" class="form-input" data-testid="client-birth-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="client-phone">WhatsApp/Telefone</label>
+                        <input type="text" id="client-phone" class="form-input" placeholder="Ex: 5517999999999" data-testid="client-phone-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="client-cep">CEP</label>
+                        <input type="text" id="client-cep" class="form-input" placeholder="00000-000" data-testid="client-cep-input">
+                    </div>
+
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="client-address">Endereço Completo</label>
+                        <input type="text" id="client-address" class="form-input" placeholder="Rua, Número, Bairro..." data-testid="client-address-input">
+                    </div>
+
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="client-notes">Observações</label>
+                        <textarea id="client-notes" class="form-input" placeholder="Notas operacionais..." data-testid="client-notes-input"></textarea>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-cancel">Cancelar</button>
+                    <button type="submit" class="btn" style="flex: 1;">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="src/assets/js/utils.js"></script>
+    <script src="clientes_app.js"></script>
+</body>
+</html>
