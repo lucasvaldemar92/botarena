@@ -364,27 +364,63 @@
     </header>
 
     <main class="grid">
-        <!-- Anexo de Cardápio -->
-        <article class="card" id="card-anexo">
+        <!-- Cardápios (Multi-Menu) -->
+        <article class="card" id="card-anexos">
             <div class="card__header">
                 <div class="card__icon-box">
                     <i class="fa-solid fa-file-lines"></i>
                 </div>
                 <div class="card__title-area">
-                    <h2>Anexo de Cardápio</h2>
-                    <p id="txt-anexo-desc">Envie o arquivo do cardápio</p>
+                    <h2>Gestão de Cardápios</h2>
+                    <p>Envie os arquivos por categoria</p>
                 </div>
             </div>
-            <!-- Input file oculto -->
-            <input type="file" id="input-file-cardapio" accept="application/pdf,image/*" style="display:none;">
-            <button class="btn" id="btn-anexar">
-                <i class="fa-solid fa-upload" id="btn-anexar-icon"></i>
-                <span id="btn-anexar-label">Anexar cardápio</span>
-            </button>
-            <!-- Preview do arquivo selecionado -->
-            <div class="file-preview" id="file-preview">
-                <i class="fa-solid fa-circle-check"></i>
-                <span class="file-preview__name" id="file-preview-name"></span>
+            
+            <div class="menu-slots" style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Slot 1: Almoço -->
+                <div class="menu-slot" data-testid="menu-slot-1">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <strong>🍽️ Almoço</strong>
+                    </div>
+                    <input type="file" id="upload-menu-lunch" accept="application/pdf,image/*" style="display:none;" data-slot="lunch">
+                    <button class="btn btn--secondary" style="width: 100%; display: flex; gap: 0.5rem; justify-content: center; align-items: center;" data-action="trigger-upload" data-target="upload-menu-lunch">
+                        <i class="fa-solid fa-upload"></i> <span id="label-menu-lunch">Anexar cardápio</span>
+                    </button>
+                    <div class="file-preview" id="preview-menu-lunch" style="margin-top: 0.5rem;">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span class="file-preview__name" id="name-menu-lunch"></span>
+                    </div>
+                </div>
+
+                <!-- Slot 2: Açaí -->
+                <div class="menu-slot" data-testid="menu-slot-2">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <strong>🍧 Açaí</strong>
+                    </div>
+                    <input type="file" id="upload-menu-acai" accept="application/pdf,image/*" style="display:none;" data-slot="acai">
+                    <button class="btn btn--secondary" style="width: 100%; display: flex; gap: 0.5rem; justify-content: center; align-items: center;" data-action="trigger-upload" data-target="upload-menu-acai">
+                        <i class="fa-solid fa-upload"></i> <span id="label-menu-acai">Anexar cardápio</span>
+                    </button>
+                    <div class="file-preview" id="preview-menu-acai" style="margin-top: 0.5rem;">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span class="file-preview__name" id="name-menu-acai"></span>
+                    </div>
+                </div>
+
+                <!-- Slot 3: Eventos -->
+                <div class="menu-slot" data-testid="menu-slot-3">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <strong>📅 Eventos</strong>
+                    </div>
+                    <input type="file" id="upload-menu-events" accept="application/pdf,image/*" style="display:none;" data-slot="events">
+                    <button class="btn btn--secondary" style="width: 100%; display: flex; gap: 0.5rem; justify-content: center; align-items: center;" data-action="trigger-upload" data-target="upload-menu-events">
+                        <i class="fa-solid fa-upload"></i> <span id="label-menu-events">Anexar cardápio</span>
+                    </button>
+                    <div class="file-preview" id="preview-menu-events" style="margin-top: 0.5rem;">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span class="file-preview__name" id="name-menu-events"></span>
+                    </div>
+                </div>
             </div>
         </article>
 

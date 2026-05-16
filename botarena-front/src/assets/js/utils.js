@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- SHARED ASSET HELPERS ---
-    window.uploadMenuFile = async function(file) {
+    window.uploadMenuFile = async function(file, slot = 'lunch') {
         if (!file) return;
         const base64 = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -382,16 +382,19 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                slot: slot,
                 extracted_text: `Arquivo: ${file.name}`,
                 mimetype: file.type,
                 base64_data: base64
             })
+
         });
 
         if (response.ok) {
             // Notify all parts of the app that menu was updated
             const menuData = await response.json();
-            window.dispatchEvent(new CustomEvent('menuUpdated', { detail: menuData.menu }));
+            // Include slot in event detail
+            window.dispatchEvent(new CustomEvent('menuUpdated', { detail: { menu: menuData.menu, slot } }));
             return menuData.menu;
         } else {
             if (response.status === 413) {

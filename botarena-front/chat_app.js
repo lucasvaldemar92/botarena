@@ -246,9 +246,23 @@
             chatInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
-        if (e.target.id === 'quick-reply-menu') {
+        const btnMenuQuick = e.target.closest('#quick-reply-menu');
+        const menuDropdown = document.getElementById('menu-choice-dropdown');
+
+        if (btnMenuQuick) {
             if (activeChatID?.includes('broadcast')) return;
-            if (socket) socket.emit('send_menu_media', { to: activeChatID });
+            menuDropdown.style.display = menuDropdown.style.display === 'none' ? 'block' : 'none';
+        } else if (menuDropdown && !e.target.closest('#menu-choice-dropdown')) {
+            menuDropdown.style.display = 'none';
+        }
+
+        const sendMenuItem = e.target.closest('.chat-dropdown__item[data-action="send-menu"]');
+        if (sendMenuItem) {
+            const slot = sendMenuItem.dataset.slot;
+            if (activeChatID && !activeChatID.includes('broadcast') && socket) {
+                socket.emit('send_menu_media', { to: activeChatID, slot: slot });
+            }
+            if (menuDropdown) menuDropdown.style.display = 'none';
         }
 
         // 3. Send Message Click

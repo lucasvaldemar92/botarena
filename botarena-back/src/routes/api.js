@@ -160,7 +160,8 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.get('/menu', authMiddleware, async (req, res) => {
         // // console.log('📡 [API] GET /api/menu');
         try {
-            const menu = await menuRepo.getActive();
+            const slot = req.query.slot || 'lunch';
+            const menu = await menuRepo.getActive(slot);
             res.json(menu || { message: 'No active menu' });
         } catch (e) {
             console.error('❌ [API] Error fetching menu:', e);
@@ -171,8 +172,8 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.post('/menu', sensitiveLimiter, authMiddleware, validate(menuSchema), async (req, res) => {
         // // console.log('📡 [API] POST /api/menu');
         try {
-            const { extracted_text, mimetype, base64_data } = req.body;
-            const menu = await menuRepo.setNewActive(extracted_text, mimetype, base64_data);
+            const { slot, extracted_text, mimetype, base64_data } = req.body;
+            const menu = await menuRepo.setNewActive(extracted_text, mimetype, base64_data, slot);
             // // console.log('✅ [API] Daily menu updated.');
             res.json({ success: true, menu });
         } catch (e) {

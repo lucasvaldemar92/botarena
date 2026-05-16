@@ -9,8 +9,9 @@ const sanitizeHtml = require('sanitize-html');
  * @param {Function} deps.isClientReady   - Returns true when WA client is ready
  * @param {Function} deps.getLastQR       - Returns the last cached QR code string
  * @param {Object}   deps.settingsRepo    - SettingsRepository instance
+ * @param {Object}   deps.menuRepo        - MenuRepository instance
  */
-function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) {
+function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, menuRepo }) {
 
     // ==========================================
     // 🔐 SOCKET AUTH MIDDLEWARE
@@ -102,7 +103,8 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo }) 
             try {
                 if (!isClientReady()) return;
                 
-                const dailyMenu = await menuRepo.getLatestAsset();
+                const slot = data.slot || 'lunch';
+                const dailyMenu = await menuRepo.getLatestAsset(slot);
                 if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
                     const { MessageMedia } = require('whatsapp-web.js');
                     const client = getClient();

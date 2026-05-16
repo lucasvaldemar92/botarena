@@ -15,10 +15,10 @@ class MenuRepository extends BaseRepository {
      * Get the currently active menu entry for this tenant, including binary data.
      * @returns {Promise<Object|null>}
      */
-    async getActive() {
+    async getActive(slot = 'lunch') {
         const row = await this.db.get(
-            'SELECT * FROM daily_menu WHERE company_id = ? AND is_active = 1 ORDER BY created_at DESC LIMIT 1',
-            [this.companyId]
+            'SELECT * FROM daily_menu WHERE company_id = ? AND is_active = 1 AND slot = ? ORDER BY created_at DESC LIMIT 1',
+            [this.companyId, slot]
         );
         return row || null;
     }
@@ -26,8 +26,8 @@ class MenuRepository extends BaseRepository {
     /**
      * Alias for getActive() for asset-focused calls.
      */
-    async getLatestAsset() {
-        return this.getActive();
+    async getLatestAsset(slot = 'lunch') {
+        return this.getActive(slot);
     }
 
     /**
@@ -38,22 +38,23 @@ class MenuRepository extends BaseRepository {
      * @param {string|null} [base64Data]
      * @returns {Promise<Object>} The new menu entry
      */
-    async setNewActive(extractedText, mimetype = null, base64Data = null) {
+    async setNewActive(extractedText, mimetype = null, base64Data = null, slot = 'lunch') {
         return this.db.transaction(async () => {
             await this.db.run(
-                'UPDATE daily_menu SET is_active = 0 WHERE company_id = ?',
-                [this.companyId]
+                'UPDATE daily_menu SET is_active = 0 WHERE company_id = ? AND slot = ?',
+                [this.companyId, slot]
             );
             const result = await this.db.run(
-                'INSERT INTO daily_menu (company_id, mimetype, base64_data, extracted_text, is_active) VALUES (?, ?, ?, ?, 1)',
-                [this.companyId, mimetype, base64Data, extractedText]
+                'INSERT INTO daily_menu (company_id, mimetype, base64_data, extracted_text, is_active, slot) VALUES (?, ?, ?, ?, 1, ?)',
+                [this.companyId, mimetype, base64Data, extractedText, slot]
             );
             return {
                 id: result.lastID,
                 mimetype,
                 base64_data: base64Data,
                 extracted_text: extractedText,
-                is_active: true
+                is_active: true,
+                slot
             };
         });
     }

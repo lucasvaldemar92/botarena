@@ -259,7 +259,23 @@
                     <div class="quick-replies-container">
                         <button class="quick-reply-btn" data-testid="quick-reply-pix" id="quick-reply-pix">Chave Pix</button>
                         <button class="quick-reply-btn" id="quick-reply-rota">Pedido em Rota</button>
-                        <button class="quick-reply-btn" id="quick-reply-menu">Cardápio</button>
+                        <div style="position: relative; display: inline-block;">
+                            <button class="quick-reply-btn" id="quick-reply-menu">Cardápio</button>
+                            <!-- Contextual Menu Choice -->
+                            <div id="menu-choice-dropdown" class="chat-dropdown" style="display: none; bottom: 100%; top: auto; left: 0; margin-bottom: 8px; min-width: 220px;">
+                                <ul class="chat-dropdown__list">
+                                    <li class="chat-dropdown__item" data-action="send-menu" data-slot="lunch">
+                                        🍽️ Enviar Cardápio Almoço
+                                    </li>
+                                    <li class="chat-dropdown__item" data-action="send-menu" data-slot="acai">
+                                        🍧 Enviar Cardápio Açaí
+                                    </li>
+                                    <li class="chat-dropdown__item" data-action="send-menu" data-slot="events">
+                                        📅 Enviar Cardápio Eventos
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
 
                     <footer class="chat-main__input-area">
