@@ -64,9 +64,6 @@ io.use((socket, next) => {
 
 const PORT = 3000;
 
-// ==========================================
-// 🛡️ MIDDLEWARE
-// ==========================================
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -168,8 +165,5 @@ setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, menuRepo })
 // 🚀 SERVER START
 // ==========================================
 server.listen(PORT, () => {
-    // console.log('==========================================');
-    // console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
-    // console.log(`📡 [Socket] WebSocket listening on port ${PORT}`);
-    // console.log('==========================================');
+    console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
 });

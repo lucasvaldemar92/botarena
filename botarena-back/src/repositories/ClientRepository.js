@@ -25,15 +25,34 @@ class ClientRepository extends BaseRepository {
      */
     async add(data) {
         return this.create({
-            name: data.name,
-            birth_date: data.birth,
-            phone: data.phone,
+            name: data.name || 'Sem nome',
+            birth_date: data.birth || null,
+            phone: data.phone || null,
             contact_jid: data.jid || null,
-            address: data.address,
-            zip_code: data.cep,
-            notes: data.notes,
+            address: data.address || null,
+            zip_code: data.cep || null,
+            notes: data.notes || null,
             source: data.source || 'manual',
             is_active: 1
+        });
+    }
+
+    /**
+     * Update an existing client entry.
+     * @param {number} id
+     * @param {Object} data
+     * @returns {Promise<number>} rows changed
+     */
+    async edit(id, data) {
+        return this.update(id, {
+            name: data.name || 'Sem nome',
+            birth_date: data.birth || null,
+            phone: data.phone || null,
+            contact_jid: data.jid || null,
+            address: data.address || null,
+            zip_code: data.cep || null,
+            notes: data.notes || null,
+            source: data.source || 'manual'
         });
     }
 

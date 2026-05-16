@@ -209,8 +209,24 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             const client = await clientRepo.add(req.body);
             res.json({ success: true, client });
         } catch (e) {
-            console.error('❌ [API] Error creating client:', e);
-            res.status(500).json({ error: 'Internal Server Error' });
+            if (e.message && e.message.includes('UNIQUE')) {
+                return res.status(409).json({ error: 'Telefone já cadastrado para outro cliente.' });
+            }
+            console.error('❌ [API] Erro ao criar cliente:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    router.put('/clients/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const changes = await clientRepo.edit(parseInt(req.params.id), req.body);
+            res.json({ success: true, changes });
+        } catch (e) {
+            if (e.message && e.message.includes('UNIQUE')) {
+                return res.status(409).json({ error: 'Telefone já cadastrado para outro cliente.' });
+            }
+            console.error('❌ [API] Erro ao editar cliente:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
         }
     });
 

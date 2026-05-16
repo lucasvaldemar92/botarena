@@ -55,6 +55,19 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
         if (msg.body) {
             msg.body = sanitizeHtml(msg.body, { allowedTags: [], allowedAttributes: {} });
+            
+            // --- Contact Sync Logic (Step 3) ---
+            try {
+                const contact = await msg.getContact();
+                io.emit('whatsapp_contact_sync', {
+                    name: contact.name || contact.pushname || '',
+                    phone: contact.number || '',
+                    jid: contact.id._serialized
+                });
+            } catch (err) {
+                console.error('❌ [Sync] Error fetching contact for sync:', err.message);
+            }
+
             io.emit('new_message', {
                 id:        msg.id._serialized,
                 from:      msg.from,
