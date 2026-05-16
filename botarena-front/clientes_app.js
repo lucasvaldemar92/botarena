@@ -90,8 +90,8 @@
                 elements.btnSubmit.textContent = 'Salvar Alterações';
                 elements.inputName.value    = client.name || '';
                 elements.inputBirth.value   = client.birth_date || '';
-                elements.inputPhone.value   = client.phone || '';
-                elements.inputCEP.value     = client.zip_code || '';
+                elements.inputPhone.value   = window.utils.masks.phone(client.phone || '');
+                elements.inputCEP.value     = window.utils.masks.cep(client.zip_code || '');
                 elements.inputAddress.value = client.address || '';
                 elements.inputNotes.value   = client.notes || '';
                 ui.setSource(client.source === 'whatsapp');
@@ -174,12 +174,20 @@
         if (deleteBtn) api.deleteClient(deleteBtn.dataset.id);
     });
 
+    // Mascaras em tempo real
+    elements.inputPhone.addEventListener('input', (e) => {
+        e.target.value = window.utils.masks.phone(e.target.value);
+    });
+    elements.inputCEP.addEventListener('input', (e) => {
+        e.target.value = window.utils.masks.cep(e.target.value);
+    });
+
     elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const payload = {
             name:    elements.inputName.value,
             birth:   elements.inputBirth.value,
-            phone:   elements.inputPhone.value,
+            phone:   elements.inputPhone.value.replace(/[^\d+]/g, ""), // Limpa mas mantém o + se for internacional
             cep:     elements.inputCEP.value,
             address: elements.inputAddress.value,
             notes:   elements.inputNotes.value,
@@ -205,7 +213,7 @@
                         setTimeout(() => elements.inputName.classList.remove('sync-flash'), 1000);
                     }
                     if (data.phone) {
-                        elements.inputPhone.value = data.phone;
+                        elements.inputPhone.value = window.utils.masks.phone(data.phone);
                         elements.inputPhone.classList.add('sync-flash');
                         setTimeout(() => elements.inputPhone.classList.remove('sync-flash'), 1000);
                     }
@@ -228,7 +236,7 @@
                 setTimeout(() => elements.inputName.classList.remove('sync-flash'), 1000);
             }
             if (data.phone) {
-                elements.inputPhone.value = data.phone;
+                elements.inputPhone.value = window.utils.masks.phone(data.phone);
                 elements.inputPhone.classList.add('sync-flash');
                 setTimeout(() => elements.inputPhone.classList.remove('sync-flash'), 1000);
             }

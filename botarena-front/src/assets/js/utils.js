@@ -49,7 +49,39 @@ window.utils = {
             throw new Error(error.error || `HTTP error! status: ${response.status}`);
         }
         return response.json();
+    },
+
+    /**
+     * Masks
+     */
+    masks: {
+        cep: (value) => {
+            return value
+                .replace(/\D/g, "")
+                .replace(/^(\d{5})(\d)/, "$1-$2")
+                .slice(0, 9);
+        },
+        phone: (value) => {
+            // Se começar com +, trata como internacional livre (apenas números e +)
+            if (value.startsWith('+')) {
+                return '+' + value.replace(/[^\d]/g, "").slice(0, 15);
+            }
+            
+            // Padrão Brasil
+            let r = value.replace(/\D/g, "");
+            if (r.length > 11) r = r.slice(0, 11);
+            if (r.length > 10) {
+                return r.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+            } else if (r.length > 5) {
+                return r.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+            } else if (r.length > 2) {
+                return r.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2");
+            } else {
+                return r.replace(/^(\d*)/, "($1");
+            }
+        }
     }
+
 };
 
 if (window.io) {
