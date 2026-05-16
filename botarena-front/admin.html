@@ -83,6 +83,18 @@
             transform: translateY(-1px);
         }
 
+        .status-online {
+            color: #16a34a !important;
+            border-color: #86efac !important;
+            background: #f0fdf4 !important;
+        }
+
+        .status-offline {
+            color: #dc2626 !important;
+            border-color: #fca5a5 !important;
+            background: #fef2f2 !important;
+        }
+
         .grid {
             max-width: 1200px;
             width: 100%;
@@ -342,12 +354,12 @@
             <p>Gerencie seu atendimento</p>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
-            <button class="status-badge" onclick="window.location.href='chat.html'" title="Ir para o Chat" style="cursor: pointer; hover: opacity 0.8;">
+            <button class="status-badge" onclick="window.location.href='chat.html'" title="Ir para o Chat" style="cursor: pointer;">
                 <i class="fa-regular fa-message"></i> Chat
             </button>
-            <div class="status-badge" id="bot-status-badge">
-                Bot offline
-            </div>
+            <button class="status-badge status-offline btn-status" id="bot-status-badge" title="Alternar status do bot">
+                ○ Bot offline
+            </button>
         </div>
     </header>
 
@@ -373,29 +385,6 @@
             <div class="file-preview" id="file-preview">
                 <i class="fa-solid fa-circle-check"></i>
                 <span class="file-preview__name" id="file-preview-name"></span>
-            </div>
-        </article>
-
-        <!-- Status do Bot -->
-        <article class="card">
-            <div class="card__header">
-                <div class="card__icon-box">
-                    <i class="fa-solid fa-robot"></i>
-                </div>
-                <div class="card__title-area">
-                    <h2>Status do Bot</h2>
-                    <p>Ative ou desative o atendimento</p>
-                </div>
-            </div>
-            <div class="bot-status-inner">
-                <div class="bot-status-info">
-                    <h3 id="bot-toggle-text">Bot desativado</h3>
-                    <p>Mensagens em espera</p>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="bot-toggle">
-                    <span class="slider"></span>
-                </label>
             </div>
         </article>
 

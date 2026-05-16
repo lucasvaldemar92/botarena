@@ -3,31 +3,27 @@
 // ==========================================
 const socket = window.io ? io(window.BASE_URL) : null;
 
-const botToggle = document.getElementById('bot-toggle');
-const botToggleText = document.getElementById('bot-toggle-text');
+// The badge is now a button, we don't store it statically since we use event delegation, 
+// but we keep a reference for direct updates.
 const botStatusBadge = document.getElementById('bot-status-badge');
+
 
 // ==========================================
 // 🔌 UI UPDATES
 // ==========================================
 
 function updateBotStatus(isActive) {
-    if (!botToggle || !botToggleText || !botStatusBadge) return;
-
-    botToggle.checked = isActive;
+    if (!botStatusBadge) return;
     
+    // Store current state directly on the element for the toggle logic
+    botStatusBadge.dataset.active = isActive;
+
     if (isActive) {
-        botToggleText.textContent = 'Bot ativado';
-        botStatusBadge.textContent = 'Bot online';
-        botStatusBadge.style.color = '#25d366';
-        botStatusBadge.style.borderColor = '#25d366';
-        botStatusBadge.style.background = '#f0fdf4';
+        botStatusBadge.textContent = '● Bot online';
+        botStatusBadge.className = 'status-badge status-online btn-status';
     } else {
-        botToggleText.textContent = 'Bot desativado';
-        botStatusBadge.textContent = 'Bot offline';
-        botStatusBadge.style.color = '';
-        botStatusBadge.style.borderColor = '';
-        botStatusBadge.style.background = '';
+        botStatusBadge.textContent = '○ Bot offline';
+        botStatusBadge.className = 'status-badge status-offline btn-status';
     }
 }
 
@@ -66,26 +62,42 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error('Erro ao carregar config inicial:', err));
 
-    // Toggle event listener
-    if (botToggle) {
-        botToggle.addEventListener('change', async (e) => {
-            const isActive = e.target.checked;
-            updateBotStatus(isActive); // Optimistic update
+    // Global click delegation for bot status toggle
+    document.addEventListener('click', async (e) => {
+        const target = e.target.closest('#bot-status-badge');
+        if (target) {
+            // Determine new state based on current dataset
+            const currentlyActive = target.dataset.active === 'true';
+            const newState = !currentlyActive;
+            
+            // Optimistic update
+            updateBotStatus(newState);
             
             try {
+                // If you want to use sockets as per spec: "emit a Socket.io event (toggle-bot-status) to the backend"
+                // But the backend current expects config update via API, or we can use the existing API call.
+                // The spec says: "emit a Socket.io event (toggle-bot-status) to the backend."
+                // I'll keep the API call since it's proven, but if socket emission is strictly required, we can do both.
+                // Let's use the API as it currently updates the config.
                 const response = await fetch(`${window.BASE_URL}/api/config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bot_active: isActive })
+                    body: JSON.stringify({ bot_active: newState })
                 });
                 
                 if (!response.ok) throw new Error('Erro ao salvar no servidor');
+                
+                // Emitting socket event as requested by the spec
+                if (socket) {
+                    socket.emit('toggle-bot-status', { active: newState });
+                }
+                
             } catch (err) {
                 console.error('Falha ao atualizar bot status:', err);
-                updateBotStatus(!isActive); // Revert on failure
+                updateBotStatus(currentlyActive); // Revert on failure
             }
-        });
-    }
+        }
+    });
 
     // ==========================================
     // 📎 ANEXO DE CARDÁPIO
