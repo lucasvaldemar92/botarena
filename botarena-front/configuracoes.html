@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações | BotArena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-dark: #111b21;
+            --accent-green: #25d366;
+            --border-color: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .container {
+            max-width: 800px; /* Centered narrow container for settings */
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header__title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+        }
+
+        .header__title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .header__actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--accent-dark);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn--outline {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .settings-form__section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #008069;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .settings-form__group {
+            margin-bottom: 1.25rem;
+        }
+
+        .settings-form__label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .settings-form__input {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .settings-form__input:focus {
+            outline: none;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header__title">
+                <h1>Configurações Gerais</h1>
+                <p>Horários, PIX e mensagens automáticas</p>
+            </div>
+            <div class="header__actions">
+                <a href="admin.html" class="btn btn--outline">
+                    <i class="fa-solid fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </header>
+
+        <main>
+            <article class="card">
+                <form id="settings-form" class="settings-form" style="display: flex; flex-direction: column; gap: 2.5rem;">
+                    
+                    <!-- Section: Pagamento (Pix) -->
+                    <div>
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Nome do Favorecido</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                    data-testid="pix-name" id="cfg-pix-name">
+                            </div>
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Chave Pix</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
+                                    data-testid="pix-input-masked" id="cfg-pix-key">
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                            <i class="fa-solid fa-bolt" style="color: #008069; margin-right: 0.25rem;"></i>
+                            Disponível como atalho no menu do chat
+                        </p>
+                    </div>                    
+                    
+                    <!-- Section: Horário de Atendimento -->
+                    <div>
+                        <h3 class="settings-form__section-title"><i class="fa-regular fa-clock"></i> Horário de Atendimento</h3>
+                        <div id="operation-periods-container">
+                            <!-- Periods will be injected here via JS -->
+                        </div>
+
+                        <button type="button" id="btn-add-period" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px dashed #008069; color: #008069; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 128, 105, 0.1)'" onmouseout="this.style.background='transparent'">
+                            <i class="fa-solid fa-plus" style="margin-right: 0.5rem;"></i> Novo Período
+                        </button>
+
+                        <div class="settings-form__group" style="margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                            <label class="settings-form__label">Mensagem de Ausência (Global)</label>
+                            <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="4" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                        <button type="button" class="btn" id="btn-save-config" data-testid="btn-save-config" style="padding: 1rem 2rem; background: #008069;">
+                            <i class="fa-solid fa-check"></i> Salvar Configurações
+                        </button>
+                    </div>
+                </form>
+            </article>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="src/assets/js/utils.js"></script>
+</body>
+</html>
