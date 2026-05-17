@@ -61,6 +61,8 @@
                 if (response.success) {
                     await api.fetchClients();
                     ui.closeModal();
+                    const inlineForm = document.getElementById('form-client-inline');
+                    if (inlineForm) inlineForm.reset();
                 }
             } catch (err) {
                 console.error('❌ Error saving client:', err);
@@ -74,6 +76,87 @@
                 if (response.success) await api.fetchClients();
             } catch (err) {
                 console.error('❌ Error deleting client:', err);
+            }
+        },
+        syncContacts: async () => {
+            const syncBtn = document.getElementById('btn-sync-now');
+            const dot = document.querySelector('.status-dot');
+            const text = document.querySelector('.status-text');
+            
+            if (!syncBtn) return;
+            
+            syncBtn.classList.add('executing');
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+            
+            if (dot) {
+                dot.className = 'status-dot status-dot--syncing';
+            }
+            if (text) {
+                text.textContent = 'Sincronizando contatos do WhatsApp...';
+            }
+            
+            try {
+                const response = await window.utils.apiFetch('/clients/sync', { method: 'POST' });
+                if (response.success) {
+                    await api.fetchClients();
+                    
+                    syncBtn.innerHTML = '<i class="fa-solid fa-check"></i> Sincronizado!';
+                    if (text) {
+                        text.textContent = `Ingestão Concluída! ${response.addedCount} novos clientes importados.`;
+                    }
+                    
+                    const timeString = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                    document.getElementById('sync-stat-last').textContent = timeString;
+                    document.getElementById('sync-stat-count').textContent = '0';
+                    
+                    alert(response.message);
+                }
+            } catch (err) {
+                console.error('❌ Error syncing contacts:', err);
+                syncBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Erro!';
+                if (text) {
+                    text.textContent = 'Erro ao sincronizar. Conecte o WhatsApp.';
+                }
+                alert(err.message || 'Erro ao sincronizar contatos do WhatsApp. Certifique-se de que o WhatsApp está conectado.');
+            } finally {
+                setTimeout(() => {
+                    syncBtn.classList.remove('executing');
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar Agora';
+                    if (dot) {
+                        dot.className = 'status-dot status-dot--active';
+                    }
+                    if (text && !text.textContent.includes('Ingestão Concluída')) {
+                        text.textContent = 'Pipeline Pronto para Ingestão';
+                    }
+                }, 2000);
+            }
+        },
+        clearCache: async () => {
+            const clearBtn = document.getElementById('btn-clear-cache');
+            if (!clearBtn) return;
+            
+            clearBtn.disabled = true;
+            const originalHtml = clearBtn.innerHTML;
+            clearBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Limpando...';
+            
+            try {
+                const response = await window.utils.apiFetch('/clients/clear-cache', { method: 'POST' });
+                if (response.success) {
+                    clearBtn.innerHTML = '<i class="fa-solid fa-check"></i> Cache Limpo!';
+                    document.getElementById('sync-stat-count').textContent = '0';
+                    alert(response.message);
+                }
+            } catch (err) {
+                console.error('❌ Error clearing cache:', err);
+                clearBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Erro';
+                alert(err.message || 'Erro ao limpar cache.');
+            } finally {
+                setTimeout(() => {
+                    clearBtn.disabled = false;
+                    clearBtn.innerHTML = originalHtml;
+                }, 2000);
             }
         }
     };
@@ -161,8 +244,32 @@
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        if (target.closest('#btn-new-client')) ui.openModal();
-        if (target.closest('#modal-close') || target.closest('#btn-cancel') || target === elements.modal) ui.closeModal();
+        if (target.closest('#btn-new-client')) {
+            const firstInput = document.getElementById('client-name-inline');
+            if (firstInput) {
+                firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => firstInput.focus(), 400);
+            } else {
+                ui.openModal();
+            }
+        }
+        
+        if (target.closest('#btn-sync-now')) {
+            api.syncContacts();
+        }
+
+        if (target.closest('#btn-clear-cache')) {
+            api.clearCache();
+        }
+
+        if (target.closest('#btn-clear-form-inline')) {
+            const inlineForm = document.getElementById('form-client-inline');
+            if (inlineForm) inlineForm.reset();
+        }
+
+        if (target.closest('#modal-close') || target.closest('#btn-cancel') || target === elements.modal) {
+            ui.closeModal();
+        }
 
         const editBtn = target.closest('[data-action="edit"]');
         if (editBtn) {
@@ -182,6 +289,20 @@
         e.target.value = window.utils.masks.cep(e.target.value);
     });
 
+    const inlinePhone = document.getElementById('client-phone-inline');
+    if (inlinePhone) {
+        inlinePhone.addEventListener('input', (e) => {
+            e.target.value = window.utils.masks.phone(e.target.value);
+        });
+    }
+
+    const inlineCEP = document.getElementById('client-cep-inline');
+    if (inlineCEP) {
+        inlineCEP.addEventListener('input', (e) => {
+            e.target.value = window.utils.masks.cep(e.target.value);
+        });
+    }
+
     elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const payload = {
@@ -196,10 +317,38 @@
         api.saveClient(payload);
     });
 
+    const inlineForm = document.getElementById('form-client-inline');
+    if (inlineForm) {
+        inlineForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const payload = {
+                name:    document.getElementById('client-name-inline').value,
+                birth:   document.getElementById('client-birth-inline').value,
+                phone:   document.getElementById('client-phone-inline').value.replace(/[^\d+]/g, ""),
+                cep:     document.getElementById('client-cep-inline').value,
+                address: document.getElementById('client-address-inline').value,
+                notes:   document.getElementById('client-notes-inline').value,
+                source:  'manual'
+            };
+            api.saveClient(payload);
+        });
+    }
+
     // --- Initialization ---
     const init = async () => {
         console.log('🚀 Client Registration Initializing...');
         await api.fetchClients();
+
+        // Busca a quantidade de contatos do WhatsApp no pipeline se o bot estiver pronto
+        try {
+            const contacts = await window.utils.apiFetch('/contacts');
+            const countEl = document.getElementById('sync-stat-count');
+            if (countEl && Array.isArray(contacts)) {
+                countEl.textContent = contacts.length;
+            }
+        } catch (e) {
+            console.warn('📡 Could not load pipeline contacts count:', e.message);
+        }
 
         const token = localStorage.getItem('botarena-token');
         if (token) {

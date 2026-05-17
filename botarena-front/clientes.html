@@ -283,6 +283,81 @@
             </div>
         </header>
 
+        <!-- Seção de Gerenciamento CRM (Cadastro Manual & Sincronização) -->
+        <section class="management-section">
+            <!-- Card Esquerdo: Novo Cliente (Manual) -->
+            <div class="management-card manual-reg-card">
+                <div class="management-card__header">
+                    <h2><i class="fa-solid fa-user-plus"></i> Novo Cliente</h2>
+                    <p>Cadastre um novo cliente manualmente no sistema</p>
+                </div>
+                <form id="form-client-inline">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="client-name-inline">Nome do Cliente</label>
+                            <input type="text" id="client-name-inline" class="form-input" placeholder="Ex: João Silva" data-testid="client-name-input-inline" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="client-birth-inline">Data de Nascimento</label>
+                            <input type="date" id="client-birth-inline" class="form-input" data-testid="client-birth-input-inline">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="client-phone-inline">WhatsApp/Telefone</label>
+                            <input type="text" id="client-phone-inline" class="form-input" placeholder="Ex: 5517999999999" data-testid="client-phone-input-inline" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="client-cep-inline">CEP</label>
+                            <input type="text" id="client-cep-inline" class="form-input" placeholder="00000-000" data-testid="client-cep-input-inline">
+                        </div>
+                        <div class="form-group form-group--full">
+                            <label class="form-label" for="client-address-inline">Endereço Completo</label>
+                            <input type="text" id="client-address-inline" class="form-input" placeholder="Rua, Número, Bairro..." data-testid="client-address-input-inline">
+                        </div>
+                        <div class="form-group form-group--full">
+                            <label class="form-label" for="client-notes-inline">Observações</label>
+                            <textarea id="client-notes-inline" class="form-input" placeholder="Notas operacionais..." data-testid="client-notes-input-inline"></textarea>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-clear-form-inline">Limpar</button>
+                        <button type="submit" class="btn" style="flex: 1;" data-testid="btn-save-client-inline">Salvar Cliente</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Card Direito: Sincronização de Pipeline (WhatsApp) -->
+            <div class="management-card sync-card">
+                <div class="management-card__header">
+                    <h2><i class="fa-brands fa-whatsapp"></i> Sincronização WhatsApp</h2>
+                    <p>Sincronize contatos do WhatsApp conectados diretamente com o CRM</p>
+                </div>
+                <div class="sync-status-box">
+                    <div class="sync-status-indicator">
+                        <span class="status-dot status-dot--active"></span>
+                        <span class="status-text">Pipeline Pronto para Ingestão</span>
+                    </div>
+                    <div class="sync-stats">
+                        <div class="sync-stat-item">
+                            <span class="sync-stat-val" id="sync-stat-last">Nunca</span>
+                            <span class="sync-stat-lbl">Última Sincronização</span>
+                        </div>
+                        <div class="sync-stat-item">
+                            <span class="sync-stat-val" id="sync-stat-count">0</span>
+                            <span class="sync-stat-lbl">Contatos no Pipeline</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sync-actions-group">
+                    <button class="btn btn--sync" id="btn-sync-now" data-testid="sync-now-button">
+                        <i class="fa-solid fa-rotate"></i> Sincronizar Agora
+                    </button>
+                    <button class="btn btn--clear-cache" id="btn-clear-cache" data-testid="clear-cache-button">
+                        <i class="fa-solid fa-trash-can"></i> Limpar Cache
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <main class="card-table">
             <div class="table-container">
                 <table>

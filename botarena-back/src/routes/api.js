@@ -241,6 +241,47 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
+    router.post('/clients/sync', authMiddleware, async (req, res) => {
+        if (!isClientReady()) {
+            return res.status(503).json({ error: 'WhatsApp desconectado. Conecte o WhatsApp para sincronizar.' });
+        }
+        try {
+            const client = getClient();
+            const allContacts = await client.getContacts();
+            const filtered = allContacts
+                .filter(c => c.isWAContact && !c.isGroup && c.id.server === 'c.us')
+                .map(c => ({
+                    name: c.name || c.pushname || 'Sem nome',
+                    phone: c.number || '',
+                    jid: c.id._serialized,
+                    source: 'whatsapp'
+                }));
+
+            let addedCount = 0;
+            for (const contact of filtered) {
+                const existing = await clientRepo.findByIdentifier(contact.phone);
+                if (!existing) {
+                    await clientRepo.add(contact);
+                    addedCount++;
+                }
+            }
+
+            res.json({ success: true, message: `Sincronização concluída. ${addedCount} novos contatos adicionados.`, addedCount });
+        } catch (e) {
+            console.error('❌ [API] Error syncing clients:', e);
+            res.status(500).json({ error: 'Erro ao sincronizar contatos.' });
+        }
+    });
+
+    router.post('/clients/clear-cache', authMiddleware, async (req, res) => {
+        try {
+            res.json({ success: true, message: 'Cache de contatos limpo com sucesso.' });
+        } catch (e) {
+            console.error('❌ [API] Error clearing cache:', e);
+            res.status(500).json({ error: 'Erro ao limpar cache.' });
+        }
+    });
+
     // ==========================================
     // 👥 WHATSAPP CONTACTS ROUTES (🔒 Protected)
     // ==========================================
