@@ -346,6 +346,138 @@
             .toast { bottom: 1rem; right: 1rem; left: 1rem; max-width: none; }
         }
 
+        /* 📱 Novo Visual - Conexão WhatsApp */
+        #card-conexao {
+            position: relative;
+        }
+
+        .status-pill {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-pill--waiting {
+            background: #eff6ff;
+            color: #3b82f6;
+            border: 1px solid #bfdbfe;
+        }
+        .status-pill--waiting::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3b82f6;
+        }
+
+        .status-pill--connected {
+            background: #ecfdf5;
+            color: #10b981;
+            border: 1px solid #a7f3d0;
+        }
+        .status-pill--connected::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .qr-box-container {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .qr-box-container--connected {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            flex-direction: row;
+            padding: 1.5rem;
+            justify-content: flex-start;
+            gap: 1rem;
+        }
+
+        .qr-instructions {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        .qr-instructions h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+        .qr-instructions p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .connected-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .connected-info h3 {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            margin: 0;
+        }
+        .connected-info p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .connected-icon-circle {
+            width: 48px;
+            height: 48px;
+            background: #d1fae5;
+            color: #059669;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .qr-actions {
+            display: flex;
+            gap: 0.75rem;
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+
+        .qr-actions--connected {
+            margin-top: 1rem;
+            justify-content: flex-start;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+        }
+
+
         /* Settings Modal CSS injected from style.css */
         .settings-modal {
             position: fixed;
@@ -516,35 +648,65 @@
     <main class="grid">
         <!-- Conexão WhatsApp -->
         <article class="card" id="card-conexao">
-            <div class="card__header">
-                <div class="card__icon-box">
-                    <i class="fa-brands fa-whatsapp"></i>
+            <div id="status-pill" class="status-pill status-pill--waiting">Aguardando</div>
+
+            <div class="card__header" style="margin-bottom: 0;">
+                <div class="card__icon-box" style="background: #ecfdf5; color: #10b981;">
+                    <i class="fa-solid fa-mobile-screen"></i>
                 </div>
                 <div class="card__title-area">
-                    <h2>Conexão WhatsApp</h2>
-                    <p>Status da sessão do bot</p>
+                    <h2 style="font-size: 1.25rem;">Conexão WhatsApp</h2>
+                    <p style="font-size: 0.9rem;">Status da sessão do bot</p>
                 </div>
             </div>
             
-            <div class="qr-card__image connection__qr-wrapper" data-testid="qr-code-placeholder" id="qr-container" style="display: flex; justify-content: center; align-items: center; margin: 1rem 0; background: var(--bg-body); border-radius: 12px; padding: 2rem;">
-                <!-- State 1: Loading (Default) -->
-                <div class="qr-loader" id="qr-loader" data-testid="qr-loader" style="text-align: center;">
-                    <div class="qr-loader__spinner" style="width: 40px; height: 40px; border: 4px solid var(--color-primary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
-                    <p class="qr-loader__text">Gerando QR Code...</p>
-                </div>
+            <!-- Modo Desconectado (QR Code) -->
+            <div id="view-disconnected" style="display: block;">
+                <div class="qr-box-container">
+                    <div id="qr-loader" style="text-align: center; padding: 2rem;">
+                        <div style="width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Gerando QR Code...</p>
+                    </div>
 
-                <!-- State 2: QR Code Ready (Hidden initially) -->
-                <img src="" alt="WhatsApp QR Code" class="connection__qr-image hidden"
-                    id="qr-image" data-testid="qr-image" style="max-width: 100%; border-radius: 8px; display: none; cursor: pointer;" onclick="window.location.href='chat.html'" title="Ir para o Chat">
+                    <img src="" alt="QR Code" id="qr-image" style="display: none; width: 220px; height: 220px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    
+                    <div class="qr-error hidden" id="qr-error" style="text-align: center; color: #ef4444; display: none;">
+                        <p>Erro na conexão</p>
+                    </div>
 
-                <!-- State 3: Error (Hidden initially) -->
-                <div class="qr-error hidden" id="qr-error" data-testid="qr-error" style="text-align: center; color: var(--color-danger); display: none;">
-                    <p class="qr-error__text">Erro na conexão</p>
-                    <button class="btn btn--secondary" id="qr-retry-btn" style="margin-top: 1rem;">Tentar Novamente</button>
+                    <div class="qr-instructions" id="qr-instructions" style="display: none;">
+                        <h3>Escaneie com o WhatsApp</h3>
+                        <p>Abra Aparelhos conectados<br>&rarr; Conectar aparelho</p>
+                    </div>
+
+                    <div class="qr-actions" id="qr-actions-disconnected" style="display: none; justify-content: center;">
+                        <button class="btn btn-outline" id="qr-retry-btn" style="flex: 1; justify-content: center; gap: 0.5rem; display: flex; align-items: center;">
+                            <i class="fa-solid fa-arrows-rotate"></i> Novo QR
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div style="text-align: center;">
-                <p class="qr-card__data" id="qr-status-text" data-testid="qr-status-text" style="font-weight: 600;">Aguardando leitura...</p>
+
+            <!-- Modo Conectado -->
+            <div id="view-connected" style="display: none; margin-top: 1rem;">
+                <div class="qr-box-container--connected">
+                    <div class="connected-icon-circle">
+                        <i class="fa-solid fa-wifi"></i>
+                    </div>
+                    <div class="connected-info">
+                        <h3>Conectado</h3>
+                        <p id="connected-phone">+55 ...</p>
+                    </div>
+                </div>
+                
+                <div class="qr-actions qr-actions--connected">
+                    <button class="btn btn-outline" style="display: flex; align-items: center; gap: 0.5rem; flex: 1; justify-content: center;" onclick="window.location.reload();">
+                        <i class="fa-solid fa-arrows-rotate"></i> Reconectar
+                    </button>
+                    <button class="btn" style="background: #e11d48; color: white; border: none; display: flex; align-items: center; gap: 0.5rem; flex: 1; justify-content: center;" id="btn-disconnect-bot">
+                        <i class="fa-solid fa-power-off"></i> Desconectar
+                    </button>
+                </div>
             </div>
         </article>
 

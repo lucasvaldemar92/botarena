@@ -8,11 +8,16 @@ const socket = window.io ? io(window.BASE_URL) : null;
 const botStatusBadge = document.getElementById('bot-status-badge');
 
 // QR Code Elements
-const qrContainer = document.getElementById('qr-container');
+const viewDisconnected = document.getElementById('view-disconnected');
+const viewConnected = document.getElementById('view-connected');
+const statusPill = document.getElementById('status-pill');
+
 const qrLoader = document.getElementById('qr-loader');
 const qrImage = document.getElementById('qr-image');
 const qrError = document.getElementById('qr-error');
-const qrStatusText = document.getElementById('qr-status-text');
+const qrInstructions = document.getElementById('qr-instructions');
+const qrActionsDisconnected = document.getElementById('qr-actions-disconnected');
+
 const cardConexao = document.getElementById('card-conexao');
 
 
@@ -42,31 +47,36 @@ function updateQRCode(qrData) {
         qrImage.style.display = 'block';
         qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}&color=ffffff&bgcolor=0f172a`;
     }
-    if (qrStatusText) {
-        qrStatusText.textContent = 'Escaneie o QR Code abaixo:';
-        qrStatusText.style.color = 'var(--text-main)';
-    }
+    if (qrInstructions) qrInstructions.style.display = 'block';
+    if (qrActionsDisconnected) qrActionsDisconnected.style.display = 'flex';
 }
 
 function updateConnectionStatus(isConnected) {
     if (isConnected) {
-        if (qrLoader) qrLoader.style.display = 'none';
-        if (qrImage) qrImage.style.display = 'none';
-        if (qrError) qrError.style.display = 'none';
-        if (qrContainer) qrContainer.style.display = 'none';
-        if (qrStatusText) {
-            qrStatusText.textContent = '✅ WhatsApp Conectado!';
-            qrStatusText.style.color = '#22c55e';
+        if (viewDisconnected) viewDisconnected.style.display = 'none';
+        if (viewConnected) viewConnected.style.display = 'block';
+        if (statusPill) {
+            statusPill.textContent = 'Conectado';
+            statusPill.className = 'status-pill status-pill--connected';
         }
+        
+        const phoneEl = document.getElementById('connected-phone');
+        if (phoneEl) phoneEl.textContent = 'WhatsApp Business';
+        
     } else {
+        if (viewConnected) viewConnected.style.display = 'none';
+        if (viewDisconnected) viewDisconnected.style.display = 'block';
+        if (statusPill) {
+            statusPill.textContent = 'Aguardando';
+            statusPill.className = 'status-pill status-pill--waiting';
+        }
+        
+        // Reseta pra estado de loading até receber o QR real
         if (qrImage) qrImage.style.display = 'none';
+        if (qrInstructions) qrInstructions.style.display = 'none';
+        if (qrActionsDisconnected) qrActionsDisconnected.style.display = 'none';
         if (qrError) qrError.style.display = 'none';
         if (qrLoader) qrLoader.style.display = 'block';
-        if (qrContainer) qrContainer.style.display = 'flex';
-        if (qrStatusText) {
-            qrStatusText.textContent = 'Aguardando leitura...';
-            qrStatusText.style.color = 'var(--text-main)';
-        }
     }
 }
 
@@ -136,6 +146,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (qrRetryBtn) {
         qrRetryBtn.addEventListener('click', () => {
             window.location.reload();
+        });
+    }
+
+    const btnDisconnect = document.getElementById('btn-disconnect-bot');
+    if (btnDisconnect) {
+        btnDisconnect.addEventListener('click', async () => {
+            if (confirm('Tem certeza que deseja desconectar o WhatsApp?')) {
+                // Here you would call an API endpoint to explicitly logout.
+                // Since there is no /api/auth/logout currently, we assume socket.emit('logout') works.
+                if (socket) socket.emit('logout');
+            }
         });
     }
 
