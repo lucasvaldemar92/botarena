@@ -9,7 +9,6 @@
     const elements = {
         modal:         document.getElementById('modal-registration'),
         modalTitle:    document.querySelector('#modal-registration h2'),
-        btnNew:        document.getElementById('btn-new-client'),
         btnClose:      document.getElementById('modal-close'),
         btnCancel:     document.getElementById('btn-cancel'),
         btnSubmit:     document.querySelector('#form-client button[type="submit"]'),
@@ -244,16 +243,7 @@
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        if (target.closest('#btn-new-client')) {
-            const firstInput = document.getElementById('client-name-inline');
-            if (firstInput) {
-                firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => firstInput.focus(), 400);
-            } else {
-                ui.openModal();
-            }
-        }
-        
+
         if (target.closest('#btn-sync-now')) {
             api.syncContacts();
         }
