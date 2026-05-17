@@ -542,5 +542,39 @@
         "score": 100
       }
     ]
+  },
+  {
+    "date": "2026-05-17T18:43:51.271Z",
+    "score": 99,
+    "categories": [
+      {
+        "name": "SEGURANÇA",
+        "score": 100
+      },
+      {
+        "name": "BANCO DE DADOS",
+        "score": 100
+      },
+      {
+        "name": "QUALIDADE",
+        "score": 95
+      },
+      {
+        "name": "COBERTURA",
+        "score": 100
+      },
+      {
+        "name": "CONSISTÊNCIA API",
+        "score": 100
+      },
+      {
+        "name": "FRONTEND PT-BR",
+        "score": 100
+      },
+      {
+        "name": "DEPENDÊNCIAS",
+        "score": 95
+      }
+    ]
   }
 ]

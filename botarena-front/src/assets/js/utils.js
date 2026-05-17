@@ -4,15 +4,20 @@ const BASE_URL = (window.location.hostname === 'localhost' || window.location.ho
 
 window.BASE_URL = BASE_URL;
 
-// --- AUTO DEV LOGIN ---
+// --- CLIENT AUTH NAVIGATION GATEWAY ---
+const isLoginPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
 let token = localStorage.getItem('botarena-token');
+
 if (!token) {
-    fetch(`${BASE_URL}/api/auth/dev-login`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            localStorage.setItem('botarena-token', data.token);
-            window.location.reload();
-        });
+    if (!isLoginPage) {
+        // Enforce secure redirection to login screen
+        window.location.href = '/index.html';
+    }
+} else {
+    if (isLoginPage) {
+        // Prevent logged-in users from seeing the login form
+        window.location.href = '/painel-administrativo.html';
+    }
 }
 const originalFetch = window.fetch;
 window.fetch = async function() {

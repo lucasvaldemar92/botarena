@@ -84,13 +84,13 @@
             <div class="header">
                 <h1>🛡️ Code Reviewer V2.0</h1>
                 <div style="text-align: right;">
-                    <div class="branch-badge">📍 Branch: feat/BA-multi-menu-v2</div>
-                    <div style="margin-top: 5px; font-size: 0.8rem; color: #8696a0;">Gerado em: 16/05/2026 19:38:00</div>
+                    <div class="branch-badge">📍 Branch: qa</div>
+                    <div style="margin-top: 5px; font-size: 0.8rem; color: #8696a0;">Gerado em: 17/05/2026 15:43:51</div>
                 </div>
             </div>
 
             <div class="score-card">
-                <div class="score-value">100<span class="trend trend--up">↑</span></div>
+                <div class="score-value">99<span class="trend trend--down">↓</span></div>
                 <div class="score-info">
                     <div style="font-size: 1.2rem; color: #8696a0;">Global Quality Score</div>
                     <div class="chart-container">
@@ -104,7 +104,7 @@
                                 <div class="chart-label">02</div>
                             </div>
                             <div class="chart-group">
-                                <div class="chart-bar chart-bar--high" style="height: 100%" data-score="100"></div>
+                                <div class="chart-bar chart-bar--high" style="height: 95%" data-score="95"></div>
                                 <div class="chart-label">03</div>
                             </div>
                             <div class="chart-group">
@@ -120,7 +120,7 @@
                                 <div class="chart-label">06</div>
                             </div>
                             <div class="chart-group">
-                                <div class="chart-bar chart-bar--high" style="height: 100%" data-score="100"></div>
+                                <div class="chart-bar chart-bar--high" style="height: 95%" data-score="95"></div>
                                 <div class="chart-label">07</div>
                             </div>
                     </div>
@@ -149,13 +149,15 @@
                         </ul>
                     </div>
                 
-                    <div class="category-card category-card--ok">
+                    <div class="category-card category-card--error">
                         <div class="cat-header">
                             <span class="cat-name">QUALIDADE</span>
-                            <span class="cat-score">100/100</span>
+                            <span class="cat-score">95/100</span>
                         </div>
                         <ul>
-                            <li>[OK] Nenhuma irregularidade detectada.</li>
+                            
+                                <li><span class="issue-type type--WARN">WARN</span> Excesso de logs de depuração (8) em: fix_db_schema.js</li>
+                            
                         </ul>
                     </div>
                 
@@ -189,13 +191,15 @@
                         </ul>
                     </div>
                 
-                    <div class="category-card category-card--ok">
+                    <div class="category-card category-card--error">
                         <div class="cat-header">
                             <span class="cat-name">DEPENDÊNCIAS</span>
-                            <span class="cat-score">100/100</span>
+                            <span class="cat-score">95/100</span>
                         </div>
                         <ul>
-                            <li>[OK] Nenhuma irregularidade detectada.</li>
+                            
+                                <li><span class="issue-type type--WARN">WARN</span> Pacote possivelmente órfão (não importado no src): socket.io-client</li>
+                            
                         </ul>
                     </div>
                 
