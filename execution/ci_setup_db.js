@@ -9,7 +9,7 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 
-const DB_DIR  = path.join(__dirname, '..', 'database');
+const DB_DIR  = path.join(__dirname, '..', 'botarena-back', 'database');
 const DB_PATH = path.join(DB_DIR, 'botarena.db');
 
 // Ensure database directory exists
@@ -35,7 +35,7 @@ function runSQL(sql) {
 }
 
 async function setup() {
-    const migrationsDir = path.join(__dirname, '..', 'migrations');
+    const migrationsDir = path.join(__dirname, '..', 'botarena-back', 'migrations');
     const files = fs.readdirSync(migrationsDir)
         .filter(f => f.endsWith('.sql') && !f.startsWith('.'))
         .sort();
