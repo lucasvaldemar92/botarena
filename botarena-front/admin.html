@@ -352,9 +352,6 @@
         }
 
         .status-pill {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.85rem;
@@ -363,6 +360,7 @@
             align-items: center;
             gap: 0.4rem;
             transition: all 0.3s ease;
+            margin-left: auto; /* Aligns it to the right inside flex */
         }
 
         .status-pill--waiting {
@@ -405,10 +403,13 @@
         }
 
         .qr-box-container--connected {
+            display: flex;
             background: #ecfdf5;
-            border-color: #a7f3d0;
+            border: 1px solid #a7f3d0;
+            border-radius: 16px;
             flex-direction: row;
             padding: 1.5rem;
+            align-items: center;
             justify-content: flex-start;
             gap: 1rem;
         }
@@ -458,6 +459,7 @@
 
         .qr-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.75rem;
             width: 100%;
             margin-top: 1.5rem;
@@ -648,8 +650,6 @@
     <main class="grid">
         <!-- Conexão WhatsApp -->
         <article class="card" id="card-conexao">
-            <div id="status-pill" class="status-pill status-pill--waiting">Aguardando</div>
-
             <div class="card__header" style="margin-bottom: 0;">
                 <div class="card__icon-box" style="background: #ecfdf5; color: #10b981;">
                     <i class="fa-solid fa-mobile-screen"></i>
@@ -658,6 +658,8 @@
                     <h2 style="font-size: 1.25rem;">Conexão WhatsApp</h2>
                     <p style="font-size: 0.9rem;">Status da sessão do bot</p>
                 </div>
+                <!-- Pill moved into header to avoid overlap -->
+                <div id="status-pill" class="status-pill status-pill--waiting">Aguardando</div>
             </div>
             
             <!-- Modo Desconectado (QR Code) -->
