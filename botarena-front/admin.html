@@ -801,87 +801,66 @@
             </button>
         </article>
 
-        <!-- Configurações -->
-        <article class="card">
+        <!-- Configurações do Bot -->
+        <article class="card" id="card-configuracoes">
             <div class="card__header">
                 <div class="card__icon-box" style="background: #f1f5f9; color: #64748b;">
                     <i class="fa-solid fa-sliders"></i>
                 </div>
                 <div class="card__title-area">
-                    <h2>Configurações</h2>
+                    <h2>Configurações Gerais</h2>
                     <p>Horários, PIX e mensagens</p>
                 </div>
             </div>
-            <button class="btn btn--secondary" id="open-settings-btn" data-testid="open-settings" style="width: 100%;">
-                Abrir configurações
-            </button>
-        </article>
-    </main>
-
-    <!-- Section: Settings Modal -->
-    <div class="settings-modal" id="settings-modal" data-testid="settings-modal">
-        <div class="settings-modal__backdrop" id="settings-backdrop"></div>
-        <aside class="settings-modal__panel glass-panel">
-            <header class="settings-modal__header">
-                <h2 class="settings-modal__title"><i class="fa-solid fa-sliders"></i> Configurações</h2>
-                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings" aria-label="Fechar configurações" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-main);">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </header>
-            <div class="settings-modal__content">
-                <form id="settings-form" class="settings-form">
-
-                    <!-- Section: Pagamento (Pix) -->
-                    <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Nome do Favorecido</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
-                                    data-testid="pix-name" id="cfg-pix-name">
-                            </div>
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Chave Pix</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
-                                    data-testid="pix-input-masked" id="cfg-pix-key">
-                            </div>
+            
+            <form id="settings-form" class="settings-form" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                
+                <!-- Section: Pagamento (Pix) -->
+                <div>
+                    <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                        <div class="settings-form__group" style="margin-bottom: 0;">
+                            <label class="settings-form__label">Nome do Favorecido</label>
+                            <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                data-testid="pix-name" id="cfg-pix-name">
                         </div>
-                        <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
-                            <i class="fa-solid fa-bolt" style="color: var(--color-primary); margin-right: 0.25rem;"></i>
-                            Disponível como atalho no menu do chat
-                        </p>
-                    </div>                    
-                    
-                    <!-- Section: Horário de Atendimento -->
-                    <div class="settings-form__section">
-                        <h3 class="settings-form__section-title"><i class="fa-regular fa-clock"></i> Horário de Atendimento</h3>
-                        <div id="operation-periods-container">
-                            <!-- Periods will be injected here via JS -->
-                        </div>
-
-                        <button type="button" id="btn-add-period" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px dashed var(--color-primary); color: var(--color-primary); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 168, 132, 0.1)'" onmouseout="this.style.background='transparent'">
-                            <i class="fa-solid fa-plus" style="margin-right: 0.5rem;"></i> Novo Período
-                        </button>
-
-                        <div class="settings-form__group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                            <label class="settings-form__label">Mensagem de Ausência (Global)</label>
-                            <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="3" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
+                        <div class="settings-form__group" style="margin-bottom: 0;">
+                            <label class="settings-form__label">Chave Pix</label>
+                            <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
+                                data-testid="pix-input-masked" id="cfg-pix-key">
                         </div>
                     </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
+                        <i class="fa-solid fa-bolt" style="color: #008069; margin-right: 0.25rem;"></i>
+                        Disponível como atalho no menu do chat
+                    </p>
+                </div>                    
+                
+                <!-- Section: Horário de Atendimento -->
+                <div>
+                    <h3 class="settings-form__section-title"><i class="fa-regular fa-clock"></i> Horário de Atendimento</h3>
+                    <div id="operation-periods-container">
+                        <!-- Periods will be injected here via JS -->
+                    </div>
 
-                </form>
-            </div>
-            <footer class="settings-modal__footer" style="flex-direction: column; gap: 0.5rem; display: flex; padding: 1rem; border-top: 1px solid var(--border-color);">
-                <button type="button" class="btn btn--danger" style="width: 100%;" id="btn-logout" data-testid="btn-logout">
-                    <i class="fa-solid fa-sign-out-alt"></i> Desconectar WhatsApp
-                </button>
-                <div style="display: flex; gap: 0.5rem; width: 100%;">
-                    <button type="button" class="btn btn--secondary" style="flex:1;" id="cancel-settings-btn">Cancelar</button>
-                    <button type="button" class="btn" style="flex: 1.5;" id="btn-save-config" data-testid="btn-save-config">Salvar Tudo</button>
+                    <button type="button" id="btn-add-period" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px dashed #008069; color: #008069; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 128, 105, 0.1)'" onmouseout="this.style.background='transparent'">
+                        <i class="fa-solid fa-plus" style="margin-right: 0.5rem;"></i> Novo Período
+                    </button>
+
+                    <div class="settings-form__group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                        <label class="settings-form__label">Mensagem de Ausência (Global)</label>
+                        <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="3" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
+                    </div>
                 </div>
-            </footer>
-        </aside>
-    </div>
+
+                <div style="display: flex; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <button type="button" class="btn" id="btn-save-config" data-testid="btn-save-config" style="width: 100%;">
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </article>
+    </main>
 
     <!-- Toast de confirmação -->
     <div class="toast" id="toast-upload">
