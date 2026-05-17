@@ -7,6 +7,14 @@ const socket = window.io ? io(window.BASE_URL) : null;
 // but we keep a reference for direct updates.
 const botStatusBadge = document.getElementById('bot-status-badge');
 
+// QR Code Elements
+const qrContainer = document.getElementById('qr-container');
+const qrLoader = document.getElementById('qr-loader');
+const qrImage = document.getElementById('qr-image');
+const qrError = document.getElementById('qr-error');
+const qrStatusText = document.getElementById('qr-status-text');
+const cardConexao = document.getElementById('card-conexao');
+
 
 // ==========================================
 // 🔌 UI UPDATES
@@ -27,6 +35,41 @@ function updateBotStatus(isActive) {
     }
 }
 
+function updateQRCode(qrData) {
+    if (qrLoader) qrLoader.style.display = 'none';
+    if (qrError) qrError.style.display = 'none';
+    if (qrImage) {
+        qrImage.style.display = 'block';
+        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}&color=ffffff&bgcolor=0f172a`;
+    }
+    if (qrStatusText) {
+        qrStatusText.textContent = 'Escaneie o QR Code abaixo:';
+        qrStatusText.style.color = 'var(--text-main)';
+    }
+}
+
+function updateConnectionStatus(isConnected) {
+    if (isConnected) {
+        if (qrLoader) qrLoader.style.display = 'none';
+        if (qrImage) qrImage.style.display = 'none';
+        if (qrError) qrError.style.display = 'none';
+        if (qrContainer) qrContainer.style.display = 'none';
+        if (qrStatusText) {
+            qrStatusText.textContent = '✅ WhatsApp Conectado!';
+            qrStatusText.style.color = '#22c55e';
+        }
+    } else {
+        if (qrImage) qrImage.style.display = 'none';
+        if (qrError) qrError.style.display = 'none';
+        if (qrLoader) qrLoader.style.display = 'block';
+        if (qrContainer) qrContainer.style.display = 'flex';
+        if (qrStatusText) {
+            qrStatusText.textContent = 'Aguardando leitura...';
+            qrStatusText.style.color = 'var(--text-main)';
+        }
+    }
+}
+
 // ==========================================
 // 🔌 SOCKET.IO EVENTS
 // ==========================================
@@ -44,6 +87,21 @@ if (socket) {
         updateBotStatus(false);
     });
 
+    socket.on('qr', (qrData) => {
+        updateQRCode(qrData);
+        updateConnectionStatus(false);
+    });
+
+    socket.on('auth_success', () => {
+        updateConnectionStatus(true);
+    });
+
+    socket.on('force_logout', () => {
+        if (window.closeModal) window.closeModal();
+        updateBotStatus(false);
+        updateConnectionStatus(false);
+    });
+
     socket.on('config_updated', (newConfig) => {
         updateBotStatus(newConfig.bot_active);
     });
@@ -55,12 +113,31 @@ if (socket) {
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initial status check via API
-    fetch(`${window.BASE_URL}/api/config`)
+    fetch(`${window.BASE_URL}/api/status`)
+        .then(res => res.json())
+        .then(data => {
+            updateConnectionStatus(data.status === 'CONNECTED');
+            // Then fetch config to update bot status
+            return fetch(`${window.BASE_URL}/api/config`);
+        })
         .then(res => res.json())
         .then(config => {
             updateBotStatus(config.bot_active);
         })
-        .catch(err => console.error('Erro ao carregar config inicial:', err));
+        .catch(err => console.error('Erro ao carregar inicial:', err));
+
+    // Listen to config loaded from utils.js
+    window.addEventListener('configLoaded', (e) => {
+        const config = e.detail;
+        updateBotStatus(config.bot_active);
+    });
+
+    const qrRetryBtn = document.getElementById('qr-retry-btn');
+    if (qrRetryBtn) {
+        qrRetryBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+    }
 
     // Global click delegation for bot status toggle
     document.addEventListener('click', async (e) => {

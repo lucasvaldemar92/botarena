@@ -360,10 +360,47 @@
             <button class="status-badge status-offline btn-status" id="bot-status-badge" title="Alternar status do bot">
                 ○ Bot offline
             </button>
+            <button class="status-badge" id="open-settings-btn" data-testid="open-settings" aria-label="Configurações" style="cursor: pointer;">
+                <i class="fa-solid fa-gear"></i>
+            </button>
         </div>
     </header>
 
     <main class="grid">
+        <!-- Conexão WhatsApp -->
+        <article class="card" id="card-conexao">
+            <div class="card__header">
+                <div class="card__icon-box">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div class="card__title-area">
+                    <h2>Conexão WhatsApp</h2>
+                    <p>Status da sessão do bot</p>
+                </div>
+            </div>
+            
+            <div class="qr-card__image connection__qr-wrapper" data-testid="qr-code-placeholder" id="qr-container" style="display: flex; justify-content: center; align-items: center; margin: 1rem 0; background: var(--bg-body); border-radius: 12px; padding: 2rem;">
+                <!-- State 1: Loading (Default) -->
+                <div class="qr-loader" id="qr-loader" data-testid="qr-loader" style="text-align: center;">
+                    <div class="qr-loader__spinner" style="width: 40px; height: 40px; border: 4px solid var(--color-primary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                    <p class="qr-loader__text">Gerando QR Code...</p>
+                </div>
+
+                <!-- State 2: QR Code Ready (Hidden initially) -->
+                <img src="" alt="WhatsApp QR Code" class="connection__qr-image hidden"
+                    id="qr-image" data-testid="qr-image" style="max-width: 100%; border-radius: 8px; display: none; cursor: pointer;" onclick="window.location.href='chat.html'" title="Ir para o Chat">
+
+                <!-- State 3: Error (Hidden initially) -->
+                <div class="qr-error hidden" id="qr-error" data-testid="qr-error" style="text-align: center; color: var(--color-danger); display: none;">
+                    <p class="qr-error__text">Erro na conexão</p>
+                    <button class="btn btn--secondary" id="qr-retry-btn" style="margin-top: 1rem;">Tentar Novamente</button>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <p class="qr-card__data" id="qr-status-text" data-testid="qr-status-text" style="font-weight: 600;">Aguardando leitura...</p>
+            </div>
+        </article>
+
         <!-- Cardápios (Multi-Menu) -->
         <article class="card" id="card-anexos">
             <div class="card__header">
@@ -456,6 +493,71 @@
             </button>
         </article>
     </main>
+
+    <!-- Section: Settings Modal -->
+    <div class="settings-modal" id="settings-modal" data-testid="settings-modal">
+        <div class="settings-modal__backdrop" id="settings-backdrop"></div>
+        <aside class="settings-modal__panel glass-panel">
+            <header class="settings-modal__header">
+                <h2 class="settings-modal__title"><i class="fa-solid fa-sliders"></i> Configurações</h2>
+                <button class="icon-btn" id="close-settings-btn" data-testid="close-settings" aria-label="Fechar configurações" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-main);">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            <div class="settings-modal__content">
+                <form id="settings-form" class="settings-form">
+
+                    <!-- Section: Pagamento (Pix) -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Nome do Favorecido</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
+                                    data-testid="pix-name" id="cfg-pix-name">
+                            </div>
+                            <div class="settings-form__group" style="margin-bottom: 0;">
+                                <label class="settings-form__label">Chave Pix</label>
+                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
+                                    data-testid="pix-input-masked" id="cfg-pix-key">
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; display: block;">
+                            <i class="fa-solid fa-bolt" style="color: var(--color-primary); margin-right: 0.25rem;"></i>
+                            Disponível como atalho no menu do chat
+                        </p>
+                    </div>                    
+                    
+                    <!-- Section: Horário de Atendimento -->
+                    <div class="settings-form__section">
+                        <h3 class="settings-form__section-title"><i class="fa-regular fa-clock"></i> Horário de Atendimento</h3>
+                        <div id="operation-periods-container">
+                            <!-- Periods will be injected here via JS -->
+                        </div>
+
+                        <button type="button" id="btn-add-period" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px dashed var(--color-primary); color: var(--color-primary); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 168, 132, 0.1)'" onmouseout="this.style.background='transparent'">
+                            <i class="fa-solid fa-plus" style="margin-right: 0.5rem;"></i> Novo Período
+                        </button>
+
+                        <div class="settings-form__group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <label class="settings-form__label">Mensagem de Ausência (Global)</label>
+                            <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="3" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <footer class="settings-modal__footer" style="flex-direction: column; gap: 0.5rem; display: flex; padding: 1rem; border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn--danger" style="width: 100%;" id="btn-logout" data-testid="btn-logout">
+                    <i class="fa-solid fa-sign-out-alt"></i> Desconectar WhatsApp
+                </button>
+                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button type="button" class="btn btn--secondary" style="flex:1;" id="cancel-settings-btn">Cancelar</button>
+                    <button type="button" class="btn" style="flex: 1.5;" id="btn-save-config" data-testid="btn-save-config">Salvar Tudo</button>
+                </div>
+            </footer>
+        </aside>
+    </div>
 
     <!-- Toast de confirmação -->
     <div class="toast" id="toast-upload">
