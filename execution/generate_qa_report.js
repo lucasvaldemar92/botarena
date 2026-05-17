@@ -181,7 +181,7 @@ function scanFrontend() {
         });
 
         // UI PURGE CHECK (Layer 2 Governance)
-        if (f.endsWith('chat.html')) {
+        if (f.endsWith('atendimento.html')) {
             if (content.includes('fa-video')) addIssue('06', 'ERROR', 'Elemento proibido (PURGE): Chamada de Vídeo encontrada no DOM.', 20);
             if (content.includes('fa-phone')) addIssue('06', 'ERROR', 'Elemento proibido (PURGE): Chamada de Voz encontrada no DOM.', 20);
             // Busca no Chat (fa-magnifying-glass) -> PRESERVE (OK)

@@ -82,8 +82,8 @@ const dsn = process.env.SENTRY_DSN || '';
 const injection = `<script>window.__SENTRY_DSN__="${dsn}";</script>`;
 
 try {
-    const dashboardPath = path.join(__dirname, '../botarena-front/dashboard.html');
-    const chatPath = path.join(__dirname, '../botarena-front/chat.html');
+    const dashboardPath = path.join(__dirname, '../botarena-front/painel-administrativo.html');
+    const chatPath = path.join(__dirname, '../botarena-front/atendimento.html');
     
     htmlCache['dashboard'] = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
     htmlCache['chat'] = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
@@ -91,13 +91,13 @@ try {
     console.error('❌ [Cache] Error loading HTML files:', err);
 }
 
-app.get('/', (req, res) => res.redirect('/dashboard'));
+app.get('/', (req, res) => res.redirect('/painel-administrativo'));
 
-app.get('/dashboard', async (req, res) => {
+app.get('/painel-administrativo', async (req, res) => {
     try {
         const config = await settingsRepo.get();
         if (config.bot_active) {
-            return res.redirect('/chat');
+            return res.redirect('/atendimento');
         }
     } catch (err) {
         console.error('❌ Middleware checking config failed:', err);
@@ -105,7 +105,7 @@ app.get('/dashboard', async (req, res) => {
     
     // Dynamic read in development, memory cache in production
     if (process.env.NODE_ENV !== 'production') {
-        const dashboardPath = path.join(__dirname, '../botarena-front/dashboard.html');
+        const dashboardPath = path.join(__dirname, '../botarena-front/painel-administrativo.html');
         const content = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
         return res.type('html').send(content);
     }
@@ -113,10 +113,10 @@ app.get('/dashboard', async (req, res) => {
     res.type('html').send(htmlCache['dashboard']);
 });
 
-app.get('/chat', (req, res) => {
+app.get('/atendimento', (req, res) => {
     // Dynamic read in development, memory cache in production
     if (process.env.NODE_ENV !== 'production') {
-        const chatPath = path.join(__dirname, '../botarena-front/chat.html');
+        const chatPath = path.join(__dirname, '../botarena-front/atendimento.html');
         const content = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
         return res.type('html').send(content);
     }
@@ -124,11 +124,10 @@ app.get('/chat', (req, res) => {
     res.type('html').send(htmlCache['chat']);
 });
 
-app.get('/admin', (req, res) => {
-    const filePath = path.join(__dirname, '../botarena-front/admin.html');
-    const content = fs.readFileSync(filePath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
-    res.type('html').send(content);
-});
+// Backward compatibility redirects
+app.get('/admin', (req, res) => res.redirect('/painel-administrativo'));
+app.get('/dashboard', (req, res) => res.redirect('/painel-administrativo'));
+app.get('/chat', (req, res) => res.redirect('/atendimento'));
 
 app.get('/cardapio', (req, res) => {
     const filePath = path.join(__dirname, '../botarena-front/cardapio.html');

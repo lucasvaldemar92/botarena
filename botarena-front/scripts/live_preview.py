@@ -4,7 +4,7 @@ import webbrowser
 from pathlib import Path
 
 # Target file to watch
-FILE_TO_WATCH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "chat.html")
+FILE_TO_WATCH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "atendimento.html")
 BROWSER_OPENED = False
 
 def get_last_modified():

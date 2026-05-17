@@ -4,7 +4,7 @@ const fs = require('fs');
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.goto('http://localhost:3000/chat.html');
+  await page.goto('http://localhost:3000/atendimento');
   await page.waitForTimeout(2000);
   await page.screenshot({ path: 'qa-evidence/gigantic_bug.png' });
   await browser.close();

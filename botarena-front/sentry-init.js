@@ -2,7 +2,7 @@
 // 🛡️ SENTRY BROWSER INITIALIZATION
 // ==========================================
 // Loaded after the Sentry CDN bundle in <head>.
-// Shared by dashboard.html and chat.html.
+// Shared by painel-administrativo.html and atendimento.html.
 // DSN is injected by the server via window.__SENTRY_DSN__.
 
 Sentry.init({
