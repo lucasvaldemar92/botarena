@@ -56,8 +56,7 @@ function updateConnectionStatus(isConnected) {
         if (viewDisconnected) viewDisconnected.style.display = 'none';
         if (viewConnected) viewConnected.style.display = 'block';
         if (statusPill) {
-            statusPill.textContent = 'Conectado';
-            statusPill.className = 'status-pill status-pill--connected';
+            statusPill.style.display = 'none'; // Hide pill when connected to avoid redundancy
         }
         
         const phoneEl = document.getElementById('connected-phone');
@@ -67,6 +66,7 @@ function updateConnectionStatus(isConnected) {
         if (viewConnected) viewConnected.style.display = 'none';
         if (viewDisconnected) viewDisconnected.style.display = 'block';
         if (statusPill) {
+            statusPill.style.display = 'flex'; // Show pill when disconnected
             statusPill.textContent = 'Aguardando';
             statusPill.className = 'status-pill status-pill--waiting';
         }
