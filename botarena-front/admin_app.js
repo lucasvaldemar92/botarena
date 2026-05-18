@@ -267,11 +267,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event listeners para os outros botões
-    document.getElementById('btn-usuarios').onclick = () => {
-        alert('Redirecionando para gestão de usuários...');
-    };
+    // Event listeners para os outros botões com verificação de existência
+    const btnUsuarios = document.getElementById('btn-usuarios');
+    if (btnUsuarios) {
+        btnUsuarios.onclick = () => {
+            alert('Redirecionando para gestão de usuários...');
+        };
+    }
 
-    document.getElementById('btn-cadastro').onclick = () => {
-        window.location.href = 'cardapio.html';
-    };
+    const btnCadastro = document.getElementById('btn-cadastro');
+    if (btnCadastro) {
+        btnCadastro.onclick = () => {
+            window.location.href = 'cardapio.html';
+        };
+    }
+
+    // --- Lógica do Modal de Sair (Logout) ---
+    const btnLogoutHeader = document.getElementById('btn-system-logout');
+    const modalLogout = document.getElementById('modal-logout-choice');
+    const btnLogoutCancel = document.getElementById('btn-logout-cancel');
+    const btnLogoutOnly = document.getElementById('btn-logout-only');
+    const btnLogoutFull = document.getElementById('btn-logout-full');
+
+    if (btnLogoutHeader && modalLogout) {
+        btnLogoutHeader.addEventListener('click', () => {
+            modalLogout.style.display = 'flex';
+        });
+    }
+
+    if (btnLogoutCancel && modalLogout) {
+        btnLogoutCancel.addEventListener('click', () => {
+            modalLogout.style.display = 'none';
+        });
+    }
+
+    // Fecha o modal ao clicar fora dele
+    if (modalLogout) {
+        modalLogout.addEventListener('click', (e) => {
+            if (e.target === modalLogout) {
+                modalLogout.style.display = 'none';
+            }
+        });
+    }
+
+    // Opção 1: Sair apenas do sistema (mantém whatsapp logado)
+    if (btnLogoutOnly) {
+        btnLogoutOnly.addEventListener('click', () => {
+            localStorage.removeItem('botarena-token');
+            window.location.href = '/index.html';
+        });
+    }
+
+    // Opção 2: Sair e deslogar do WhatsApp (apaga dados, pausa bot)
+    if (btnLogoutFull) {
+        btnLogoutFull.addEventListener('click', async () => {
+            const originalHTML = btnLogoutFull.innerHTML;
+            btnLogoutFull.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Desconectando...';
+            btnLogoutFull.disabled = true;
+            if (btnLogoutOnly) btnLogoutOnly.disabled = true;
+            if (btnLogoutCancel) btnLogoutCancel.disabled = true;
+            
+            try {
+                // Chama rota de logout que seta bot_active: false e desconecta whatsapp-web.js
+                await fetch(`${window.BASE_URL}/api/logout`, { method: 'POST' });
+                
+                // Limpa o token local e vai para a tela de login
+                localStorage.removeItem('botarena-token');
+                window.location.href = '/index.html';
+            } catch (err) {
+                console.error('❌ Erro ao desconectar do WhatsApp:', err);
+                alert('Erro ao tentar desconectar o WhatsApp. Tente novamente.');
+                btnLogoutFull.innerHTML = originalHTML;
+                btnLogoutFull.disabled = false;
+                if (btnLogoutOnly) btnLogoutOnly.disabled = false;
+                if (btnLogoutCancel) btnLogoutCancel.disabled = false;
+            }
+        });
+    }
 });
