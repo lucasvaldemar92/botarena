@@ -85,6 +85,21 @@ describe('RAG Ingestion and Repository Tests', () => {
                 [1, '%matched%', 3]
             );
         });
+
+        test('getStats() should return chunk counts grouped by source_type and source_id', async () => {
+            mockDb.all.mockResolvedValue([
+                { source_type: 'menu_slot', source_id: 'lunch', count: 12 },
+                { source_type: 'faq', source_id: '1', count: 3 }
+            ]);
+
+            const stats = await ragRepo.getStats();
+
+            expect(stats).toHaveLength(2);
+            expect(mockDb.all).toHaveBeenCalledWith(
+                expect.stringContaining('SELECT source_type, source_id, COUNT(*) as count FROM rag_chunks WHERE company_id = ? GROUP BY source_type, source_id'),
+                [1]
+            );
+        });
     });
 
     describe('RagService Tests', () => {

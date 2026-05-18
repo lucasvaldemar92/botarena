@@ -841,6 +841,46 @@
             </button>
         </article>
 
+        <!-- Memória Inteligente (RAG) -->
+        <article class="card" id="card-rag-status">
+            <div class="card__header">
+                <div class="card__icon-box" style="background: #f5f3ff; color: #7c3aed;">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <div class="card__title-area">
+                    <h2>Memória IA (RAG)</h2>
+                    <p>Status da indexação de conhecimento do bot</p>
+                </div>
+            </div>
+            <div class="rag-status-inner" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Blocos Totais:</span>
+                    <strong id="rag-total-chunks" style="font-size: 1.1rem; color: #7c3aed;">0</strong>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>🍽️ Cardápio Almoço:</span>
+                        <span id="rag-menu-lunch" style="font-weight: 600;">0 blocos</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>🏟️ Cardápio Arena:</span>
+                        <span id="rag-menu-acai" style="font-weight: 600;">0 blocos</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>🍨 Sobremesas:</span>
+                        <span id="rag-menu-events" style="font-weight: 600;">0 blocos</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>💡 Central de Ajuda (FAQs):</span>
+                        <span id="rag-faq-count" style="font-weight: 600;">0 blocos</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn--secondary" id="btn-sync-rag" style="width: 100%; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                <i class="fa-solid fa-arrows-rotate"></i> Atualizar Status
+            </button>
+        </article>
+
         <!-- Configurações do Bot -->
         <article class="card">
             <div class="card__header">

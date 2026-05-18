@@ -78,6 +78,17 @@ class RagRepository extends BaseRepository {
         );
         return result.changes;
     }
+
+    /**
+     * Retrieves chunk counts grouped by source type and source id.
+     * @returns {Promise<Array<Object>>} Grouped stats
+     */
+    async getStats() {
+        return this.db.all(
+            `SELECT source_type, source_id, COUNT(*) as count FROM rag_chunks WHERE company_id = ? GROUP BY source_type, source_id`,
+            [this.companyId]
+        );
+    }
 }
 
 module.exports = RagRepository;

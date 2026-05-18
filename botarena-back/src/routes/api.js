@@ -389,6 +389,34 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
+    // ==========================================
+    // 🧠 RAG STATUS ROUTE (🔒 Protected)
+    // ==========================================
+    router.get('/rag/status', authMiddleware, async (req, res) => {
+        try {
+            const rawStats = await ragRepo.getStats();
+            
+            // Format the statistics grouped by source_type
+            const stats = {
+                totalChunks: 0,
+                bySource: {}
+            };
+            
+            for (const item of rawStats) {
+                stats.totalChunks += item.count;
+                if (!stats.bySource[item.source_type]) {
+                    stats.bySource[item.source_type] = {};
+                }
+                stats.bySource[item.source_type][item.source_id] = item.count;
+            }
+            
+            res.json(stats);
+        } catch (e) {
+            console.error('❌ [API] Error fetching RAG stats:', e);
+            res.status(500).json({ error: 'Erro interno ao buscar estatísticas de RAG.' });
+        }
+    });
+
     return router;
 }
 

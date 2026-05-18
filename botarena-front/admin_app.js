@@ -133,8 +133,57 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(config => {
             updateBotStatus(config.bot_active);
+            loadRagStats();
         })
         .catch(err => console.error('Erro ao carregar inicial:', err));
+
+    // RAG Stats Fetching Function
+    async function loadRagStats() {
+        try {
+            const stats = await window.utils.apiFetch('/rag/status');
+            
+            const totalEl = document.getElementById('rag-total-chunks');
+            if (totalEl) totalEl.textContent = stats.totalChunks;
+            
+            const lunchCount = (stats.bySource && stats.bySource.menu_slot && stats.bySource.menu_slot.lunch) || 0;
+            const acaiCount = (stats.bySource && stats.bySource.menu_slot && stats.bySource.menu_slot.acai) || 0;
+            const eventsCount = (stats.bySource && stats.bySource.menu_slot && stats.bySource.menu_slot.events) || 0;
+            
+            let faqCount = 0;
+            if (stats.bySource && stats.bySource.faq) {
+                faqCount = Object.values(stats.bySource.faq).reduce((acc, val) => acc + val, 0);
+            }
+            
+            const lunchEl = document.getElementById('rag-menu-lunch');
+            if (lunchEl) lunchEl.textContent = `${lunchCount} blocos`;
+            
+            const acaiEl = document.getElementById('rag-menu-acai');
+            if (acaiEl) acaiEl.textContent = `${acaiCount} blocos`;
+            
+            const eventsEl = document.getElementById('rag-menu-events');
+            if (eventsEl) eventsEl.textContent = `${eventsCount} blocos`;
+            
+            const faqEl = document.getElementById('rag-faq-count');
+            if (faqEl) faqEl.textContent = `${faqCount} blocos`;
+            
+        } catch (err) {
+            console.error('Erro ao buscar status de RAG:', err);
+        }
+    }
+
+    // Sync button event listener
+    const btnSyncRag = document.getElementById('btn-sync-rag');
+    if (btnSyncRag) {
+        btnSyncRag.addEventListener('click', () => {
+            const originalHTML = btnSyncRag.innerHTML;
+            btnSyncRag.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Atualizando...';
+            btnSyncRag.disabled = true;
+            loadRagStats().finally(() => {
+                btnSyncRag.innerHTML = originalHTML;
+                btnSyncRag.disabled = false;
+            });
+        });
+    }
 
     // Listen to config loaded from utils.js
     window.addEventListener('configLoaded', (e) => {
@@ -230,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global listener for menu updates
     window.addEventListener('menuUpdated', (e) => {
         updateMenuUI(e.detail);
+        loadRagStats();
     });
 
     // Delegated click and change events for multi-menu upload
