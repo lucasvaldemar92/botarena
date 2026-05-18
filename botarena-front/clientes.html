@@ -258,6 +258,73 @@
             animation: sync-flash 1s ease-out;
         }
 
+        /* Modal Grid Layout */
+        .modal__body-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal__content {
+            background: var(--color-surface, #ffffff);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+            max-width: 500px;
+            border-radius: var(--radius-lg, 16px);
+            padding: 2.25rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            transform: translateY(20px);
+            transition: transform 0.3s ease, max-width 0.3s ease;
+            color: var(--color-text-main, #e9edef);
+        }
+
+        body.theme-light .modal__content {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            color: #0f172a;
+        }
+
+        /* Quando no modo de criação: 2 colunas side-by-side e largura maior */
+        .modal__content.modal__content--creation {
+            max-width: 950px;
+        }
+
+        .modal__content.modal__content--creation .modal__body-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        /* Quando no modo de edição: oculta coluna de sync e mantém tamanho estreito */
+        .modal__content.modal__content--edit {
+            max-width: 500px;
+        }
+
+        .modal__content.modal__content--edit .modal__body-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .modal__content.modal__content--edit .modal-col--sync {
+            display: none;
+        }
+
+        /* Responsividade */
+        @media (max-width: 992px) {
+            .modal__content.modal__content--creation {
+                max-width: 500px;
+            }
+            .modal__content.modal__content--creation .modal__body-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-col--sync {
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+                padding-top: 1.5rem;
+            }
+            body.theme-light .modal-col--sync {
+                border-top: 1px solid #cbd5e1;
+            }
+        }
+
         @media (max-width: 640px) {
             body { padding: 1rem; }
             .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -277,83 +344,11 @@
                 <a href="painel-administrativo.html" class="btn btn--outline">
                     <i class="fa-solid fa-arrow-left"></i> Voltar
                 </a>
+                <button class="btn" id="btn-new-client" data-testid="btn-new-client">
+                    <i class="fa-solid fa-plus"></i> Novo cliente
+                </button>
             </div>
         </header>
-
-        <!-- Seção de Gerenciamento CRM (Cadastro Manual & Sincronização) -->
-        <section class="management-section">
-            <!-- Card Esquerdo: Novo Cliente (Manual) -->
-            <div class="management-card manual-reg-card">
-                <div class="management-card__header">
-                    <h2><i class="fa-solid fa-user-plus"></i> Novo Cliente</h2>
-                    <p>Cadastre um novo cliente manualmente no sistema</p>
-                </div>
-                <form id="form-client-inline">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label class="form-label" for="client-name-inline">Nome do Cliente</label>
-                            <input type="text" id="client-name-inline" class="form-input" placeholder="Ex: João Silva" data-testid="client-name-input-inline" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="client-birth-inline">Data de Nascimento</label>
-                            <input type="date" id="client-birth-inline" class="form-input" data-testid="client-birth-input-inline">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="client-phone-inline">WhatsApp/Telefone</label>
-                            <input type="text" id="client-phone-inline" class="form-input" placeholder="Ex: 5517999999999" data-testid="client-phone-input-inline" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="client-cep-inline">CEP</label>
-                            <input type="text" id="client-cep-inline" class="form-input" placeholder="00000-000" data-testid="client-cep-input-inline">
-                        </div>
-                        <div class="form-group form-group--full">
-                            <label class="form-label" for="client-address-inline">Endereço Completo</label>
-                            <input type="text" id="client-address-inline" class="form-input" placeholder="Rua, Número, Bairro..." data-testid="client-address-input-inline">
-                        </div>
-                        <div class="form-group form-group--full">
-                            <label class="form-label" for="client-notes-inline">Observações</label>
-                            <textarea id="client-notes-inline" class="form-input" placeholder="Notas operacionais..." data-testid="client-notes-input-inline"></textarea>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                        <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-clear-form-inline">Limpar</button>
-                        <button type="submit" class="btn" style="flex: 1;" data-testid="btn-save-client-inline">Salvar Cliente</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Card Direito: Sincronização de Pipeline (WhatsApp) -->
-            <div class="management-card sync-card">
-                <div class="management-card__header">
-                    <h2><i class="fa-brands fa-whatsapp"></i> Sincronização WhatsApp</h2>
-                    <p>Sincronize contatos do WhatsApp conectados diretamente com o CRM</p>
-                </div>
-                <div class="sync-status-box">
-                    <div class="sync-status-indicator">
-                        <span class="status-dot status-dot--active"></span>
-                        <span class="status-text">Pipeline Pronto para Ingestão</span>
-                    </div>
-                    <div class="sync-stats">
-                        <div class="sync-stat-item">
-                            <span class="sync-stat-val" id="sync-stat-last">Nunca</span>
-                            <span class="sync-stat-lbl">Última Sincronização</span>
-                        </div>
-                        <div class="sync-stat-item">
-                            <span class="sync-stat-val" id="sync-stat-count">0</span>
-                            <span class="sync-stat-lbl">Contatos no Pipeline</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="sync-actions-group">
-                    <button class="btn btn--sync" id="btn-sync-now" data-testid="sync-now-button">
-                        <i class="fa-solid fa-rotate"></i> Sincronizar Agora
-                    </button>
-                    <button class="btn btn--clear-cache" id="btn-clear-cache" data-testid="clear-cache-button">
-                        <i class="fa-solid fa-trash-can"></i> Limpar Cache
-                    </button>
-                </div>
-            </div>
-        </section>
 
         <main class="card-table">
             <div class="table-container">
@@ -383,54 +378,93 @@
 
     <!-- Modal de Cadastro -->
     <div class="modal" id="modal-registration">
-        <div class="modal__content">
+        <div class="modal__content modal__content--creation">
             <header class="modal__header">
-                <h2>Cadastro de Cliente</h2>
+                <h2 id="modal-title">Cadastro de Cliente</h2>
                 <button class="modal__close" id="modal-close">&times;</button>
             </header>
 
-            <div id="client-source-badge" class="source-badge source-badge--manual">
-                <i class="fa-solid fa-pen"></i> [Manual]
+            <div class="modal__body-grid">
+                <!-- Coluna Esquerda: Formulário Manual -->
+                <div class="modal-col modal-col--form">
+                    <div id="client-source-badge" class="source-badge source-badge--manual" style="margin-bottom: 1.25rem;">
+                        <i class="fa-solid fa-pen"></i> [Manual]
+                    </div>
+
+                    <form id="form-client">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="client-name">Nome do Cliente</label>
+                                <input type="text" id="client-name" class="form-input" placeholder="Ex: João Silva" data-testid="client-name-input" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="client-birth">Data de Nascimento</label>
+                                <input type="date" id="client-birth" class="form-input" data-testid="client-birth-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="client-phone">WhatsApp/Telefone</label>
+                                <input type="text" id="client-phone" class="form-input" placeholder="Ex: 5517999999999" data-testid="client-phone-input" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="client-cep">CEP</label>
+                                <input type="text" id="client-cep" class="form-input" placeholder="00000-000" data-testid="client-cep-input">
+                            </div>
+
+                            <div class="form-group form-group--full">
+                                <label class="form-label" for="client-address">Endereço Completo</label>
+                                <input type="text" id="client-address" class="form-input" placeholder="Rua, Número, Bairro..." data-testid="client-address-input">
+                            </div>
+
+                            <div class="form-group form-group--full">
+                                <label class="form-label" for="client-notes">Observações</label>
+                                <textarea id="client-notes" class="form-input" placeholder="Notas operacionais..." data-testid="client-notes-input"></textarea>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                            <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-cancel" data-testid="btn-cancel-client">Cancelar</button>
+                            <button type="submit" class="btn" style="flex: 1;" id="btn-submit" data-testid="btn-save-client">Salvar Cliente</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Coluna Direita: Sincronização WhatsApp (Ocultada em modo edição) -->
+                <div class="modal-col modal-col--sync" id="modal-col-sync">
+                    <div class="management-card sync-card" style="height: 100%; border: none; padding: 0; box-shadow: none; background: transparent;">
+                        <div class="management-card__header">
+                            <h2><i class="fa-brands fa-whatsapp"></i> Sincronização WhatsApp</h2>
+                            <p>Sincronize contatos do WhatsApp conectados diretamente com o CRM</p>
+                        </div>
+                        <div class="sync-status-box">
+                            <div class="sync-status-indicator">
+                                <span class="status-dot status-dot--active"></span>
+                                <span class="status-text">Pipeline Pronto para Ingestão</span>
+                            </div>
+                            <div class="sync-stats">
+                                <div class="sync-stat-item">
+                                    <span class="sync-stat-val" id="sync-stat-last">Nunca</span>
+                                    <span class="sync-stat-lbl">Última Sincronização</span>
+                                </div>
+                                <div class="sync-stat-item">
+                                    <span class="sync-stat-val" id="sync-stat-count">0</span>
+                                    <span class="sync-stat-lbl">Contatos no Pipeline</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sync-actions-group">
+                            <button class="btn btn--sync" id="btn-sync-now" data-testid="sync-now-button">
+                                <i class="fa-solid fa-rotate"></i> Sincronizar Agora
+                            </button>
+                            <button class="btn btn--clear-cache" id="btn-clear-cache" data-testid="clear-cache-button">
+                                <i class="fa-solid fa-trash-can"></i> Limpar Cache
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <form id="form-client">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label" for="client-name">Nome do Cliente</label>
-                        <input type="text" id="client-name" class="form-input" placeholder="Ex: João Silva" data-testid="client-name-input">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="client-birth">Data de Nascimento</label>
-                        <input type="date" id="client-birth" class="form-input" data-testid="client-birth-input">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="client-phone">WhatsApp/Telefone</label>
-                        <input type="text" id="client-phone" class="form-input" placeholder="Ex: 5517999999999" data-testid="client-phone-input">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="client-cep">CEP</label>
-                        <input type="text" id="client-cep" class="form-input" placeholder="00000-000" data-testid="client-cep-input">
-                    </div>
-
-                    <div class="form-group form-group--full">
-                        <label class="form-label" for="client-address">Endereço Completo</label>
-                        <input type="text" id="client-address" class="form-input" placeholder="Rua, Número, Bairro..." data-testid="client-address-input">
-                    </div>
-
-                    <div class="form-group form-group--full">
-                        <label class="form-label" for="client-notes">Observações</label>
-                        <textarea id="client-notes" class="form-input" placeholder="Notas operacionais..." data-testid="client-notes-input"></textarea>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="button" class="btn btn--outline" style="flex: 1;" id="btn-cancel" data-testid="btn-cancel-client">Cancelar</button>
-                    <button type="submit" class="btn" style="flex: 1;" data-testid="btn-save-client">Salvar Cliente</button>
-                </div>
-            </form>
         </div>
     </div>
 

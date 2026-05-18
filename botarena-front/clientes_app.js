@@ -8,10 +8,11 @@
     // --- DOM Elements ---
     const elements = {
         modal:         document.getElementById('modal-registration'),
-        modalTitle:    document.querySelector('#modal-registration h2'),
+        modalTitle:    document.getElementById('modal-title'),
+        btnNew:        document.getElementById('btn-new-client'),
         btnClose:      document.getElementById('modal-close'),
         btnCancel:     document.getElementById('btn-cancel'),
-        btnSubmit:     document.querySelector('#form-client button[type="submit"]'),
+        btnSubmit:     document.getElementById('btn-submit'),
         form:          document.getElementById('form-client'),
         sourceBadge:   document.getElementById('client-source-badge'),
         inputName:     document.getElementById('client-name'),
@@ -60,8 +61,6 @@
                 if (response.success) {
                     await api.fetchClients();
                     ui.closeModal();
-                    const inlineForm = document.getElementById('form-client-inline');
-                    if (inlineForm) inlineForm.reset();
                 }
             } catch (err) {
                 console.error('❌ Error saving client:', err);
@@ -166,8 +165,14 @@
             state.editingId = client ? client.id : null;
             elements.modal.classList.add('active');
 
+            const modalContent = elements.modal.querySelector('.modal__content');
+
             if (client) {
-                // Modo edição: pré-preenche campos
+                // Modo edição: coluna única sem Sync
+                if (modalContent) {
+                    modalContent.classList.add('modal__content--edit');
+                    modalContent.classList.remove('modal__content--creation');
+                }
                 elements.modalTitle.textContent = 'Editar Cliente';
                 elements.btnSubmit.textContent = 'Salvar Alterações';
                 elements.inputName.value    = client.name || '';
@@ -178,7 +183,11 @@
                 elements.inputNotes.value   = client.notes || '';
                 ui.setSource(client.source === 'whatsapp');
             } else {
-                // Modo criação
+                // Modo criação: duas colunas com Sync
+                if (modalContent) {
+                    modalContent.classList.add('modal__content--creation');
+                    modalContent.classList.remove('modal__content--edit');
+                }
                 elements.modalTitle.textContent = 'Cadastro de Cliente';
                 elements.btnSubmit.textContent = 'Salvar Cliente';
                 elements.form.reset();
@@ -243,6 +252,9 @@
     document.addEventListener('click', (e) => {
         const target = e.target;
 
+        if (target.closest('#btn-new-client')) {
+            ui.openModal();
+        }
 
         if (target.closest('#btn-sync-now')) {
             api.syncContacts();
@@ -250,11 +262,6 @@
 
         if (target.closest('#btn-clear-cache')) {
             api.clearCache();
-        }
-
-        if (target.closest('#btn-clear-form-inline')) {
-            const inlineForm = document.getElementById('form-client-inline');
-            if (inlineForm) inlineForm.reset();
         }
 
         if (target.closest('#modal-close') || target.closest('#btn-cancel') || target === elements.modal) {
@@ -279,20 +286,6 @@
         e.target.value = window.utils.masks.cep(e.target.value);
     });
 
-    const inlinePhone = document.getElementById('client-phone-inline');
-    if (inlinePhone) {
-        inlinePhone.addEventListener('input', (e) => {
-            e.target.value = window.utils.masks.phone(e.target.value);
-        });
-    }
-
-    const inlineCEP = document.getElementById('client-cep-inline');
-    if (inlineCEP) {
-        inlineCEP.addEventListener('input', (e) => {
-            e.target.value = window.utils.masks.cep(e.target.value);
-        });
-    }
-
     elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const payload = {
@@ -306,23 +299,6 @@
         };
         api.saveClient(payload);
     });
-
-    const inlineForm = document.getElementById('form-client-inline');
-    if (inlineForm) {
-        inlineForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const payload = {
-                name:    document.getElementById('client-name-inline').value,
-                birth:   document.getElementById('client-birth-inline').value,
-                phone:   document.getElementById('client-phone-inline').value.replace(/[^\d+]/g, ""),
-                cep:     document.getElementById('client-cep-inline').value,
-                address: document.getElementById('client-address-inline').value,
-                notes:   document.getElementById('client-notes-inline').value,
-                source:  'manual'
-            };
-            api.saveClient(payload);
-        });
-    }
 
     // --- Initialization ---
     const init = async () => {
