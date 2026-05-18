@@ -36,7 +36,7 @@ async function safeReply(msg, text, isClientReadyFn) {
  * @param {Object} repos.knowledgeRepo
  * @param {Object} repos.menuRepo
  */
-function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo }) {
+function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo }) {
     client.removeAllListeners('message');
     client.removeAllListeners('message_create');
     client.on('message_create', async (msg) => {
@@ -186,6 +186,31 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
             if (kbMatch) {
                 await safeReply(msg, kbMatch.response, isClientReadyFn);
                 return;
+            }
+
+            // RAG Semantic / Keyword Search Lookup
+            if (ragRepo) {
+                try {
+                    const matches = await ragRepo.searchChunks(text, 1);
+                    if (matches && matches.length > 0) {
+                        const match = matches[0];
+                        let replyText = '';
+                        if (match.source_type === 'menu_slot') {
+                            const slotNames = { lunch: 'Almoço', dinner: 'Jantar', dessert: 'Sobremesa' };
+                            const slotLabel = slotNames[match.source_id] || match.source_id;
+                            replyText = `🍽️ *Encontrei a seguinte informação no Cardápio de ${slotLabel}:*\n\n${match.content}`;
+                        } else if (match.source_type === 'faq') {
+                            replyText = `💡 *Encontrei isto na nossa Central de Ajuda:*\n\n${match.content}`;
+                        } else {
+                            replyText = `${match.content}`;
+                        }
+                        
+                        await safeReply(msg, replyText, isClientReadyFn);
+                        return;
+                    }
+                } catch (ragErr) {
+                    console.error('❌ [Bot] RAG Search failed:', ragErr);
+                }
             }
 
             // // console.log(`🔍 [Bot] No keyword match for: "${text.substring(0, 50)}"`);

@@ -43,7 +43,8 @@ describe('botHandler Unit Tests', () => {
             },
             knowledgeRepo: { findByKeyword: jest.fn().mockResolvedValue(null) },
             menuRepo: { getActive: jest.fn().mockResolvedValue(null) },
-            menuRepo: { getLatestAsset: jest.fn().mockResolvedValue(null) } // Updated mock for new DB schema
+            menuRepo: { getLatestAsset: jest.fn().mockResolvedValue(null) }, // Updated mock for new DB schema
+            ragRepo: { searchChunks: jest.fn().mockResolvedValue([]) }
         };
     });
 
@@ -123,5 +124,25 @@ describe('botHandler Unit Tests', () => {
         await messageCallback(mockMsg);
         
         expect(mockMsg.reply).toHaveBeenCalledWith('💰 Nossa chave PIX é: 123.456.789-00');
+    });
+
+    // ==========================================
+    // Caso 6: RAG match → retorna resposta do chunk semântico
+    // ==========================================
+    test('should reply with RAG chunk when keyword does not match KB but matches RAG', async () => {
+        mockMsg.body = 'quero saber sobre o almoço';
+        mockMsg.from = 'unique_rag_test@c.us';
+        mockRepos.knowledgeRepo.findByKeyword.mockResolvedValue(null);
+        mockRepos.ragRepo.searchChunks.mockResolvedValue([{
+            source_type: 'menu_slot',
+            source_id: 'lunch',
+            content: 'Temos lasanha aos domingos'
+        }]);
+        
+        setupBotHandler(mockClient, mockIo, mockIsClientReady, mockRepos);
+        await messageCallback(mockMsg);
+        
+        expect(mockRepos.ragRepo.searchChunks).toHaveBeenCalledWith('quero saber sobre o almoço', 1);
+        expect(mockMsg.reply).toHaveBeenCalledWith('🍽️ *Encontrei a seguinte informação no Cardápio de Almoço:*\n\nTemos lasanha aos domingos');
     });
 });
