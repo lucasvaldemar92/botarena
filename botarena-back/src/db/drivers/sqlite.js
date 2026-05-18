@@ -20,6 +20,13 @@ class SQLiteDriver {
             dbPath = path.join(__dirname, '../../../database/botarena.db');
         }
 
+        // Garante que o diretório do banco de dados exista antes de inicializar o SQLite
+        const fs = require('fs');
+        const dbDir = path.dirname(dbPath);
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+        }
+
         this._db = new sqlite3.Database(dbPath, (err) => {
             if (err) console.error('❌ [DB] Error opening SQLite database:', err);
         });

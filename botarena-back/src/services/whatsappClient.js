@@ -21,6 +21,29 @@ let _isClientReady = false; // 🔒 Safety flag — true only when client.on('re
 function initWhatsApp(io, repos) {
     const { settingsRepo } = repos;
 
+    // Limpar arquivos de trava do Chromium (SingletonLock, SingletonCookie, SingletonSocket)
+    // para evitar o erro "Failed to launch the browser process: Code: 21" após quedas abruptas.
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const lockDir = path.resolve(__dirname, '../../.wwebjs_auth/session');
+        if (fs.existsSync(lockDir)) {
+            const files = fs.readdirSync(lockDir);
+            for (const file of files) {
+                if (file.startsWith('Singleton')) {
+                    const filePath = path.join(lockDir, file);
+                    try {
+                        fs.unlinkSync(filePath);
+                    } catch (unlinkErr) {
+                        // ignora se não puder ser deletado
+                    }
+                }
+            }
+        }
+    } catch (lockErr) {
+        console.error('⚠️ [Chromium] Error cleaning lock files on startup:', lockErr);
+    }
+
     // // console.log('🔄 [WhatsApp] Initializing Client...');
     client = new Client({
         authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
