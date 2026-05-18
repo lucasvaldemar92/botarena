@@ -150,6 +150,17 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         try {
             const { keyword, response, category } = req.body;
             const entry = await knowledgeRepo.add(keyword, response, category);
+            
+            // Ingerir dinamicamente os chunks semânticos do FAQ no RAG
+            try {
+                const rawText = `Pergunta/Palavra-chave: ${keyword}\nRespostas/Informações: ${response}`;
+                const chunks = ragService.generateSemanticChunks(rawText);
+                await ragRepo.saveChunks('faq', entry.id.toString(), chunks);
+                // // console.log(`✅ [RAG Ingest] ${chunks.length} chunks saved for FAQ ID: ${entry.id}`);
+            } catch (ragErr) {
+                console.error(`❌ [RAG Ingest] Error ingesting FAQ RAG chunks for ID ${entry.id}:`, ragErr);
+            }
+
             // // console.log(`✅ [API] Knowledge entry added: "${keyword}"`);
             res.json({ success: true, entry });
         } catch (e) {
@@ -162,6 +173,15 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         // // console.log(`📡 [API] DELETE /api/knowledge/${req.params.id}`);
         try {
             const changes = await knowledgeRepo.remove(req.params.id);
+            
+            // Remover dinamicamente os chunks semânticos do RAG
+            try {
+                await ragRepo.deleteChunksBySource('faq', req.params.id.toString());
+                // // console.log(`✅ [RAG Clean] Chunks removed for FAQ ID: ${req.params.id}`);
+            } catch (ragErr) {
+                console.error(`❌ [RAG Clean] Error removing RAG chunks for FAQ ID ${req.params.id}:`, ragErr);
+            }
+
             res.json({ success: true, deleted: changes });
         } catch (e) {
             console.error('❌ [API] Error deleting knowledge:', e);
