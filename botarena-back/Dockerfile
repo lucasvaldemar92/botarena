@@ -20,7 +20,7 @@ WORKDIR /app
 
 # Copia arquivos de dependências
 COPY package*.json ./
-RUN npm install && npm rebuild sqlite3 --build-from-source
+RUN npm install
 
 # Copia o restante do código (HTML, CSS, JS e a pasta database)
 COPY . .
