@@ -20,7 +20,7 @@ const { menuSchema }       = require('../schemas/menuSchema');
  * @param {Object}   deps.clientRepo      - ClientRepository instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, ragRepo, ragService }) {
     const router = express.Router();
 
     // ==========================================
@@ -189,6 +189,17 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         try {
             const { slot, extracted_text, mimetype, base64_data } = req.body;
             const menu = await menuRepo.setNewActive(extracted_text, mimetype, base64_data, slot);
+            
+            // Ingerir dinamicamente os chunks semânticos no RAG
+            try {
+                const rawText = extracted_text || '';
+                const chunks = ragService.generateSemanticChunks(rawText);
+                await ragRepo.saveChunks('menu_slot', slot, chunks);
+                // // console.log(`✅ [RAG Ingest] ${chunks.length} chunks saved for menu slot: ${slot}`);
+            } catch (ragErr) {
+                console.error(`❌ [RAG Ingest] Error ingesting menu RAG chunks for ${slot}:`, ragErr);
+            }
+
             // // console.log('✅ [API] Daily menu updated.');
             res.json({ success: true, menu });
         } catch (e) {
