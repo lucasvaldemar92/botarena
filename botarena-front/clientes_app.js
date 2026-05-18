@@ -1,5 +1,5 @@
 /**
- * 👤 BotArena - Client Registration Logic
+ * 👤 BotArena - Client Registration Logic (Light Mode Single Column Modal)
  * Compliance: dynamic-dom-frontend.md, IIFE Isolation
  */
 (function() {
@@ -20,7 +20,6 @@
         inputPhone:    document.getElementById('client-phone'),
         inputCEP:      document.getElementById('client-cep'),
         inputAddress:  document.getElementById('client-address'),
-        inputNotes:    document.getElementById('client-notes'),
         tableBody:     document.getElementById('clients-table-body'),
         clientCount:   document.getElementById('client-count')
     };
@@ -30,7 +29,8 @@
         isWhatsAppSource: false,
         editingId: null,   // null = novo cadastro, number = editando
         clients: [],
-        socket: null
+        socket: null,
+        redirectAfterSave: null
     };
 
     // --- API Calls ---
@@ -61,6 +61,11 @@
                 if (response.success) {
                     await api.fetchClients();
                     ui.closeModal();
+                    if (state.redirectAfterSave) {
+                        const dest = state.redirectAfterSave;
+                        state.redirectAfterSave = null;
+                        window.location.href = dest;
+                    }
                 }
             } catch (err) {
                 console.error('❌ Error saving client:', err);
@@ -75,104 +80,17 @@
             } catch (err) {
                 console.error('❌ Error deleting client:', err);
             }
-        },
-        syncContacts: async () => {
-            const syncBtn = document.getElementById('btn-sync-now');
-            const dot = document.querySelector('.status-dot');
-            const text = document.querySelector('.status-text');
-            
-            if (!syncBtn) return;
-            
-            syncBtn.classList.add('executing');
-            syncBtn.disabled = true;
-            syncBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
-            
-            if (dot) {
-                dot.className = 'status-dot status-dot--syncing';
-            }
-            if (text) {
-                text.textContent = 'Sincronizando contatos do WhatsApp...';
-            }
-            
-            try {
-                const response = await window.utils.apiFetch('/clients/sync', { method: 'POST' });
-                if (response.success) {
-                    await api.fetchClients();
-                    
-                    syncBtn.innerHTML = '<i class="fa-solid fa-check"></i> Sincronizado!';
-                    if (text) {
-                        text.textContent = `Ingestão Concluída! ${response.addedCount} novos clientes importados.`;
-                    }
-                    
-                    const timeString = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                    document.getElementById('sync-stat-last').textContent = timeString;
-                    document.getElementById('sync-stat-count').textContent = '0';
-                    
-                    alert(response.message);
-                }
-            } catch (err) {
-                console.error('❌ Error syncing contacts:', err);
-                syncBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Erro!';
-                if (text) {
-                    text.textContent = 'Erro ao sincronizar. Conecte o WhatsApp.';
-                }
-                alert(err.message || 'Erro ao sincronizar contatos do WhatsApp. Certifique-se de que o WhatsApp está conectado.');
-            } finally {
-                setTimeout(() => {
-                    syncBtn.classList.remove('executing');
-                    syncBtn.disabled = false;
-                    syncBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar Agora';
-                    if (dot) {
-                        dot.className = 'status-dot status-dot--active';
-                    }
-                    if (text && !text.textContent.includes('Ingestão Concluída')) {
-                        text.textContent = 'Pipeline Pronto para Ingestão';
-                    }
-                }, 2000);
-            }
-        },
-        clearCache: async () => {
-            const clearBtn = document.getElementById('btn-clear-cache');
-            if (!clearBtn) return;
-            
-            clearBtn.disabled = true;
-            const originalHtml = clearBtn.innerHTML;
-            clearBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Limpando...';
-            
-            try {
-                const response = await window.utils.apiFetch('/clients/clear-cache', { method: 'POST' });
-                if (response.success) {
-                    clearBtn.innerHTML = '<i class="fa-solid fa-check"></i> Cache Limpo!';
-                    document.getElementById('sync-stat-count').textContent = '0';
-                    alert(response.message);
-                }
-            } catch (err) {
-                console.error('❌ Error clearing cache:', err);
-                clearBtn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Erro';
-                alert(err.message || 'Erro ao limpar cache.');
-            } finally {
-                setTimeout(() => {
-                    clearBtn.disabled = false;
-                    clearBtn.innerHTML = originalHtml;
-                }, 2000);
-            }
         }
     };
 
     // --- UI Rendering ---
     const ui = {
-        openModal: (client = null) => {
+        openModal: (client = null, prefillData = null) => {
             state.editingId = client ? client.id : null;
             elements.modal.classList.add('active');
 
-            const modalContent = elements.modal.querySelector('.modal__content');
-
             if (client) {
-                // Modo edição: coluna única sem Sync
-                if (modalContent) {
-                    modalContent.classList.add('modal__content--edit');
-                    modalContent.classList.remove('modal__content--creation');
-                }
+                // Modo edição
                 elements.modalTitle.textContent = 'Editar Cliente';
                 elements.btnSubmit.textContent = 'Salvar Alterações';
                 elements.inputName.value    = client.name || '';
@@ -180,18 +98,21 @@
                 elements.inputPhone.value   = window.utils.masks.phone(client.phone || '');
                 elements.inputCEP.value     = window.utils.masks.cep(client.zip_code || '');
                 elements.inputAddress.value = client.address || '';
-                elements.inputNotes.value   = client.notes || '';
                 ui.setSource(client.source === 'whatsapp');
             } else {
-                // Modo criação: duas colunas com Sync
-                if (modalContent) {
-                    modalContent.classList.add('modal__content--creation');
-                    modalContent.classList.remove('modal__content--edit');
-                }
+                // Modo criação
                 elements.modalTitle.textContent = 'Cadastro de Cliente';
                 elements.btnSubmit.textContent = 'Salvar Cliente';
                 elements.form.reset();
-                ui.setSource(false);
+                
+                // Se recebemos dados vindos do atendimento para pré-preenchimento automático (contato)
+                if (prefillData) {
+                    elements.inputName.value = prefillData.name || '';
+                    elements.inputPhone.value = window.utils.masks.phone(prefillData.phone || '');
+                    ui.setSource(true); // Se vem do atendimento, a origem é WhatsApp!
+                } else {
+                    ui.setSource(false); // Caso contrário, manual
+                }
             }
         },
         closeModal: () => {
@@ -248,7 +169,6 @@
         }
     };
 
-    // --- Event Listeners (Event Delegation) ---
     document.addEventListener('click', (e) => {
         const target = e.target;
 
@@ -256,16 +176,43 @@
             ui.openModal();
         }
 
-        if (target.closest('#btn-sync-now')) {
-            api.syncContacts();
-        }
-
-        if (target.closest('#btn-clear-cache')) {
-            api.clearCache();
+        if (target.closest('#btn-sync-whatsapp')) {
+            const btnSync = target.closest('#btn-sync-whatsapp');
+            const originalHTML = btnSync.innerHTML;
+            btnSync.disabled = true;
+            btnSync.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+            
+            window.utils.apiFetch('/clients/sync', { method: 'POST' })
+                .then(res => {
+                    alert(res.message || 'Sincronização concluída com sucesso!');
+                    return api.fetchClients();
+                })
+                .catch(err => {
+                    console.error('❌ Error during synchronization:', err);
+                    alert(err.message || 'Erro ao sincronizar contatos do WhatsApp. Verifique se o bot está conectado.');
+                })
+                .finally(() => {
+                    btnSync.disabled = false;
+                    btnSync.innerHTML = originalHTML;
+                });
         }
 
         if (target.closest('#modal-close') || target.closest('#btn-cancel') || target === elements.modal) {
             ui.closeModal();
+            if (state.redirectAfterSave) {
+                const dest = state.redirectAfterSave;
+                state.redirectAfterSave = null;
+                window.location.href = dest;
+            }
+        }
+
+        if (target.closest('#btn-back')) {
+            if (state.redirectAfterSave) {
+                e.preventDefault();
+                const dest = state.redirectAfterSave;
+                state.redirectAfterSave = null;
+                window.location.href = dest;
+            }
         }
 
         const editBtn = target.closest('[data-action="edit"]');
@@ -278,7 +225,7 @@
         if (deleteBtn) api.deleteClient(deleteBtn.dataset.id);
     });
 
-    // Mascaras em tempo real
+    // Máscaras em tempo real
     elements.inputPhone.addEventListener('input', (e) => {
         e.target.value = window.utils.masks.phone(e.target.value);
     });
@@ -294,7 +241,7 @@
             phone:   elements.inputPhone.value.replace(/[^\d+]/g, ""), // Limpa mas mantém o + se for internacional
             cep:     elements.inputCEP.value,
             address: elements.inputAddress.value,
-            notes:   elements.inputNotes.value,
+            notes:   null, // O campo de observações foi removido
             source:  state.isWhatsAppSource ? 'whatsapp' : 'manual'
         };
         api.saveClient(payload);
@@ -305,50 +252,25 @@
         console.log('🚀 Client Registration Initializing...');
         await api.fetchClients();
 
-        // Busca a quantidade de contatos do WhatsApp no pipeline se o bot estiver pronto
-        try {
-            const contacts = await window.utils.apiFetch('/contacts');
-            const countEl = document.getElementById('sync-stat-count');
-            if (countEl && Array.isArray(contacts)) {
-                countEl.textContent = contacts.length;
-            }
-        } catch (e) {
-            console.warn('📡 Could not load pipeline contacts count:', e.message);
-        }
-
-        const token = localStorage.getItem('botarena-token');
-        if (token) {
-            state.socket = io({ auth: { token } });
-
-            state.socket.on('whatsapp_contact_sync', (data) => {
-                if (elements.modal.classList.contains('active')) {
-                    if (data.name) {
-                        elements.inputName.value = data.name;
-                        elements.inputName.classList.add('sync-flash');
-                        setTimeout(() => elements.inputName.classList.remove('sync-flash'), 1000);
-                    }
-                    if (data.phone) {
-                        elements.inputPhone.value = window.utils.masks.phone(data.phone);
-                        elements.inputPhone.classList.add('sync-flash');
-                        setTimeout(() => elements.inputPhone.classList.remove('sync-flash'), 1000);
-                    }
-                    ui.setSource(true);
-                }
-            });
-
-            state.socket.on('connect', () => console.log('📡 [Socket] Connected for client sync.'));
-        }
-
-        // Check for pending CRM sync from Chat
+        // Check for pending CRM sync from Chat (puxa sozinho e traz preenchido de forma robusta)
         const pendingSync = localStorage.getItem('botarena_pending_sync');
         if (pendingSync) {
             try {
                 const data = JSON.parse(pendingSync);
-                ui.openModal();
-                // We need a tiny delay to allow the modal to render before flashing
-                setTimeout(() => {
-                    if (window.syncFromWhatsApp) window.syncFromWhatsApp(data);
-                }, 100);
+                
+                // Limpa telefones para comparação robusta (somente números) utilizando a mesma máscara do input
+                const cleanPhone = (p) => p ? p.replace(/[^\d]/g, '') : '';
+                const cleanPrefillPhone = cleanPhone(window.utils.masks.phone(data.phone));
+                
+                const existingClient = state.clients.find(c => cleanPhone(c.phone) === cleanPrefillPhone);
+
+                if (existingClient) {
+                    ui.openModal(existingClient);
+                } else {
+                    ui.openModal(null, data);
+                }
+                
+                state.redirectAfterSave = 'atendimento.html';
             } catch (e) {
                 console.error('Error parsing pending sync:', e);
             }
@@ -357,22 +279,5 @@
     };
 
     init();
-
-    // Hook global para sync externo
-    window.syncFromWhatsApp = (data) => {
-        if (elements.modal.classList.contains('active')) {
-            if (data.name) {
-                elements.inputName.value = data.name;
-                elements.inputName.classList.add('sync-flash');
-                setTimeout(() => elements.inputName.classList.remove('sync-flash'), 1000);
-            }
-            if (data.phone) {
-                elements.inputPhone.value = window.utils.masks.phone(data.phone);
-                elements.inputPhone.classList.add('sync-flash');
-                setTimeout(() => elements.inputPhone.classList.remove('sync-flash'), 1000);
-            }
-            ui.setSource(true);
-        }
-    };
 
 })();

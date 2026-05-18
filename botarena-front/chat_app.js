@@ -155,54 +155,21 @@
     // ==========================================
 
     document.addEventListener('click', (e) => {
-        // --- CRM Context Menu Logic ---
-        const btnMenu = e.target.closest('#btn-chat-menu');
-        const contextMenu = document.getElementById('chat-context-menu');
-        
-        // Toggle menu display
+        // --- CRM Direct Sync & Navigate Logic ---
+        const btnMenu = e.target.closest('#btn-chat-menu') || e.target.closest('.chat-main__contact');
         if (btnMenu) {
-            contextMenu.style.display = contextMenu.style.display === 'none' ? 'block' : 'none';
-        } else if (contextMenu && !e.target.closest('#chat-context-menu')) {
-            contextMenu.style.display = 'none';
+            const contactName = document.querySelector('.chat-main__contact span')?.textContent || '';
+            const contactPhone = activeChatID ? activeChatID.replace('@c.us', '') : '';
+            
+            // Store data for cross-page sync and navigate
+            localStorage.setItem('botarena_pending_sync', JSON.stringify({
+                name: contactName,
+                phone: contactPhone
+            }));
+            window.location.href = 'clientes.html';
+            return;
         }
 
-        // Handle CRM menu actions
-        const menuItem = e.target.closest('.chat-dropdown__item');
-        if (menuItem) {
-            const action = menuItem.dataset.action;
-            
-            if (action === 'profile') {
-                const contactName = document.querySelector('.chat-main__contact span')?.textContent || '';
-                const contactPhone = activeChatID ? activeChatID.replace('@c.us', '') : '';
-                
-                // Store data for cross-page sync and navigate
-                localStorage.setItem('botarena_pending_sync', JSON.stringify({
-                    name: contactName,
-                    phone: contactPhone
-                }));
-                window.location.href = 'clientes.html';
-                
-            } else if (action === 'clear') {
-                const chatHistory = document.querySelector('[data-testid="chat-history"]');
-                if (chatHistory) chatHistory.innerHTML = '';
-            } else if (action === 'close') {
-                const activeItem = document.querySelector(`.chat-item[data-chat-id="${activeChatID}"]`);
-                if (activeItem) activeItem.remove();
-                
-                const chatHistory = document.querySelector('[data-testid="chat-history"]');
-                if (chatHistory) chatHistory.innerHTML = '';
-                
-                const contactName = document.querySelector('.chat-main__contact span');
-                if (contactName) contactName.textContent = 'Selecione um contato';
-                
-                activeChatID = null;
-                
-                // Optional backend hook for archiving
-                if (socket) socket.emit('archive_chat', { chatId: activeChatID });
-            }
-            
-            if (contextMenu) contextMenu.style.display = 'none';
-        }
 
         // 1. Chat Contact Selection
         const item = e.target.closest('.chat-item');

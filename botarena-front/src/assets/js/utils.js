@@ -410,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     async function syncGlobalHeader() {
+        if (isLoginPage) return;
         try {
             const response = await fetch(`${BASE_URL}/api/config`);
             if (response.ok) {

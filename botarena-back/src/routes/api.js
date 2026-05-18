@@ -59,10 +59,25 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         if (process.env.NODE_ENV === 'production') {
             return res.status(404).json({ error: 'Not found' });
         }
-        const token = AuthService.generateMockToken();
-        if (!token) return res.status(403).json({ error: 'Only available in development' });
-        // // console.log('🔑 [Auth] Dev mock token generated.');
-        res.json({ token });
+        const { email, password } = req.body;
+        
+        // Permite "teste" ou "teste@exemplo.com" com senha "12345"
+        const normalizedEmail = email ? email.trim().toLowerCase() : '';
+        const isMockUser = normalizedEmail === 'teste' || normalizedEmail === 'teste@exemplo.com';
+        const isMockPassword = password === '12345';
+
+        if (isMockUser && isMockPassword) {
+            const token = AuthService.generateMockToken();
+            return res.json({ token });
+        }
+        
+        // Se não for o usuário "teste", aceita qualquer credencial padrão do dev-login antigo para desenvolvimento
+        if (!isMockUser && password) {
+            const token = AuthService.generateMockToken();
+            return res.json({ token });
+        }
+
+        return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
     });
 
     // ==========================================
@@ -243,6 +258,23 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
 
     router.post('/clients/sync', authMiddleware, async (req, res) => {
         if (!isClientReady()) {
+            if (process.env.NODE_ENV === 'development') {
+                // Modo teste/desenvolvimento: simula contatos
+                const mockContacts = [
+                    { name: 'Ana Silva', phone: '5511999998888', jid: '5511999998888@c.us', source: 'whatsapp' },
+                    { name: 'Bruno Oliveira', phone: '5521988887777', jid: '5521988887777@c.us', source: 'whatsapp' },
+                    { name: 'Carlos Santos', phone: '5531977776666', jid: '5531977776666@c.us', source: 'whatsapp' }
+                ];
+                let addedCount = 0;
+                for (const contact of mockContacts) {
+                    const existing = await clientRepo.findByIdentifier(contact.phone);
+                    if (!existing) {
+                        await clientRepo.add(contact);
+                        addedCount++;
+                    }
+                }
+                return res.json({ success: true, message: `Sincronização concluída (Modo Teste). ${addedCount} novos contatos adicionados.`, addedCount });
+            }
             return res.status(503).json({ error: 'WhatsApp desconectado. Conecte o WhatsApp para sincronizar.' });
         }
         try {
@@ -289,6 +321,15 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         // // console.log('📡 [API] GET /api/contacts');
         
         if (!isClientReady()) {
+            if (process.env.NODE_ENV === 'development') {
+                // Modo teste/desenvolvimento: retorna contatos fictícios
+                const mockContacts = [
+                    { id: '5511999998888@c.us', name: 'Ana Silva', pushname: 'Ana', number: '5511999998888' },
+                    { id: '5521988887777@c.us', name: 'Bruno Oliveira', pushname: 'Bruno', number: '5521988887777' },
+                    { id: '5531977776666@c.us', name: 'Carlos Santos', pushname: 'Carlos', number: '5531977776666' }
+                ];
+                return res.json(mockContacts);
+            }
             return res.status(503).json({ error: 'Bot desconectado. Conecte o WhatsApp para ver os contatos.' });
         }
 

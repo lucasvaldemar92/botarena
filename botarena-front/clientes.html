@@ -85,6 +85,15 @@
             border: 1px solid var(--border-color);
         }
 
+        .btn--sync {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn--sync:hover {
+            background: #1ebe57;
+        }
+
         /* Table Styles */
         .card-table {
             background: white;
@@ -267,64 +276,19 @@
         }
 
         .modal__content {
-            background: var(--color-surface, #ffffff);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #ffffff;
+            border: 1px solid var(--border-color);
             width: 100%;
-            max-width: 500px;
+            max-width: 550px;
             border-radius: var(--radius-lg, 16px);
             padding: 2.25rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-md);
             transform: translateY(20px);
-            transition: transform 0.3s ease, max-width 0.3s ease;
-            color: var(--color-text-main, #e9edef);
-        }
-
-        body.theme-light .modal__content {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            color: #0f172a;
-        }
-
-        /* Quando no modo de criação: 2 colunas side-by-side e largura maior */
-        .modal__content.modal__content--creation {
-            max-width: 950px;
-        }
-
-        .modal__content.modal__content--creation .modal__body-grid {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        /* Quando no modo de edição: oculta coluna de sync e mantém tamanho estreito */
-        .modal__content.modal__content--edit {
-            max-width: 500px;
-        }
-
-        .modal__content.modal__content--edit .modal__body-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .modal__content.modal__content--edit .modal-col--sync {
-            display: none;
+            transition: transform 0.3s ease;
+            color: var(--text-main);
         }
 
         /* Responsividade */
-        @media (max-width: 992px) {
-            .modal__content.modal__content--creation {
-                max-width: 500px;
-            }
-            .modal__content.modal__content--creation .modal__body-grid {
-                grid-template-columns: 1fr;
-            }
-            .modal-col--sync {
-                border-top: 1px solid rgba(255, 255, 255, 0.08);
-                padding-top: 1.5rem;
-            }
-            body.theme-light .modal-col--sync {
-                border-top: 1px solid #cbd5e1;
-            }
-        }
-
         @media (max-width: 640px) {
             body { padding: 1rem; }
             .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -341,9 +305,12 @@
                 <p id="client-count">0 cadastrados</p>
             </div>
             <div class="header__actions">
-                <a href="painel-administrativo.html" class="btn btn--outline">
+                <a href="painel-administrativo.html" class="btn btn--outline" id="btn-back">
                     <i class="fa-solid fa-arrow-left"></i> Voltar
                 </a>
+                <button class="btn btn--sync" id="btn-sync-whatsapp">
+                    <i class="fa-solid fa-rotate"></i> Sincronizar
+                </button>
                 <button class="btn" id="btn-new-client" data-testid="btn-new-client">
                     <i class="fa-solid fa-plus"></i> Novo cliente
                 </button>
@@ -378,14 +345,14 @@
 
     <!-- Modal de Cadastro -->
     <div class="modal" id="modal-registration">
-        <div class="modal__content modal__content--creation">
+        <div class="modal__content">
             <header class="modal__header">
                 <h2 id="modal-title">Cadastro de Cliente</h2>
                 <button class="modal__close" id="modal-close">&times;</button>
             </header>
 
             <div class="modal__body-grid">
-                <!-- Coluna Esquerda: Formulário Manual -->
+                <!-- Coluna Única: Formulário Manual -->
                 <div class="modal-col modal-col--form">
                     <div id="client-source-badge" class="source-badge source-badge--manual" style="margin-bottom: 1.25rem;">
                         <i class="fa-solid fa-pen"></i> [Manual]
@@ -417,11 +384,6 @@
                                 <label class="form-label" for="client-address">Endereço Completo</label>
                                 <input type="text" id="client-address" class="form-input" placeholder="Rua, Número, Bairro..." data-testid="client-address-input">
                             </div>
-
-                            <div class="form-group form-group--full">
-                                <label class="form-label" for="client-notes">Observações</label>
-                                <textarea id="client-notes" class="form-input" placeholder="Notas operacionais..." data-testid="client-notes-input"></textarea>
-                            </div>
                         </div>
 
                         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
@@ -429,40 +391,6 @@
                             <button type="submit" class="btn" style="flex: 1;" id="btn-submit" data-testid="btn-save-client">Salvar Cliente</button>
                         </div>
                     </form>
-                </div>
-
-                <!-- Coluna Direita: Sincronização WhatsApp (Ocultada em modo edição) -->
-                <div class="modal-col modal-col--sync" id="modal-col-sync">
-                    <div class="management-card sync-card" style="height: 100%; border: none; padding: 0; box-shadow: none; background: transparent;">
-                        <div class="management-card__header">
-                            <h2><i class="fa-brands fa-whatsapp"></i> Sincronização WhatsApp</h2>
-                            <p>Sincronize contatos do WhatsApp conectados diretamente com o CRM</p>
-                        </div>
-                        <div class="sync-status-box">
-                            <div class="sync-status-indicator">
-                                <span class="status-dot status-dot--active"></span>
-                                <span class="status-text">Pipeline Pronto para Ingestão</span>
-                            </div>
-                            <div class="sync-stats">
-                                <div class="sync-stat-item">
-                                    <span class="sync-stat-val" id="sync-stat-last">Nunca</span>
-                                    <span class="sync-stat-lbl">Última Sincronização</span>
-                                </div>
-                                <div class="sync-stat-item">
-                                    <span class="sync-stat-val" id="sync-stat-count">0</span>
-                                    <span class="sync-stat-lbl">Contatos no Pipeline</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="sync-actions-group">
-                            <button class="btn btn--sync" id="btn-sync-now" data-testid="sync-now-button">
-                                <i class="fa-solid fa-rotate"></i> Sincronizar Agora
-                            </button>
-                            <button class="btn btn--clear-cache" id="btn-clear-cache" data-testid="clear-cache-button">
-                                <i class="fa-solid fa-trash-can"></i> Limpar Cache
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

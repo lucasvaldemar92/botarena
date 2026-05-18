@@ -96,7 +96,7 @@ app.get('/', (req, res) => res.redirect('/painel-administrativo'));
 app.get('/painel-administrativo', async (req, res) => {
     try {
         const config = await settingsRepo.get();
-        if (config.bot_active) {
+        if (config.bot_active && process.env.NODE_ENV === 'production') {
             return res.redirect('/atendimento');
         }
     } catch (err) {

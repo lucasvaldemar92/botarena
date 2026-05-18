@@ -1070,6 +1070,11 @@ body.theme-light .glass-panel {
     align-items: center;
     gap: 15px;
     cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.chat-main__contact:hover {
+    opacity: 0.8;
 }
 
 .chat-main__contact img {
