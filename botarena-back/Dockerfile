@@ -1,5 +1,5 @@
 # Imagem base mais completa para garantir compatibilidade GLIBC
-FROM node:20-bookworm
+FROM node:20-trixie
 
 # Instala dependências de sistema para compilar o SQLite3 e rodar o Puppeteer (WhatsApp)
 RUN apt-get update && apt-get install -y \
