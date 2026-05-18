@@ -9,9 +9,10 @@ services:
       - /app/node_modules
       - ../botarena-front:/botarena-front
     restart: always
+    init: true
     env_file:
       - .env
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-production}
       - SENTRY_DSN=${SENTRY_DSN}
       - CHOKIDAR_USEPOLLING=true
