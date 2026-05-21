@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(config => {
             updateBotStatus(config.bot_active);
             loadRagStats();
+            loadDeliveryFees();
         })
         .catch(err => console.error('Erro ao carregar inicial:', err));
 
@@ -394,4 +395,181 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ==========================================
+    // 🛵 GESTÃO DE TAXAS DE ENTREGA
+    // ==========================================
+    const deliveryElements = {
+        tableBody:     document.getElementById('delivery-fees-table-body'),
+        btnAdd:        document.getElementById('btn-add-delivery-fee'),
+        modal:         document.getElementById('modal-delivery-fee'),
+        modalTitle:    document.getElementById('delivery-fee-modal-title'),
+        form:          document.getElementById('form-delivery-fee'),
+        inputNeigh:    document.getElementById('delivery-neighborhood'),
+        inputZip:      document.getElementById('delivery-zip-code'),
+        inputFee:      document.getElementById('delivery-fee-value'),
+        btnClose:      document.getElementById('btn-close-delivery-modal'),
+        btnCancel:     document.getElementById('btn-cancel-delivery-modal'),
+    };
+
+    let deliveryFeesState = {
+        editingId: null,
+        fees: []
+    };
+
+    async function loadDeliveryFees() {
+        if (!deliveryElements.tableBody) return;
+        try {
+            const fees = await window.utils.apiFetch('/delivery-fees');
+            deliveryFeesState.fees = fees;
+            renderDeliveryFeesTable();
+        } catch (err) {
+            console.error('Erro ao buscar taxas de entrega:', err);
+            deliveryElements.tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: #ef4444;">
+                        Erro ao carregar taxas de entrega.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    function renderDeliveryFeesTable() {
+        if (!deliveryElements.tableBody) return;
+        const fees = deliveryFeesState.fees;
+
+        if (fees.length === 0) {
+            deliveryElements.tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        Nenhuma taxa de entrega cadastrada.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        deliveryElements.tableBody.innerHTML = fees.map(item => {
+            const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.fee);
+            return `
+                <tr style="border-bottom: 1px solid var(--border-color);" data-id="${item.id}">
+                    <td style="padding: 0.75rem 1rem; font-weight: 500;">${item.neighborhood || '---'}</td>
+                    <td style="padding: 0.75rem 1rem; color: var(--text-muted);">${item.zip_code || '---'}</td>
+                    <td style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600;">${formattedFee}</td>
+                    <td style="padding: 0.75rem 1rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                        <button style="background:none; border:none; color:#3b82f6; cursor:pointer; padding:0.25rem;"
+                            data-action="edit-fee" data-id="${item.id}" title="Editar">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0.25rem;"
+                            data-action="delete-fee" data-id="${item.id}" title="Excluir">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function openDeliveryModal(item = null) {
+        if (!deliveryElements.modal) return;
+
+        deliveryFeesState.editingId = item ? item.id : null;
+        deliveryElements.modal.style.display = 'flex';
+
+        if (item) {
+            deliveryElements.modalTitle.textContent = 'Editar Taxa de Entrega';
+            deliveryElements.inputNeigh.value = item.neighborhood || '';
+            deliveryElements.inputZip.value = window.utils.masks.cep(item.zip_code || '');
+            deliveryElements.inputFee.value = item.fee;
+        } else {
+            deliveryElements.modalTitle.textContent = 'Nova Taxa de Entrega';
+            deliveryElements.form.reset();
+        }
+    }
+
+    function closeDeliveryModal() {
+        if (!deliveryElements.modal) return;
+        deliveryElements.modal.style.display = 'none';
+        deliveryElements.form.reset();
+        deliveryFeesState.editingId = null;
+    }
+
+    // Bind listeners for delivery fees
+    if (deliveryElements.btnAdd) {
+        deliveryElements.btnAdd.addEventListener('click', () => openDeliveryModal());
+    }
+    if (deliveryElements.btnClose) {
+        deliveryElements.btnClose.addEventListener('click', closeDeliveryModal);
+    }
+    if (deliveryElements.btnCancel) {
+        deliveryElements.btnCancel.addEventListener('click', closeDeliveryModal);
+    }
+
+    // CEP mask input helper
+    if (deliveryElements.inputZip) {
+        deliveryElements.inputZip.addEventListener('input', (e) => {
+            e.target.value = window.utils.masks.cep(e.target.value);
+        });
+    }
+
+    if (deliveryElements.form) {
+        deliveryElements.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                neighborhood: deliveryElements.inputNeigh.value,
+                zipCode:      deliveryElements.inputZip.value,
+                fee:          parseFloat(deliveryElements.inputFee.value) || 0
+            };
+
+            try {
+                let response;
+                if (deliveryFeesState.editingId) {
+                    response = await window.utils.apiFetch(`/delivery-fees/${deliveryFeesState.editingId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await window.utils.apiFetch('/delivery-fees', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                if (response.success) {
+                    closeDeliveryModal();
+                    await loadDeliveryFees();
+                }
+            } catch (err) {
+                console.error('Erro ao salvar taxa de entrega:', err);
+                alert(err.message || 'Erro ao salvar taxa de entrega.');
+            }
+        });
+    }
+
+    // Delegated click actions for Edit/Delete in table
+    document.addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('[data-action="edit-fee"]');
+        if (editBtn) {
+            const item = deliveryFeesState.fees.find(x => x.id === parseInt(editBtn.dataset.id));
+            if (item) openDeliveryModal(item);
+        }
+
+        const deleteBtn = e.target.closest('[data-action="delete-fee"]');
+        if (deleteBtn) {
+            const id = deleteBtn.dataset.id;
+            if (confirm('Tem certeza que deseja excluir esta taxa de entrega?')) {
+                try {
+                    const response = await window.utils.apiFetch(`/delivery-fees/${id}`, { method: 'DELETE' });
+                    if (response.success) {
+                        await loadDeliveryFees();
+                    }
+                } catch (err) {
+                    console.error('Erro ao excluir taxa de entrega:', err);
+                    alert(err.message || 'Erro ao excluir taxa de entrega.');
+                }
+            }
+        }
+    });
 });

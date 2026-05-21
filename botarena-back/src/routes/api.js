@@ -20,7 +20,7 @@ const { menuSchema }       = require('../schemas/menuSchema');
  * @param {Object}   deps.clientRepo      - ClientRepository instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, ragRepo, ragService }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService }) {
     const router = express.Router();
 
     // ==========================================
@@ -242,6 +242,41 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     // ==========================================
     // 👥 CLIENTS ROUTES (🔒 Protected)
     // ==========================================
+    async function syncClientToDeliveryFee(clientData) {
+        if (!clientData.cep || !clientData.address) return;
+
+        // Validate CEP: must contain exactly 8 digits after removing non-digits
+        const cleanCep = clientData.cep.replace(/[^\d]/g, '');
+        const hasValidCep = cleanCep.length === 8;
+
+        // Validate Street Name: must be a string of at least 3 characters after trimming
+        const cleanAddress = clientData.address.trim();
+        const hasValidAddress = cleanAddress.length >= 3;
+
+        if (hasValidCep && hasValidAddress) {
+            // Format CEP to standard format XXXXX-XXX
+            const formattedCep = `${cleanCep.substring(0, 5)}-${cleanCep.substring(5)}`;
+            
+            try {
+                // Check if CEP already exists in delivery_fees
+                const existingFee = await deliveryFeeRepo.findByZipCode(formattedCep);
+                if (!existingFee) {
+                    // CEP does not exist: insert a new row with R$ 0,00 as the default fee
+                    await deliveryFeeRepo.add({
+                        neighborhood: cleanAddress,
+                        zipCode: formattedCep,
+                        fee: 0.00
+                    });
+                    console.log(`✅ [Sync] Sincronizado CEP ${formattedCep} (${cleanAddress}) para taxas de entrega.`);
+                } else {
+                    console.log(`⏭️ [Sync] CEP ${formattedCep} já cadastrado na tabela de taxas, ignorando.`);
+                }
+            } catch (err) {
+                console.error('❌ [Sync] Erro ao sincronizar cliente com taxas de entrega:', err);
+            }
+        }
+    }
+
     router.get('/clients', authMiddleware, async (req, res) => {
         try {
             res.json(await clientRepo.getAll());
@@ -254,6 +289,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.post('/clients', sensitiveLimiter, authMiddleware, async (req, res) => {
         try {
             const client = await clientRepo.add(req.body);
+            await syncClientToDeliveryFee(req.body);
             res.json({ success: true, client });
         } catch (e) {
             if (e.message && e.message.includes('UNIQUE')) {
@@ -267,6 +303,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.put('/clients/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
         try {
             const changes = await clientRepo.edit(parseInt(req.params.id), req.body);
+            await syncClientToDeliveryFee(req.body);
             res.json({ success: true, changes });
         } catch (e) {
             if (e.message && e.message.includes('UNIQUE')) {
@@ -283,6 +320,95 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             res.json({ success: true, deleted: changes });
         } catch (e) {
             console.error('❌ [API] Error deleting client:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    // ==========================================
+    // 🛵 DELIVERY FEES ROUTES (🔒 Protected)
+    // ==========================================
+    router.get('/delivery-fees', authMiddleware, async (req, res) => {
+        try {
+            res.json(await deliveryFeeRepo.getAll());
+        } catch (e) {
+            console.error('❌ [API] Error fetching delivery fees:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    router.post('/delivery-fees', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const { zipCode, neighborhood } = req.body;
+            if (!neighborhood || neighborhood.trim().length < 3) {
+                return res.status(400).json({ error: 'Nome de rua/bairro deve ter pelo menos 3 caracteres.' });
+            }
+            if (!zipCode) {
+                return res.status(400).json({ error: 'CEP é obrigatório.' });
+            }
+            
+            const clean = zipCode.replace(/[^\d]/g, '');
+            if (clean.length !== 8) {
+                return res.status(400).json({ error: 'CEP inválido. Deve possuir 8 dígitos.' });
+            }
+
+            const formatted = `${clean.substring(0, 5)}-${clean.substring(5)}`;
+            const existing = await deliveryFeeRepo.findByZipCode(formatted);
+            if (existing) {
+                return res.status(409).json({ error: 'CEP já cadastrado para outra região.' });
+            }
+            
+            const item = await deliveryFeeRepo.add({
+                ...req.body,
+                zipCode: formatted
+            });
+            res.json({ success: true, deliveryFee: item });
+        } catch (e) {
+            if (e.message && e.message.includes('UNIQUE')) {
+                return res.status(409).json({ error: 'CEP já cadastrado para outra região.' });
+            }
+            console.error('❌ [API] Erro ao criar taxa de entrega:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    router.put('/delivery-fees/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const { zipCode, neighborhood } = req.body;
+            if (neighborhood && neighborhood.trim().length < 3) {
+                return res.status(400).json({ error: 'Nome de rua/bairro deve ter pelo menos 3 caracteres.' });
+            }
+
+            if (zipCode) {
+                const clean = zipCode.replace(/[^\d]/g, '');
+                if (clean.length !== 8) {
+                    return res.status(400).json({ error: 'CEP inválido. Deve possuir 8 dígitos.' });
+                }
+
+                const formatted = `${clean.substring(0, 5)}-${clean.substring(5)}`;
+                const existing = await deliveryFeeRepo.findByZipCode(formatted);
+                if (existing && existing.id !== parseInt(req.params.id)) {
+                    return res.status(409).json({ error: 'CEP já cadastrado para outra região.' });
+                }
+                req.body.zipCode = formatted;
+            }
+
+            const changes = await deliveryFeeRepo.edit(parseInt(req.params.id), req.body);
+            res.json({ success: true, changes });
+        } catch (e) {
+            if (e.message && e.message.includes('UNIQUE')) {
+                return res.status(409).json({ error: 'CEP já cadastrado para outra região.' });
+            }
+            console.error('❌ [API] Erro ao editar taxa de entrega:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    router.delete('/delivery-fees/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const changes = await deliveryFeeRepo.remove(req.params.id);
+            res.json({ success: true, deleted: changes });
+        } catch (e) {
+            console.error('❌ [API] Error deleting delivery fee:', e);
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });

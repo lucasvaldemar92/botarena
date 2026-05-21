@@ -1,277 +1,5 @@
 [
   {
-    "date": "2026-05-09T06:10:53.401Z",
-    "score": 93,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 55
-      },
-      {
-        "name": "COBERTURA",
-        "score": 95
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 100
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T06:27:41.913Z",
-    "score": 92,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 95
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 100
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T06:36:41.932Z",
-    "score": 90,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 100
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 80
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T06:45:04.238Z",
-    "score": 90,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 100
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 80
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T06:56:55.291Z",
-    "score": 90,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 100
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 80
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T07:03:55.859Z",
-    "score": 90,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 100
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 80
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T07:06:40.856Z",
-    "score": 90,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 100
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 80
-      }
-    ]
-  },
-  {
-    "date": "2026-05-09T07:07:39.057Z",
-    "score": 90,
-    "categories": [
-      {
-        "name": "SEGURANÇA",
-        "score": 100
-      },
-      {
-        "name": "BANCO DE DADOS",
-        "score": 100
-      },
-      {
-        "name": "QUALIDADE",
-        "score": 50
-      },
-      {
-        "name": "COBERTURA",
-        "score": 100
-      },
-      {
-        "name": "CONSISTÊNCIA API",
-        "score": 100
-      },
-      {
-        "name": "FRONTEND PT-BR",
-        "score": 100
-      },
-      {
-        "name": "DEPENDÊNCIAS",
-        "score": 80
-      }
-    ]
-  },
-  {
     "date": "2026-05-09T07:14:22.385Z",
     "score": 83,
     "categories": [
@@ -558,6 +286,84 @@
       {
         "name": "QUALIDADE",
         "score": 95
+      },
+      {
+        "name": "COBERTURA",
+        "score": 100
+      },
+      {
+        "name": "CONSISTÊNCIA API",
+        "score": 100
+      },
+      {
+        "name": "FRONTEND PT-BR",
+        "score": 100
+      },
+      {
+        "name": "DEPENDÊNCIAS",
+        "score": 95
+      }
+    ]
+  },
+  {
+    "date": "19/05/2026 20:24",
+    "score": 70,
+    "categories": {
+      "security": 90,
+      "database": 95,
+      "ui": 95,
+      "quality": 0
+    }
+  },
+  {
+    "date": "2026-05-19T23:31:25.926Z",
+    "score": 97,
+    "categories": [
+      {
+        "name": "SEGURANÇA",
+        "score": 100
+      },
+      {
+        "name": "BANCO DE DADOS",
+        "score": 100
+      },
+      {
+        "name": "QUALIDADE",
+        "score": 85
+      },
+      {
+        "name": "COBERTURA",
+        "score": 100
+      },
+      {
+        "name": "CONSISTÊNCIA API",
+        "score": 100
+      },
+      {
+        "name": "FRONTEND PT-BR",
+        "score": 100
+      },
+      {
+        "name": "DEPENDÊNCIAS",
+        "score": 95
+      }
+    ]
+  },
+  {
+    "date": "2026-05-20T00:30:12.914Z",
+    "score": 97,
+    "categories": [
+      {
+        "name": "SEGURANÇA",
+        "score": 100
+      },
+      {
+        "name": "BANCO DE DADOS",
+        "score": 100
+      },
+      {
+        "name": "QUALIDADE",
+        "score": 85
       },
       {
         "name": "COBERTURA",
