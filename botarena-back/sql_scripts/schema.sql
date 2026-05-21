@@ -40,9 +40,21 @@ CREATE TABLE IF NOT EXISTS clients (
     contact_jid TEXT,
     address TEXT,
     zip_code TEXT,
+    number TEXT,
     notes TEXT,
     source TEXT DEFAULT 'manual',
     is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4.1 Delivery Fees Database
+CREATE TABLE IF NOT EXISTS delivery_fees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER DEFAULT 1,
+    neighborhood TEXT,
+    zip_code TEXT UNIQUE,
+    fee REAL DEFAULT 0.00,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -55,3 +67,9 @@ INSERT INTO knowledge_base (keyword, response) VALUES
 ('horário', 'Funcionamos todos os dias das 08:00 às 22:00!'),
 ('localização', 'Estamos localizados em Itapoá, SC.'),
 ('pix', 'Aceitamos Pix! A chave é o nosso CNPJ.');
+
+INSERT INTO delivery_fees (id, neighborhood, zip_code, fee) VALUES
+(1, 'Centro', '87055-520', 5.00),
+(2, 'Jardim América', '15084-120', 7.50),
+(3, 'Vila Nova', '12345-000', 10.00);
+

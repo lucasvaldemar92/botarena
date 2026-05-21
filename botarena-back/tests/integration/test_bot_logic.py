@@ -6,13 +6,13 @@ def test_status_group_story_filter():
     Scenario 1 & 2: Security & Privacy
     Verify that the node.js backend has a strict condition against status@broadcast and @g.us
     """
-    server_js_path = os.path.join(os.path.dirname(__file__), '..', '..', 'server.js')
+    bot_handler_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'handlers', 'botHandler.js')
     
-    with open(server_js_path, 'r', encoding='utf-8') as f:
+    with open(bot_handler_path, 'r', encoding='utf-8') as f:
         content = f.read()
         
     assert "msg.from === 'status@broadcast'" in content, "Missing status lockdown"
-    assert "msg.from.includes('@g.us')" in content or "msg.from.endsWith('@g.us')" in content, "Missing group lockdown"
+    assert "msg.from.includes('@g.us')" in content, "Missing group lockdown"
     print("STATUS: Group/Story Filter... PASSED")
     
 def test_authentication_redirection():

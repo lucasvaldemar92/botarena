@@ -91,12 +91,12 @@ try {
     console.error('❌ [Cache] Error loading HTML files:', err);
 }
 
-app.get('/', (req, res) => res.redirect('/painel-administrativo'));
+app.get('/', (req, res) => res.redirect('/dashboard/whatsapp'));
 
-app.get('/painel-administrativo', async (req, res) => {
+app.get(['/painel-administrativo', '/dashboard', '/dashboard/:tab'], async (req, res) => {
     try {
         const config = await settingsRepo.get();
-        if (config.bot_active && process.env.NODE_ENV === 'production') {
+        if (config.bot_active && process.env.NODE_ENV === 'production' && !req.path.startsWith('/dashboard')) {
             return res.redirect('/atendimento');
         }
     } catch (err) {
@@ -125,8 +125,7 @@ app.get('/atendimento', (req, res) => {
 });
 
 // Backward compatibility redirects
-app.get('/admin', (req, res) => res.redirect('/painel-administrativo'));
-app.get('/dashboard', (req, res) => res.redirect('/painel-administrativo'));
+app.get('/admin', (req, res) => res.redirect('/dashboard/whatsapp'));
 app.get('/chat', (req, res) => res.redirect('/atendimento'));
 
 app.get('/cardapio', (req, res) => {

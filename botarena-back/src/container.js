@@ -10,6 +10,7 @@ const SettingsRepository  = require('./repositories/SettingsRepository');
 const KnowledgeRepository = require('./repositories/KnowledgeRepository');
 const MenuRepository      = require('./repositories/MenuRepository');
 const ClientRepository    = require('./repositories/ClientRepository');
+const DeliveryFeeRepository = require('./repositories/DeliveryFeeRepository');
 const RagRepository       = require('./repositories/ragRepository');
 const RagService          = require('./services/ragService');
 
@@ -21,6 +22,7 @@ const settingsRepo  = new SettingsRepository(db, DEFAULT_COMPANY_ID);
 const knowledgeRepo = new KnowledgeRepository(db, DEFAULT_COMPANY_ID);
 const menuRepo      = new MenuRepository(db, DEFAULT_COMPANY_ID);
 const clientRepo    = new ClientRepository(db, DEFAULT_COMPANY_ID);
+const deliveryFeeRepo = new DeliveryFeeRepository(db, DEFAULT_COMPANY_ID);
 const ragRepo       = new RagRepository(db, DEFAULT_COMPANY_ID);
 const ragService    = new RagService(ragRepo);
 
@@ -30,6 +32,7 @@ module.exports = {
     knowledgeRepo,
     menuRepo,
     clientRepo,
+    deliveryFeeRepo,
     ragRepo,
     ragService,
     DEFAULT_COMPANY_ID

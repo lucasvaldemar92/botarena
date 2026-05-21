@@ -5,30 +5,32 @@ test('Visual Sync & Story Filter Verification', async ({ page }) => {
 
     const backendUrl = 'http://localhost:3000';
     
-    // 1. Navigate to the dashboard. 
-    // Given the previous sprint, if we are authenticated, this should instantly bypass to /chat.
-    await page.goto(`${backendUrl}/dashboard`);
+    // 1. Perform login
+    await page.goto(`${backendUrl}/index.html`);
+    await page.fill('#email', 'teste');
+    await page.fill('#password', '12345');
+    await page.click('#submit-btn');
+    
+    // Expect to land on the dashboard or admin panel
+    await expect(page).toHaveURL(/.*(dashboard|painel-administrativo).*/, { timeout: 5000 });
 
-    // Wait for the state transition from 'Connected' to 'Chat UI' within 5s.
-    // The redirect happens quickly; we expect the URL to include 'chat'
-    await expect(page).toHaveURL(/.*chat.*/, { timeout: 5000 });
-    // console.log('✅ Redirecionamento instantâneo testado e aprovado! Bypass operante.');
+    // 2. Go to Atendimento (chat UI) via the header action button
+    await page.click('text=Atendimento');
+    
+    // Expect URL to transition to /atendimento
+    await expect(page).toHaveURL(/.*atendimento.*/, { timeout: 5000 });
 
-    // 2. We wait a moment for everything to settle
+    // 3. We wait a moment for everything to settle
     await page.waitForTimeout(1000); 
 
-    // Task 3: Verify Status/Story item is NOT present in contact list
-    // console.log('🔄 Verificando ausência do item Status na lista...');
+    // Verify Status/Story item is NOT present in contact list
     const storyItem = page.locator('[data-testid="chat-item-story"]');
     await expect(storyItem).toHaveCount(0);
-    // console.log('✅ Status (Contato) ausente da lista — filtro de status operante!');
 
     // Verify chat input is functional (not locked)
     const chatInput = page.locator('.chat-input');
     await expect(chatInput).toBeEnabled();
-    // console.log('✅ Chat input habilitado e funcional.');
 
-    // 3. Take the visual screenshot
+    // 4. Take the visual screenshot
     await page.screenshot({ path: 'qa-evidence/last_test_state.png', fullPage: true });
-    // console.log('📸 Visual Evidence capturada em: qa-evidence/last_test_state.png');
 });
