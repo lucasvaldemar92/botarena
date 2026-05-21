@@ -19,6 +19,10 @@ let _isClientReady = false; // 🔒 Safety flag — true only when client.on('re
  * @param {Object} repos.menuRepo
  */
 function initWhatsApp(io, repos) {
+    if (process.env.DISABLE_WHATSAPP === 'true') {
+        console.log('⚠️ [WhatsApp] WhatsApp client initialization skipped (DISABLE_WHATSAPP=true).');
+        return;
+    }
     const { settingsRepo } = repos;
 
     // Limpar arquivos de trava do Chromium (SingletonLock, SingletonCookie, SingletonSocket)
@@ -44,22 +48,31 @@ function initWhatsApp(io, repos) {
         console.error('⚠️ [Chromium] Error cleaning lock files on startup:', lockErr);
     }
 
-    // // console.log('🔄 [WhatsApp] Initializing Client...');
+    const puppeteerOptions = {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu'
+        ]
+    };
+
+    if (process.platform === 'win32') {
+        const fs = require('fs');
+        const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        if (fs.existsSync(chromePath)) {
+            puppeteerOptions.executablePath = chromePath;
+        }
+    }
+
     client = new Client({
         authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
         webVersionCache: {
             type: 'remote',
             remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
         },
-        puppeteer: {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ]
-        }
+        puppeteer: puppeteerOptions
     });
 
     client.on('qr', (qr) => {
