@@ -218,9 +218,29 @@
 
         if (btnMenuQuick) {
             if (activeChatID?.includes('broadcast')) return;
-            menuDropdown.style.display = menuDropdown.style.display === 'none' ? 'block' : 'none';
+            const isOpen = menuDropdown.style.display !== 'none';
+            if (!isOpen) {
+                // Abre o dropdown, fechando outros modais
+                if (window.utils && window.utils.modalManager) {
+                    window.utils.modalManager.open(
+                        'chat-menu-dropdown',
+                        () => { menuDropdown.style.display = 'block'; },
+                        () => { menuDropdown.style.display = 'none'; }
+                    );
+                } else {
+                    menuDropdown.style.display = 'block';
+                }
+            } else {
+                menuDropdown.style.display = 'none';
+                if (window.utils && window.utils.modalManager) {
+                    window.utils.modalManager.close('chat-menu-dropdown');
+                }
+            }
         } else if (menuDropdown && !e.target.closest('#menu-choice-dropdown')) {
             menuDropdown.style.display = 'none';
+            if (window.utils && window.utils.modalManager) {
+                window.utils.modalManager.close('chat-menu-dropdown');
+            }
         }
 
         const sendMenuItem = e.target.closest('.chat-dropdown__item[data-action="send-menu"]');
@@ -322,12 +342,34 @@
         const openNewChatBtn = document.getElementById('open-new-chat-btn');
         const closeNewChatBtn = document.getElementById('close-new-chat-btn');
         
-        if (openNewChatBtn) openNewChatBtn.onclick = () => newChatModal?.classList.add('settings-modal--active');
-        if (closeNewChatBtn) closeNewChatBtn.onclick = () => newChatModal?.classList.remove('settings-modal--active');
+        const _closeNewChat = () => newChatModal?.classList.remove('settings-modal--active');
+        const _openNewChat  = () => newChatModal?.classList.add('settings-modal--active');
+
+        if (openNewChatBtn) {
+            openNewChatBtn.onclick = () => {
+                if (window.utils && window.utils.modalManager) {
+                    window.utils.modalManager.open('new-chat-modal', _openNewChat, _closeNewChat);
+                } else {
+                    _openNewChat();
+                }
+            };
+        }
+        if (closeNewChatBtn) {
+            closeNewChatBtn.onclick = () => {
+                if (window.utils && window.utils.modalManager) {
+                    window.utils.modalManager.close('new-chat-modal');
+                } else {
+                    _closeNewChat();
+                }
+            };
+        }
 
         window.selectContact = (id, name) => {
             activeChatID = id;
-            newChatModal?.classList.remove('settings-modal--active');
+            _closeNewChat();
+            if (window.utils && window.utils.modalManager) {
+                window.utils.modalManager.close('new-chat-modal');
+            }
             const headerSpan = document.querySelector('.chat-main__header span');
             if (headerSpan) headerSpan.textContent = name;
             

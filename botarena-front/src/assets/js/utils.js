@@ -85,9 +85,89 @@ window.utils = {
                 return r.replace(/^(\d*)/, "($1");
             }
         }
-    }
+    },
+
+    /**
+     * ModalManager - Garante que somente 1 modal/menu fique aberto por vez.
+     *
+     * Uso:
+     *   window.utils.modalManager.open('meu-modal', () => abreOModal(), () => fechaOModal());
+     *   window.utils.modalManager.close('meu-modal');
+     *   window.utils.modalManager.closeAll();
+     */
+    modalManager: (() => {
+        // Map: id -> closeFn
+        const registry = new Map();
+        // Currently open modal id
+        let currentOpen = null;
+
+        return {
+            /**
+             * Registra um modal/menu com sua função de fechamento.
+             * @param {string} id - Identificador único do modal
+             * @param {Function} closeFn - Função que fecha o modal
+             */
+            register(id, closeFn) {
+                registry.set(id, closeFn);
+            },
+
+            /**
+             * Abre um modal, fechando o que estiver aberto antes.
+             * @param {string} id - Identificador do modal a abrir
+             * @param {Function} openFn - Função que abre o modal
+             * @param {Function} [closeFn] - Se fornecida, registra/atualiza o fechador
+             */
+            open(id, openFn, closeFn) {
+                // Fecha o modal atualmente aberto (se for diferente)
+                if (currentOpen && currentOpen !== id) {
+                    const prevClose = registry.get(currentOpen);
+                    if (typeof prevClose === 'function') {
+                        try { prevClose(); } catch(e) { /* ignora */ }
+                    }
+                }
+                // Registra ou atualiza o fechador
+                if (typeof closeFn === 'function') {
+                    registry.set(id, closeFn);
+                }
+                currentOpen = id;
+                if (typeof openFn === 'function') openFn();
+            },
+
+            /**
+             * Fecha um modal específico.
+             * @param {string} id
+             */
+            close(id) {
+                if (currentOpen === id) {
+                    currentOpen = null;
+                }
+                const closeFn = registry.get(id);
+                if (typeof closeFn === 'function') {
+                    try { closeFn(); } catch(e) { /* ignora */ }
+                }
+            },
+
+            /**
+             * Fecha todos os modais registrados.
+             */
+            closeAll() {
+                registry.forEach((closeFn, id) => {
+                    try { closeFn(); } catch(e) { /* ignora */ }
+                });
+                currentOpen = null;
+            },
+
+            /**
+             * Retorna o id do modal atualmente aberto (ou null).
+             */
+            getCurrent() {
+                return currentOpen;
+            }
+        };
+    })()
 
 };
+
 
 if (window.io) {
     const originalIo = window.io;
@@ -183,13 +263,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openModal() {
         if (!settingsModal) return;
-        settingsModal.classList.add('settings-modal--active');
-        syncGlobalHeader();
+        // Usa o ModalManager para fechar outros modais abertos antes
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.open(
+                'settings-modal',
+                () => {
+                    settingsModal.classList.add('settings-modal--active');
+                    syncGlobalHeader();
+                },
+                () => settingsModal.classList.remove('settings-modal--active')
+            );
+        } else {
+            settingsModal.classList.add('settings-modal--active');
+            syncGlobalHeader();
+        }
     }
 
     function closeModal() {
         if (!settingsModal) return;
         settingsModal.classList.remove('settings-modal--active');
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.close('settings-modal');
+        }
     }
 
     if (openSettingsBtn) openSettingsBtn.addEventListener('click', openModal);

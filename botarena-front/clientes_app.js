@@ -88,40 +88,55 @@
     const ui = {
         openModal: (client = null, prefillData = null) => {
             state.editingId = client ? client.id : null;
-            elements.modal.classList.add('active');
 
-            if (client) {
-                // Modo edição
-                elements.modalTitle.textContent = 'Editar Cliente';
-                elements.btnSubmit.textContent = 'Salvar Alterações';
-                elements.inputName.value    = client.name || '';
-                elements.inputBirth.value   = client.birth_date || '';
-                elements.inputPhone.value   = window.utils.masks.phone(client.phone || '');
-                elements.inputCEP.value     = window.utils.masks.cep(client.zip_code || '');
-                elements.inputAddress.value = client.address || '';
-                elements.inputNumber.value  = client.number || '';
-                ui.setSource(client.source === 'whatsapp');
-            } else {
-                // Modo criação
-                elements.modalTitle.textContent = 'Cadastro de Cliente';
-                elements.btnSubmit.textContent = 'Salvar Cliente';
-                elements.form.reset();
-                if (elements.inputNumber) elements.inputNumber.value = '';
-                
-                // Se recebemos dados vindos do atendimento para pré-preenchimento automático (contato)
-                if (prefillData) {
-                    elements.inputName.value = prefillData.name || '';
-                    elements.inputPhone.value = window.utils.masks.phone(prefillData.phone || '');
-                    ui.setSource(true); // Se vem do atendimento, a origem é WhatsApp!
+            const doOpen = () => {
+                elements.modal.classList.add('active');
+                if (client) {
+                    // Modo edição
+                    elements.modalTitle.textContent = 'Editar Cliente';
+                    elements.btnSubmit.textContent = 'Salvar Alterações';
+                    elements.inputName.value    = client.name || '';
+                    elements.inputBirth.value   = client.birth_date || '';
+                    elements.inputPhone.value   = window.utils.masks.phone(client.phone || '');
+                    elements.inputCEP.value     = window.utils.masks.cep(client.zip_code || '');
+                    elements.inputAddress.value = client.address || '';
+                    elements.inputNumber.value  = client.number || '';
+                    ui.setSource(client.source === 'whatsapp');
                 } else {
-                    ui.setSource(false); // Caso contrário, manual
+                    // Modo criação
+                    elements.modalTitle.textContent = 'Cadastro de Cliente';
+                    elements.btnSubmit.textContent = 'Salvar Cliente';
+                    elements.form.reset();
+                    if (elements.inputNumber) elements.inputNumber.value = '';
+                    
+                    // Se recebemos dados vindos do atendimento para pré-preenchimento automático (contato)
+                    if (prefillData) {
+                        elements.inputName.value = prefillData.name || '';
+                        elements.inputPhone.value = window.utils.masks.phone(prefillData.phone || '');
+                        ui.setSource(true); // Se vem do atendimento, a origem é WhatsApp!
+                    } else {
+                        ui.setSource(false); // Caso contrário, manual
+                    }
                 }
+            };
+
+            if (window.utils && window.utils.modalManager) {
+                window.utils.modalManager.open('modal-registration', doOpen, () => {
+                    elements.modal.classList.remove('active');
+                    elements.form.reset();
+                    state.editingId = null;
+                });
+            } else {
+                doOpen();
             }
         },
         closeModal: () => {
             elements.modal.classList.remove('active');
             elements.form.reset();
             state.editingId = null;
+            if (window.utils && window.utils.modalManager) {
+                window.utils.modalManager.close('modal-registration');
+            }
         },
         setSource: (fromWhatsApp) => {
             state.isWhatsAppSource = fromWhatsApp;
@@ -249,7 +264,6 @@
             notes:   null, // O campo de observações foi removido
             source:  state.isWhatsAppSource ? 'whatsapp' : 'manual'
         };
-        console.log('Form submit payload:', payload);
         api.saveClient(payload);
     });
 
