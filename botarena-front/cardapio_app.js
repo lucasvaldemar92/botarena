@@ -283,7 +283,7 @@ function renderItems() {
                 '<td style="text-align:right;">' +
                     '<div class="item-card__actions" style="justify-content: flex-end;">' +
                         '<button class="icon-btn" title="Editar" data-action="edit" data-id="' + item.id + '">' +
-                            '<i class="fa-solid fa-pen"></i>' +
+                            '<i class="fa-solid fa-pen-to-square"></i>' +
                         '</button>' +
                         '<button class="icon-btn icon-btn--danger" title="Excluir" data-action="delete" data-id="' + item.id + '">' +
                             '<i class="fa-solid fa-trash"></i>' +
