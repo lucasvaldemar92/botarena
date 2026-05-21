@@ -169,6 +169,7 @@ function openModal(item) {
     updateCategorySelect();
 
     document.getElementById('item-name').value        = item && item.name      ? item.name      : '';
+    document.getElementById('item-codigo-pdv').value  = item && item.codigo_pdv? item.codigo_pdv: '';
     document.getElementById('item-category').value    = item && item.category  ? item.category  : '';
     document.getElementById('item-price').value       = item && item.price     ? item.price     : '';
     document.getElementById('item-desc').value        = item && item.desc      ? item.desc      : '';
@@ -351,6 +352,7 @@ itemListEl.addEventListener('click', function(e) {
 // ── SALVAR ──
 modalSave.addEventListener('click', function() {
     var name      = document.getElementById('item-name').value.trim();
+    var codigo_pdv= document.getElementById('item-codigo-pdv').value.trim();
     var category  = document.getElementById('item-category').value.trim();
     var price     = document.getElementById('item-price').value.trim();
     var desc      = document.getElementById('item-desc').value.trim();
@@ -378,12 +380,12 @@ modalSave.addEventListener('click', function() {
     if (editId) {
         var idx = items.findIndex(function(i) { return i.id === editId; });
         if (idx !== -1) {
-            items[idx] = Object.assign({}, items[idx], { name: name, category: category, price: price, desc: desc, available: available });
+            items[idx] = Object.assign({}, items[idx], { name: name, codigo_pdv: codigo_pdv, category: category, price: price, desc: desc, available: available });
         }
         showToast('Item atualizado!');
     } else {
         var newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
-        items.push({ id: newId, name: name, category: category, price: price, desc: desc, available: available, createdAt: new Date().toISOString() });
+        items.push({ id: newId, name: name, codigo_pdv: codigo_pdv, category: category, price: price, desc: desc, available: available, createdAt: new Date().toISOString() });
         showToast('Item adicionado!');
     }
 
@@ -392,31 +394,29 @@ modalSave.addEventListener('click', function() {
     syncToBackend();
 });
 
-// ── SYNC AO BACKEND (api/menu-items) ──
-async function syncToBackend() {
-    if (!window.BASE_URL) return;
+// ── PERSISTÊNCIA LOCAL (localStorage) ──
+var STORAGE_KEY = 'botarena_cardapio_items';
+var STORAGE_KEY_CATS = 'botarena_cardapio_categories';
+
+function syncToBackend() {
     try {
-        await fetch(window.BASE_URL + '/api/menu-items', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: items })
-        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
     } catch (e) {
-        // Backend pode não ter esta rota ainda — falha silenciosa
+        console.warn('Erro ao salvar cardápio no localStorage:', e);
     }
 }
 
-// ── CARREGA DO BACKEND ──
+// ── CARREGA DO STORAGE LOCAL ──
 async function loadFromBackend() {
-    if (!window.BASE_URL) { renderItems(); return; }
     try {
-        var res = await fetch(window.BASE_URL + '/api/menu-items');
-        if (res.ok) {
-            var data = await res.json();
-            items = Array.isArray(data.items) ? data.items : [];
-        }
+        var savedItems = localStorage.getItem(STORAGE_KEY);
+        var savedCats  = localStorage.getItem(STORAGE_KEY_CATS);
+        items      = savedItems ? JSON.parse(savedItems) : [];
+        categories = savedCats  ? JSON.parse(savedCats)  : [];
     } catch (e) {
         items = [];
+        categories = [];
     }
     renderItems();
 }

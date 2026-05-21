@@ -8,13 +8,16 @@ window.BASE_URL = BASE_URL;
 const isLoginPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
 let token = localStorage.getItem('botarena-token');
 
+// Se estamos dentro de um iframe, o contexto de auth é do pai — não redirecionar
+const isInsideIframe = window !== window.top;
+
 if (!token) {
-    if (!isLoginPage) {
+    if (!isLoginPage && !isInsideIframe) {
         // Enforce secure redirection to login screen
         window.location.href = '/index.html';
     }
 } else {
-    if (isLoginPage) {
+    if (isLoginPage && !isInsideIframe) {
         // Prevent logged-in users from seeing the login form
         window.location.href = '/painel-administrativo.html';
     }
@@ -261,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAddPeriod.addEventListener('click', () => createPeriodBlock());
     }
 
-    function openModal() {
+    function openSettingsModal() {
         if (!settingsModal) return;
         // Usa o ModalManager para fechar outros modais abertos antes
         if (window.utils && window.utils.modalManager) {
@@ -279,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function closeModal() {
+    function closeSettingsModal() {
         if (!settingsModal) return;
         settingsModal.classList.remove('settings-modal--active');
         if (window.utils && window.utils.modalManager) {
@@ -287,10 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (openSettingsBtn) openSettingsBtn.addEventListener('click', openModal);
-    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeModal);
-    if (cancelSettingsBtn) cancelSettingsBtn.addEventListener('click', closeModal);
-    if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeModal);
+    if (openSettingsBtn) openSettingsBtn.addEventListener('click', openSettingsModal);
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettingsModal);
+    if (cancelSettingsBtn) cancelSettingsBtn.addEventListener('click', closeSettingsModal);
+    if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeSettingsModal);
 
     // Logout Functionality
     if (btnLogout) {
@@ -356,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => {
                         btnSaveConfig.innerHTML = originalText;
                         btnSaveConfig.disabled = false;
-                        closeModal();
+                        closeSettingsModal();
                         syncGlobalHeader(); 
                     }, 1000);
                 } else {
@@ -562,8 +565,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Expose globals for specific apps
     window.syncGlobalHeader = syncGlobalHeader;
-    window.openModal = openModal;
-    window.closeModal = closeModal;
+    window.openSettingsModal = openSettingsModal;
+    window.closeSettingsModal = closeSettingsModal;
 
     // Handle menu updates globally for the settings modal
     window.addEventListener('menuUpdated', (e) => {

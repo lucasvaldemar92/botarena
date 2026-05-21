@@ -18,9 +18,10 @@ const { menuSchema }       = require('../schemas/menuSchema');
  * @param {Object}   deps.knowledgeRepo   - KnowledgeRepository instance
  * @param {Object}   deps.menuRepo        - MenuRepository instance
  * @param {Object}   deps.clientRepo      - ClientRepository instance
+ * @param {Object}   deps.orderRepo       - OrderRepo instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService, orderRepo }) {
     const router = express.Router();
 
     // ==========================================
@@ -93,10 +94,44 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/config', sensitiveLimiter, authMiddleware, validate(configSchema), async (req, res) => {
+    router.post('/config', sensitiveLimiter, authMiddleware, async (req, res) => {
         // // console.log('📡 [API] POST /api/config');
         try {
-            await settingsRepo.update(req.body);
+            const rawBody = req.body;
+            let validData = {};
+            
+            // Validar dados padrão se existirem
+            const result = configSchema.safeParse(rawBody);
+            if (result.success) {
+                validData = result.data;
+            } else if (Object.keys(rawBody).length > 0 && !rawBody.company_coordinates && !rawBody.company_name) {
+                return res.status(400).json({ error: 'Dados inválidos', details: result.error.format() });
+            }
+
+            // Interceptar novos campos da empresa e consumer
+            const companyFields = [
+                'company_name', 'trade_name', 'cnpj', 'base_cep', 'company_street', 
+                'company_number', 'company_neighborhood', 'company_phone', 'company_email',
+                'consumer_client_id', 'consumer_client_secret', 'consumer_integration_active'
+            ];
+            companyFields.forEach(f => {
+                if (rawBody[f] !== undefined) validData[f] = rawBody[f];
+            });
+
+            // Interceptar company_coordinates
+            if (rawBody.company_coordinates) {
+                const parts = rawBody.company_coordinates.split(',');
+                if (parts.length >= 2) {
+                    validData.latitude = parseFloat(parts[0].trim());
+                    validData.longitude = parseFloat(parts[1].trim());
+                }
+            }
+
+            if (Object.keys(validData).length === 0) {
+                return res.status(400).json({ error: 'Nenhum dado para atualizar.' });
+            }
+
+            await settingsRepo.update(validData);
             const updatedConfig = await settingsRepo.get();
 
             // // console.log('✅ [API] Config updated successfully.');
@@ -275,6 +310,12 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                 console.error('❌ [Sync] Erro ao sincronizar cliente com taxas de entrega:', err);
             }
         }
+        const {
+        companyRepo,
+        ragService,
+        ragRepository,
+        orderRepo
+    } = container;
     }
 
     router.get('/clients', authMiddleware, async (req, res) => {
@@ -540,6 +581,47 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         } catch (e) {
             console.error('❌ [API] Error fetching RAG stats:', e);
             res.status(500).json({ error: 'Erro interno ao buscar estatísticas de RAG.' });
+        }
+    });
+
+    // ==========================================
+    // 📦 ORDERS ROUTE (🔒 Protected)
+    // ==========================================
+    router.get('/orders', authMiddleware, async (req, res) => {
+        try {
+            const orders = await orderRepo.getAll();
+            res.json(orders);
+        } catch (e) {
+            console.error('❌ [API] Error fetching orders:', e);
+            res.status(500).json({ error: 'Erro interno ao buscar pedidos.' });
+        }
+    });
+
+    router.post('/orders', authMiddleware, async (req, res) => {
+        try {
+            const result = await orderRepo.create(req.body);
+            // Broadcast new order to all connected clients
+            io.emit('new_order', result);
+            res.status(201).json(result);
+        } catch (e) {
+            console.error('❌ [API] Error creating order:', e);
+            res.status(500).json({ error: 'Erro interno ao criar pedido.' });
+        }
+    });
+
+    router.put('/orders/:id/status', authMiddleware, async (req, res) => {
+        try {
+            const { status } = req.body;
+            if (!['novo', 'preparo', 'entrega', 'entregue'].includes(status)) {
+                return res.status(400).json({ error: 'Status inválido' });
+            }
+            await orderRepo.updateStatus(req.params.id, status);
+            // Broadcast order status change
+            io.emit('order_status_updated', { id: req.params.id, status });
+            res.json({ success: true });
+        } catch (e) {
+            console.error('❌ [API] Error updating order status:', e);
+            res.status(500).json({ error: 'Erro interno ao atualizar status do pedido.' });
         }
     });
 

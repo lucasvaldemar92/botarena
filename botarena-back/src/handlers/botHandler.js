@@ -36,7 +36,9 @@ async function safeReply(msg, text, isClientReadyFn) {
  * @param {Object} repos.knowledgeRepo
  * @param {Object} repos.menuRepo
  */
-function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo }) {
+function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo, orderRepo }) {
+    const consumerService = require('../services/consumerService');
+
     client.removeAllListeners('message');
     client.removeAllListeners('message_create');
     client.on('message_create', async (msg) => {
@@ -178,6 +180,62 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
             // Pix trigger
             if (text.includes('pix') && config.pix) {
                 await safeReply(msg, `💰 Nossa chave PIX é: ${config.pix}`, isClientReadyFn);
+                return;
+            }
+
+            // Consumer Integration Test Trigger
+            if (text === 'testar consumer') {
+                if (!config.consumer_integration_active) {
+                    await safeReply(msg, 'A integração com o Programa Consumer está desativada no Painel.', isClientReadyFn);
+                    return;
+                }
+                await safeReply(msg, '⏳ Montando carrinho de teste e enviando para o Consumer PDV...', isClientReadyFn);
+                
+                const mockOrder = {
+                    customer_name: 'Cliente Teste WhatsApp',
+                    customer_phone: contactId,
+                    customer_address: 'Rua das Flores, 123',
+                    neighborhood: 'Centro',
+                    payment_method: 'PIX',
+                    total: 45.90,
+                    delivery_fee: 5.00,
+                    status: 'novo',
+                    items: [
+                        { pdv_code: '1001', name: 'Pizza Teste', quantity: 1, price: 40.90, notes: 'Sem cebola' }
+                    ]
+                };
+
+                // Save internal order
+                let savedOrder = null;
+                if (orderRepo) {
+                    try {
+                        savedOrder = await orderRepo.create(mockOrder);
+                        io.emit('new_order', { ...mockOrder, id: savedOrder.id, numero_pedido: savedOrder.numero_pedido });
+                    } catch (dbErr) {
+                        console.error('❌ Erro ao salvar pedido mock:', dbErr);
+                    }
+                }
+
+                // Adapter payload to consumer if active
+                const consumerPayload = {
+                    customerName: mockOrder.customer_name,
+                    customerPhone: mockOrder.customer_phone,
+                    address: mockOrder.customer_address + ' - ' + mockOrder.neighborhood,
+                    paymentMethod: mockOrder.payment_method,
+                    totalAmount: mockOrder.total,
+                    deliveryFee: mockOrder.delivery_fee,
+                    items: mockOrder.items.map(i => ({ codigo_pdv: i.pdv_code, name: i.name, quantity: i.quantity, price: i.price, notes: i.notes }))
+                };
+
+                const result = await consumerService.sendOrder(consumerPayload, config);
+                if (result.success) {
+                    if (savedOrder && orderRepo) {
+                        // Poderiamos salvar o consumer_order_id aqui depois se quisessemos
+                    }
+                    await safeReply(msg, `✅ Pedido injetado no Consumer com sucesso! ID: ${result.consumer_order_id}`, isClientReadyFn);
+                } else {
+                    await safeReply(msg, `❌ Falha ao enviar para o PDV: ${result.reason}`, isClientReadyFn);
+                }
                 return;
             }
 

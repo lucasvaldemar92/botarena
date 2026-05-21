@@ -944,6 +944,56 @@
             border: 1px solid var(--border-color);
         }
 
+        .company-settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .input-premium {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #fff;
+            color: var(--text-main);
+        }
+
+        .input-premium:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
+        .style-street {
+            flex: 3;
+        }
+
+        .style-number {
+            flex: 1;
+        }
+
     </style>
 </head>
 <body>
@@ -981,13 +1031,13 @@
             </div>
 
             <!-- Itens Soltos na Raiz (Sem Categoria) -->
+            <a href="#" class="sidebar__item" data-tab="company-data">
+                <i class="fa-solid fa-building"></i>
+                <span>Dados da Empresa</span>
+            </a>
             <a href="#" class="sidebar__item" data-tab="clientes">
                 <i class="fa-solid fa-address-book"></i>
                 <span>Clientes</span>
-            </a>
-            <a href="#" class="sidebar__item" data-tab="settings">
-                <i class="fa-solid fa-sliders"></i>
-                <span>Configurações Gerais</span>
             </a>
 
             <!-- Categoria: Delivery (Colapsável) -->
@@ -997,6 +1047,10 @@
                     <i class="fa-solid fa-chevron-down sidebar__group-chevron"></i>
                 </div>
                 <div class="sidebar__group-content">
+                    <a href="#" class="sidebar__item" data-tab="pedidos">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span>Pedidos</span>
+                    </a>
                     <a href="#" class="sidebar__item" data-tab="menu-management">
                         <i class="fa-solid fa-file-lines"></i>
                         <span>Gestão de Cardápios</span>
@@ -1009,6 +1063,10 @@
                         <i class="fa-solid fa-motorcycle"></i>
                         <span>Taxa de Entrega</span>
                         <span style="background: #25d366; color: #111b21; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 100px; margin-left: auto;">NEW</span>
+                    </a>
+                    <a href="#" class="sidebar__item" data-tab="settings">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>Horário de Atendimento</span>
                     </a>
                 </div>
             </div>
@@ -1296,6 +1354,122 @@
                 </div>
             </section>
 
+            <!-- Dados da Empresa -->
+            <section id="view-company-data" class="view-section">
+                <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div style="margin-bottom: 0.5rem;">
+                        <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Dados da Empresa</h2>
+                        <p style="color: var(--text-muted);">Configure os dados de localização e endereço do negócio.</p>
+                    </div>
+
+                    <article class="card" style="padding: 2rem;">
+                        <div class="company-settings-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="company-name">Razão Social</label>
+                                    <input type="text" id="company-name" name="company_name" data-testid="company-name" placeholder="Ex: Arena Esportiva LTDA" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="trade-name">Nome Fantasia</label>
+                                    <input type="text" id="trade-name" name="trade_name" data-testid="trade-name" placeholder="Ex: Arena Juvenal" class="input-premium">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cnpj">CNPJ</label>
+                                    <input type="text" id="cnpj" name="cnpj" data-testid="cnpj" placeholder="00.000.000/0001-00" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="base-cep">CEP de Origem</label>
+                                    <input type="text" id="base-cep" name="base_cep" data-testid="base-cep" placeholder="89248-000" class="input-premium">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group style-street">
+                                    <label for="company-street">Rua / Logradouro</label>
+                                    <input type="text" id="company-street" name="company_street" data-testid="company-street" placeholder="Ex: Av. Beira Mar" class="input-premium">
+                                </div>
+                                <div class="form-group style-number">
+                                    <label for="company-number">Número</label>
+                                    <input type="text" id="company-number" name="company_number" data-testid="company-number" placeholder="123" class="input-premium">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="company-neighborhood">Bairro</label>
+                                    <input type="text" id="company-neighborhood" name="company_neighborhood" data-testid="company-neighborhood" placeholder="Ex: Pontal do Norte" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company-phone">WhatsApp Operação</label>
+                                    <input type="text" id="company-phone" name="company_phone" data-testid="company-phone" placeholder="(47) 99999-9999" class="input-premium">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="company-email">E-mail Administrativo</label>
+                                    <input type="email" id="company-email" name="company_email" data-testid="company-email" placeholder="admin@arenajuvenal.com.br" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company-coordinates">Coordenadas (Latitude, Longitude)</label>
+                                    <input type="text" id="company-coordinates" data-testid="company-coordinates" placeholder="Ex: -25.9221, -48.6083" class="input-premium">
+                                </div>
+                            </div>
+
+                            <!-- Pagamento (Pix) -->
+                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><i class="fa-solid fa-wallet" style="color: #008069;"></i> Pagamento (Pix)</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="nome-favorecido">Nome do Favorecido</label>
+                                    <input type="text" id="nome-favorecido" name="nome_favorecido" data-testid="pix-name" placeholder="Ex: Arena Juvenal LTDA" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="pix">Chave Pix</label>
+                                    <input type="text" id="pix" name="pix" data-testid="pix-input-masked" placeholder="CNPJ, Email ou Celular" class="input-premium">
+                                </div>
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -0.5rem; display: block;">
+                                <i class="fa-solid fa-bolt" style="color: #008069; margin-right: 0.25rem;"></i>
+                                Disponível como atalho no menu do chat
+                            </p>
+
+                            <!-- Integração PDV (Consumer) -->
+                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fa-solid fa-cash-register" style="color: #f59e0b;"></i> Integração PDV (Consumer)</span>
+                                <label class="switch" style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 400;">
+                                    Ativar Integração
+                                    <input type="checkbox" id="consumer-active" data-testid="consumer-active">
+                                    <span class="slider round"></span>
+                                </label>
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="consumer-client-id">Client ID</label>
+                                    <input type="text" id="consumer-client-id" name="consumer_client_id" data-testid="consumer-client-id" placeholder="Ex: e617c...51d" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="consumer-client-secret">Client Secret</label>
+                                    <input type="text" id="consumer-client-secret" name="consumer_client_secret" data-testid="consumer-client-secret" placeholder="Ex: f2a81...b29" class="input-premium">
+                                </div>
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -0.5rem; display: block;">
+                                <i class="fa-solid fa-circle-info" style="color: #3b82f6; margin-right: 0.25rem;"></i>
+                                Solicite estas chaves ao suporte do Programa Consumer (Premium).
+                            </p>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                            <button class="btn" id="btn-save-company-data" style="padding: 0.75rem 2rem; border-radius: var(--radius-md); font-weight: 600; background: var(--accent-dark); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-check"></i> Salvar Dados
+                            </button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
             <!-- 4. Iframe Container para Telas Externas (Clientes, Cadastro de Cardápio, Configurações Gerais) -->
             <section id="view-iframe-container" class="view-section">
                 <iframe id="main-iframe" src=""></iframe>
@@ -1394,8 +1568,8 @@
         </div>
     </div>
 
-    <script src="src/assets/js/utils.js"></script>
-    <script src="admin_app.js"></script>
+    <script src="/src/assets/js/utils.js"></script>
+    <script src="/admin_app.js"></script>
 
     <!-- Client-Side Router para Sidebar Dinâmica -->
     <script>
@@ -1429,10 +1603,13 @@
                 'whatsapp': { title: '📱 Conexão WhatsApp', isIframe: false, id: 'view-whatsapp' },
                 'menu-management': { title: '📂 Gestão de Cardápios', isIframe: false, id: 'view-menu-management' },
                 'clientes': { title: '👥 Clientes', isIframe: true, src: '/clientes.html' },
+                'cardapio': { title: '🍽️ Cardápio Digital', isIframe: true, src: '/dashboard/cardapio' },
+                'pedidos': { title: '🧾 Gestão de Pedidos', isIframe: true, src: '/pedidos.html' },
                 'menu-catalog': { title: '🍴 Cadastro de Cardápio', isIframe: true, src: '/cardapio.html' },
                 'delivery-fee': { title: '🛵 Taxa de Entrega', isIframe: false, id: 'view-delivery-fee' },
                 'rag': { title: '🧠 Memória IA (RAG)', isIframe: false, id: 'view-rag' },
-                'settings': { title: '⚙️ Configurações Gerais', isIframe: true, src: '/configuracoes.html' }
+                'company-data': { title: '🏢 Dados da Empresa', isIframe: false, id: 'view-company-data' },
+                'settings': { title: '🕒 Horário de Atendimento', isIframe: true, src: '/configuracoes.html' }
             };
 
             function navigateTo(tabId, pushState = true) {
@@ -1473,7 +1650,6 @@
                     layoutHeaderTitle.textContent = route.title;
                 }
 
-                // Oculta todas as visualizações
                 views.forEach(view => {
                     view.classList.remove('active');
                     view.style.display = 'none';
@@ -1481,12 +1657,10 @@
 
                 if (route.isIframe) {
                     // Carrega e exibe o iframe
-                    const targetUrl = window.location.origin + route.src;
-                    if (mainIframe.src !== targetUrl && !mainIframe.src.endsWith(route.src)) {
-                        mainIframe.src = route.src;
-                    }
                     iframeContainer.classList.add('active');
                     iframeContainer.style.display = 'flex';
+                    // Cache buster for the iframe source
+                    mainIframe.src = route.src + (route.src.includes('?') ? '&' : '?') + 'v=' + new Date().getTime();
                 } else {
                     // Exibe a visualização nativa
                     const activeView = document.getElementById(route.id);
@@ -1496,6 +1670,78 @@
                     }
                 }
             }
+
+            // Bind click to the save company data button
+            const btnSaveCompany = document.getElementById('btn-save-company-data');
+            if (btnSaveCompany) {
+                btnSaveCompany.addEventListener('click', async () => {
+                    const originalText = btnSaveCompany.innerHTML;
+                    btnSaveCompany.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+                    
+                    const payload = {
+                        company_name: document.getElementById('company-name').value,
+                        trade_name: document.getElementById('trade-name').value,
+                        cnpj: document.getElementById('cnpj').value,
+                        base_cep: document.getElementById('base-cep').value,
+                        company_street: document.getElementById('company-street').value,
+                        company_number: document.getElementById('company-number').value,
+                        company_neighborhood: document.getElementById('company-neighborhood').value,
+                        company_phone: document.getElementById('company-phone').value,
+                        company_email: document.getElementById('company-email').value,
+                        company_coordinates: document.getElementById('company-coordinates').value,
+                        nome_favorecido: document.getElementById('nome-favorecido').value,
+                        pix: document.getElementById('pix').value,
+                        consumer_client_id: document.getElementById('consumer-client-id').value,
+                        consumer_client_secret: document.getElementById('consumer-client-secret').value,
+                        consumer_integration_active: document.getElementById('consumer-active').checked
+                    };
+
+                    // Remove empty fields to not overwrite with blanks unintentionally if you want,
+                    // but for forms it's usually fine to send empty strings
+
+                    try {
+                        const res = await window.utils.apiFetch('/config', {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        btnSaveCompany.innerHTML = '<i class="fa-solid fa-check"></i> Salvo!';
+                    } catch (e) {
+                        alert('Erro ao salvar: ' + e.message);
+                        btnSaveCompany.innerHTML = originalText;
+                    }
+                    setTimeout(() => { btnSaveCompany.innerHTML = originalText; }, 2000);
+                });
+            }
+            
+            // Listen to config updates to fill the inputs
+            window.addEventListener('configLoaded', (e) => {
+                const config = e.detail;
+                if (config) {
+                    if (config.company_name) document.getElementById('company-name').value = config.company_name;
+                    if (config.trade_name) document.getElementById('trade-name').value = config.trade_name;
+                    if (config.cnpj) document.getElementById('cnpj').value = config.cnpj;
+                    if (config.base_cep) document.getElementById('base-cep').value = config.base_cep;
+                    if (config.company_street) document.getElementById('company-street').value = config.company_street;
+                    if (config.company_number) document.getElementById('company-number').value = config.company_number;
+                    if (config.company_neighborhood) document.getElementById('company-neighborhood').value = config.company_neighborhood;
+                    if (config.company_phone) document.getElementById('company-phone').value = config.company_phone;
+                    if (config.company_email) document.getElementById('company-email').value = config.company_email;
+                    if (config.nome_favorecido) document.getElementById('nome-favorecido').value = config.nome_favorecido;
+                    if (config.pix) document.getElementById('pix').value = config.pix;
+                    if (config.consumer_client_id) document.getElementById('consumer-client-id').value = config.consumer_client_id;
+                    if (config.consumer_client_secret) document.getElementById('consumer-client-secret').value = config.consumer_client_secret;
+                    if (config.consumer_integration_active !== undefined) {
+                        document.getElementById('consumer-active').checked = config.consumer_integration_active;
+                    }
+
+                    if (config.latitude && config.longitude) {
+                        const coordsInput = document.getElementById('company-coordinates');
+                        if (coordsInput) {
+                            coordsInput.value = `${config.latitude}, ${config.longitude}`;
+                        }
+                    }
+                }
+            });
 
             // Gerencia cliques nos links do menu da sidebar
             menuItems.forEach(item => {

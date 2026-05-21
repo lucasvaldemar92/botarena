@@ -107,7 +107,7 @@ if (socket) {
     });
 
     socket.on('force_logout', () => {
-        if (window.closeModal) window.closeModal();
+        if (window.closeSettingsModal) window.closeSettingsModal();
         updateBotStatus(false);
         updateConnectionStatus(false);
     });
@@ -127,10 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             updateConnectionStatus(data.status === 'CONNECTED');
-            // Then fetch config to update bot status
-            return fetch(`${window.BASE_URL}/api/config`);
+            // Then fetch config to update bot status (using apiFetch to include JWT token)
+            return window.utils.apiFetch('/config');
         })
-        .then(res => res.json())
         .then(config => {
             updateBotStatus(config.bot_active);
             loadRagStats();

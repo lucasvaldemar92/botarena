@@ -18,7 +18,10 @@ const configSchema = z.object({
     operation_end:   z.string().optional(),
     operation_periods: z.string().optional(),
     mensagem_ausencia: z.string().optional(),
-    bot_active:      z.boolean().optional()
+    bot_active:      z.boolean().optional(),
+    consumer_client_id: z.string().optional().or(z.literal('')),
+    consumer_client_secret: z.string().optional().or(z.literal('')),
+    consumer_integration_active: z.boolean().optional()
 }).refine(data => Object.keys(data).length > 0, {
     message: 'Pelo menos um campo deve ser enviado.'
 });

@@ -718,9 +718,15 @@
             <div class="modal__body">
                 <input type="hidden" id="item-edit-id">
 
-                <div class="form-group">
-                    <label class="form-label" for="item-name">Nome do item *</label>
-                    <input class="form-input" type="text" id="item-name" placeholder="Ex: Pizza Margherita">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="item-name">Nome do item *</label>
+                        <input class="form-input" type="text" id="item-name" placeholder="Ex: Pizza Margherita">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="item-codigo-pdv">Código PDV (Consumer)</label>
+                        <input class="form-input" type="text" id="item-codigo-pdv" placeholder="Ex: 1001">
+                    </div>
                 </div>
 
                 <div class="form-row">
@@ -791,8 +797,8 @@
         <span id="toast-msg"></span>
     </div>
 
-    <script src="src/assets/js/utils.js"></script>
-    <script src="cardapio_app.js"></script>
+    <script src="/src/assets/js/utils.js?v=2"></script>
+    <script src="/cardapio_app.js?v=2"></script>
 </body>
 
 </html>

@@ -139,8 +139,8 @@
     <div class="container">
         <header class="header">
             <div class="header__title">
-                <h1>Configurações Gerais</h1>
-                <p>Horários, PIX e mensagens automáticas</p>
+                <h1>Horário de Atendimento</h1>
+                <p>Configure os horários de operação do bot</p>
             </div>
             <div class="header__actions">
                 <a href="painel-administrativo.html" class="btn btn--outline">
@@ -153,24 +153,16 @@
             <article class="card">
                 <form id="settings-form" class="settings-form" style="display: flex; flex-direction: column; gap: 2.5rem;">
                     
-                    <!-- Section: Pagamento (Pix) -->
+
+                    <!-- Section: Mensagem de Ausência -->
                     <div>
-                        <h3 class="settings-form__section-title"><i class="fa-solid fa-wallet"></i> Pagamento (Pix)</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Nome do Favorecido</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="Ex: Arena Juvenal LTDA"
-                                    data-testid="pix-name" id="cfg-pix-name">
-                            </div>
-                            <div class="settings-form__group" style="margin-bottom: 0;">
-                                <label class="settings-form__label">Chave Pix</label>
-                                <input type="text" class="settings-form__input generate-form__input" placeholder="CNPJ, Email ou Celular"
-                                    data-testid="pix-input-masked" id="cfg-pix-key">
-                            </div>
+                        <h3 class="settings-form__section-title"><i class="fa-solid fa-message"></i> Mensagem de Ausência (Global)</h3>
+                        <div class="settings-form__group" style="margin-bottom: 0;">
+                            <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="4" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
                         </div>
                         <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
-                            <i class="fa-solid fa-bolt" style="color: #008069; margin-right: 0.25rem;"></i>
-                            Disponível como atalho no menu do chat
+                            <i class="fa-solid fa-circle-info" style="color: #008069; margin-right: 0.25rem;"></i>
+                            Será enviada aos clientes que chamarem fora do horário definido abaixo.
                         </p>
                     </div>                    
                     
@@ -184,11 +176,6 @@
                         <button type="button" id="btn-add-period" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px dashed #008069; color: #008069; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 128, 105, 0.1)'" onmouseout="this.style.background='transparent'">
                             <i class="fa-solid fa-plus" style="margin-right: 0.5rem;"></i> Novo Período
                         </button>
-
-                        <div class="settings-form__group" style="margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-                            <label class="settings-form__label">Mensagem de Ausência (Global)</label>
-                            <textarea class="settings-form__input chat-input__textarea" id="cfg-op-absence" rows="4" placeholder="Mensagem enviada fora dos horários configurados..."></textarea>
-                        </div>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos de Delivery - BotArena</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --font-family: 'Inter', sans-serif;
+            
+            --status-novo-bg: #eff6ff;
+            --status-novo-text: #3b82f6;
+            --status-preparo-bg: #fef3c7;
+            --status-preparo-text: #d97706;
+            --status-entrega-bg: #f3e8ff;
+            --status-entrega-text: #9333ea;
+            --status-entregue-bg: #dcfce7;
+            --status-entregue-text: #16a34a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            padding: 2rem 2rem 1rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ── MAIN CONTENT ── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem 2rem;
+        }
+
+        /* ── STATUS CARDS ── */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .status-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .status-header i {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+        .status-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        /* ── ORDERS LIST CARD ── */
+        .orders-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+        
+        .orders-header {
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .orders-title h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .orders-title span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .orders-filters {
+            display: flex;
+            gap: 1rem;
+            flex: 1;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .search-box {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-box input:focus {
+            border-color: var(--accent);
+        }
+        
+        .filter-select {
+            padding: 0.6rem 2rem 0.6rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.9rem;
+            background-color: white;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+
+        /* ── TABLE ── */
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th {
+            background-color: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .client-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .client-name {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .client-phone {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .total-price {
+            font-weight: 700;
+        }
+
+        /* ── BADGES & SELECT STATUS ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-novo { background: var(--status-novo-bg); color: var(--status-novo-text); }
+        .badge-preparo { background: var(--status-preparo-bg); color: var(--status-preparo-text); }
+        .badge-entrega { background: var(--status-entrega-bg); color: var(--status-entrega-text); }
+        .badge-entregue { background: var(--status-entregue-bg); color: var(--status-entregue-text); }
+
+        .status-dropdown {
+            padding: 0.4rem 1.5rem 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.85rem;
+            background-color: white;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1rem;
+        }
+
+        /* ── ACTIONS ── */
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--primary);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-action:hover {
+            background: #f1f5f9;
+        }
+        .btn-action.dark {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .btn-action.dark:hover {
+            background: #1e293b;
+        }
+
+        /* ── IMPRESSÃO (CUPOM BEMATECH 80MM) ── */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm; /* Largura padrão Bematech/Epson térmica */
+                padding: 0;
+                margin: 0;
+                font-family: monospace, 'Courier New', Courier;
+                font-size: 12px;
+                color: #000;
+            }
+            .print-center { text-align: center; }
+            .print-bold { font-weight: bold; }
+            .print-divider { border-top: 1px dashed #000; margin: 8px 0; }
+            .print-flex { display: flex; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- VISÃO TELA -->
+    <div id="screen-area">
+        <header class="header">
+            <h1>Pedidos de Delivery</h1>
+            <p>Acompanhe, atualize o status e imprima cupons</p>
+        </header>
+
+        <main class="container">
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-header">Novo <i class="fa-solid fa-box"></i></div>
+                    <div class="status-value" id="count-novo">0</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-header">Em preparo <i class="fa-solid fa-hat-chef"></i></div>
+                    <div class="status-value" id="count-preparo">0</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-header">Saiu p/ entrega <i class="fa-solid fa-motorcycle"></i></div>
+                    <div class="status-value" id="count-entrega">0</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-header">Entregue <i class="fa-regular fa-circle-check"></i></div>
+                    <div class="status-value" id="count-entregue">0</div>
+                </div>
+            </div>
+
+            <div class="orders-card">
+                <div class="orders-header">
+                    <div class="orders-title">
+                        <h2>Lista de pedidos</h2>
+                        <span id="orders-total-count">0 pedido(s)</span>
+                    </div>
+                    <div class="orders-filters">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-input" placeholder="Buscar cliente, nº ou telefone">
+                        </div>
+                        <select class="filter-select" id="status-filter">
+                            <option value="todos">Todos</option>
+                            <option value="novo">Novo</option>
+                            <option value="preparo">Em preparo</option>
+                            <option value="entrega">Saiu p/ entrega</option>
+                            <option value="entregue">Entregue</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nº</th>
+                                <th>Cliente</th>
+                                <th>Bairro</th>
+                                <th>Pagamento</th>
+                                <th>Taxa</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody">
+                            <!-- JS vai preencher aqui -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ÁREA DE IMPRESSÃO (CUPOM) OCULTA NA TELA -->
+    <div id="print-area" style="display: none;">
+        <!-- Será preenchido pelo JS na hora do clique -->
+    </div>
+
+    <!-- SOCKET.IO e APP -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="src/assets/js/utils.js"></script>
+    <script src="src/assets/js/pedidos_app.js"></script>
+</body>
+</html>

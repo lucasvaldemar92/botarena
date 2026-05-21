@@ -334,8 +334,8 @@
     // ==========================================
     document.addEventListener('DOMContentLoaded', () => {
         const openSettingsBtnRail = document.getElementById('open-settings-btn-rail');
-        if (openSettingsBtnRail && window.openModal) {
-            openSettingsBtnRail.addEventListener('click', window.openModal);
+        if (openSettingsBtnRail && window.openSettingsModal) {
+            openSettingsBtnRail.addEventListener('click', window.openSettingsModal);
         }
 
         const newChatModal = document.getElementById('new-chat-modal');
