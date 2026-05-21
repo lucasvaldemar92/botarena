@@ -340,15 +340,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLogoutOnly = document.getElementById('btn-logout-only');
     const btnLogoutFull = document.getElementById('btn-logout-full');
 
+    const _closeModalLogout = () => { if (modalLogout) modalLogout.style.display = 'none'; };
+    const _openModalLogout  = () => { if (modalLogout) modalLogout.style.display = 'flex'; };
+
+    if (window.utils && window.utils.modalManager) {
+        window.utils.modalManager.register('modal-logout', _closeModalLogout);
+    }
+
     if (btnLogoutHeader && modalLogout) {
         btnLogoutHeader.addEventListener('click', () => {
-            modalLogout.style.display = 'flex';
+            if (window.utils && window.utils.modalManager) {
+                window.utils.modalManager.open('modal-logout', _openModalLogout, _closeModalLogout);
+            } else {
+                _openModalLogout();
+            }
         });
     }
 
     if (btnLogoutCancel && modalLogout) {
         btnLogoutCancel.addEventListener('click', () => {
-            modalLogout.style.display = 'none';
+            if (window.utils && window.utils.modalManager) {
+                window.utils.modalManager.close('modal-logout');
+            } else {
+                _closeModalLogout();
+            }
         });
     }
 
@@ -356,7 +371,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalLogout) {
         modalLogout.addEventListener('click', (e) => {
             if (e.target === modalLogout) {
-                modalLogout.style.display = 'none';
+                if (window.utils && window.utils.modalManager) {
+                    window.utils.modalManager.close('modal-logout');
+                } else {
+                    _closeModalLogout();
+                }
             }
         });
     }
@@ -476,16 +495,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deliveryElements.modal) return;
 
         deliveryFeesState.editingId = item ? item.id : null;
-        deliveryElements.modal.style.display = 'flex';
 
-        if (item) {
-            deliveryElements.modalTitle.textContent = 'Editar Taxa de Entrega';
-            deliveryElements.inputNeigh.value = item.neighborhood || '';
-            deliveryElements.inputZip.value = window.utils.masks.cep(item.zip_code || '');
-            deliveryElements.inputFee.value = item.fee;
+        const doOpen = () => {
+            deliveryElements.modal.style.display = 'flex';
+            if (item) {
+                deliveryElements.modalTitle.textContent = 'Editar Taxa de Entrega';
+                deliveryElements.inputNeigh.value = item.neighborhood || '';
+                deliveryElements.inputZip.value = window.utils.masks.cep(item.zip_code || '');
+                deliveryElements.inputFee.value = item.fee;
+            } else {
+                deliveryElements.modalTitle.textContent = 'Nova Taxa de Entrega';
+                deliveryElements.form.reset();
+            }
+        };
+
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.open('modal-delivery-fee', doOpen, closeDeliveryModal);
         } else {
-            deliveryElements.modalTitle.textContent = 'Nova Taxa de Entrega';
-            deliveryElements.form.reset();
+            doOpen();
         }
     }
 
@@ -494,6 +521,14 @@ document.addEventListener('DOMContentLoaded', () => {
         deliveryElements.modal.style.display = 'none';
         deliveryElements.form.reset();
         deliveryFeesState.editingId = null;
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.close('modal-delivery-fee');
+        }
+    }
+
+    // Registra o modal de delivery no manager
+    if (window.utils && window.utils.modalManager) {
+        window.utils.modalManager.register('modal-delivery-fee', closeDeliveryModal);
     }
 
     // Bind listeners for delivery fees
