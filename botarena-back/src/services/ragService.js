@@ -1,124 +1,62 @@
-// ==========================================
-// 🧠 RAG INGESTION SERVICE
-// ==========================================
-// Core RAG utility class managing text extraction, semantic chunking, and database indexing.
-// Complies with isolated service architecture limits.
-
-const fs = require('fs').promises;
-const path = require('path');
+const menuRepository = require('../repositories/menuRepository');
+const ragRepository = require('../repositories/ragRepository');
 
 class RagService {
     /**
-     * @param {RagRepository} ragRepository - Injected RAG DB Repository
+     * SOURCE 1: menu-catalog -> Lê 100% dos produtos estruturados do banco (Açaí, Gelados, etc.)
      */
-    constructor(ragRepository) {
-        this.ragRepository = ragRepository;
-    }
+    async syncCatalogToRag() {
+        try {
+            const allProducts = await menuRepository.getAllActiveProducts();
+            
+            let catalogText = "=== CARDÁPIO DE PRODUTOS FIXOS (AÇAÍ, GELADOS, BEBIDAS) ===\n\n";
+            allProducts.forEach(item => {
+                // Filtra para garantir que o almoço diário não entre por aqui
+                if (item.category !== 'almoco_executivo') {
+                    catalogText += `Produto: ${item.name}\nPreço: R$ ${item.price.toFixed(2)}\n`;
+                    if (item.description) catalogText += `Detalhes: ${item.description}\n`;
+                    catalogText += `-----------------------------------\n`;
+                }
+            });
 
-    /**
-     * Parses incoming PDF or Txt assets to extract raw text content.
-     * Includes fallback parsing to extract strings from PDF data without external deps.
-     * @param {string} filePath - Absolute path to the source file
-     * @returns {Promise<string>} Extracted raw text
-     */
-    async extractTextFromFile(filePath) {
-        if (!filePath) {
-            throw new Error('File path is required for text extraction');
-        }
+            await ragRepository.clearChunksByType('menu_catalog_fixed');
+            await ragRepository.saveChunks([{
+                sourceType: 'menu_catalog_fixed',
+                sourceName: 'database_integrated_catalog',
+                contentText: catalogText,
+                metadata: { updatedAt: new Date().toISOString() }
+            }]);
 
-        const ext = path.extname(filePath).toLowerCase();
-
-        if (ext === '.txt') {
-            return await fs.readFile(filePath, 'utf8');
-        } else if (ext === '.pdf') {
-            const data = await fs.readFile(filePath);
-            const text = data.toString('utf8');
-
-            // Regex extraction to extract raw text streams in PDF objects
-            const matches = text.match(/\(([^)]+)\)\s*(?:Tj|TJ)/g);
-            if (matches && matches.length > 0) {
-                return matches
-                    .map(m => m.replace(/^\(|\)\s*(Tj|TJ)$/g, ''))
-                    .join(' ')
-                    .replace(/\\([0-3][0-7][0-7])/g, (match, octal) => String.fromCharCode(parseInt(octal, 8)))
-                    .trim();
-            }
-
-            // Fallback: Clean binary structures and extract printable characters
-            return text
-                .replace(/[^\x20-\x7E\n\r\táéíóúçãõâêîôûàèìòùÁÉÍÓÚÇÃÕÂÊÎÔÛÀÈÌÒÙ]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        } else {
-            throw new Error(`Unsupported file extension: ${ext}`);
+            return { success: true };
+        } catch (error) {
+            console.error("[RAG CATALOG SYNC ERROR]:", error);
+            throw error;
         }
     }
 
     /**
-     * Splits a document into optimized semantic chunks.
-     * @param {string} rawText - Document source text
-     * @param {number} [maxChunkSize=800] - Ideal max chunk size in characters
-     * @param {number} [overlap=150] - Number of characters to overlap between chunks
-     * @returns {Array<string>} Generated text chunks
+     * SOURCE 2: menu-management -> Lê APENAS o bloco volátil do Almoço do dia (via tela)
      */
-    generateSemanticChunks(rawText, maxChunkSize = 800, overlap = 150) {
-        if (!rawText || typeof rawText !== 'string') {
-            return [];
+    async updateDailyLunchRag(rawText, sourceName = 'daily_input') {
+        try {
+            let lunchText = `=== CARDÁPIO DE ALMOÇO DO DIA (${new Date().toLocaleDateString('pt-BR')}) ===\n\n`;
+            lunchText += rawText.trim();
+
+            // Limpa o almoço do dia anterior e grava o de hoje
+            await ragRepository.clearChunksByType('menu_lunch_volatile');
+            await ragRepository.saveChunks([{
+                sourceType: 'menu_lunch_volatile',
+                sourceName: sourceName,
+                contentText: lunchText,
+                metadata: { extractedAt: new Date().toISOString() }
+            }]);
+
+            return { success: true };
+        } catch (error) {
+            console.error("[RAG LUNCH UPDATE ERROR]:", error);
+            throw error;
         }
-
-        // Split raw text by double line breaks or carriage returns
-        const sections = rawText.split(/\n\s*\n|\r\n\s*\r\n/);
-        const chunks = [];
-        let currentChunk = '';
-
-        for (const section of sections) {
-            const cleanedSection = section.trim();
-            if (!cleanedSection) continue;
-
-            // Handle oversized sections with overlap
-            if (cleanedSection.length > maxChunkSize) {
-                if (currentChunk) {
-                    chunks.push(currentChunk.trim());
-                    currentChunk = '';
-                }
-
-                let start = 0;
-                while (start < cleanedSection.length) {
-                    const end = Math.min(start + maxChunkSize, cleanedSection.length);
-                    chunks.push(cleanedSection.substring(start, end).trim());
-                    start += (maxChunkSize - overlap);
-                }
-            } else {
-                // Accumulate chunks safely
-                if ((currentChunk.length + cleanedSection.length + 1) > maxChunkSize) {
-                    chunks.push(currentChunk.trim());
-                    currentChunk = cleanedSection;
-                } else {
-                    currentChunk = currentChunk ? `${currentChunk}\n\n${cleanedSection}` : cleanedSection;
-                }
-            }
-        }
-
-        if (currentChunk) {
-            chunks.push(currentChunk.trim());
-        }
-
-        return chunks.filter(c => c.length > 0);
-    }
-
-    /**
-     * Pipeline processing: extracts, chunks, and atomically saves document chunks to database.
-     * @param {string} filePath - Absolute path to the source file
-     * @param {string} sourceType - e.g., 'menu_slot', 'faq'
-     * @param {string} sourceId - e.g., 'lunch', 'dinner', 'dessert'
-     * @returns {Promise<Array<string>>} The generated chunks saved
-     */
-    async ingestDocument(filePath, sourceType, sourceId) {
-        const rawText = await this.extractTextFromFile(filePath);
-        const chunks = this.generateSemanticChunks(rawText);
-        await this.ragRepository.saveChunks(sourceType, sourceId, chunks);
-        return chunks;
     }
 }
 
-module.exports = RagService;
+module.exports = new RagService();

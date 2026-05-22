@@ -262,8 +262,9 @@ function renderItems() {
         var tableHTML = '<table class="category-table">' +
             '<thead>' +
                 '<tr>' +
-                    '<th style="width:25%;">Nome</th>' +
-                    '<th style="width:35%;">Descrição</th>' +
+                    '<th style="width:10%;">Cód. PDV</th>' +
+                    '<th style="width:20%;">Nome</th>' +
+                    '<th style="width:30%;">Descrição</th>' +
                     '<th style="width:15%;">Preço</th>' +
                     '<th style="width:10%;">Disponível</th>' +
                     '<th style="width:15%; text-align:right;">Ações</th>' +
@@ -277,6 +278,7 @@ function renderItems() {
             var badgeText = item.available ? 'Sim' : 'Não';
             
             tableHTML += '<tr class="item-row" data-id="' + item.id + '">' +
+                '<td><span class="item-codigo-pdv" style="font-weight: 600; color: var(--color-primary);">' + (item.codigo_pdv || '—') + '</span></td>' +
                 '<td><span class="item-name">' + item.name + '</span></td>' +
                 '<td><span class="item-desc">' + (item.desc || '') + '</span></td>' +
                 '<td><span class="item-price">' + priceFormatted + '</span></td>' +
@@ -424,4 +426,80 @@ async function loadFromBackend() {
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', function() {
     loadFromBackend();
+});
+
+// ── IMPORTAÇÃO DE EXCEL ──
+document.getElementById('btn-download-template').addEventListener('click', function() {
+    var ws_data = [
+        ["Nome do Item", "Código PDV", "Categoria", "Preço", "Descrição"],
+        ["Ex: Pizza Margherita", "1001", "Pizzas", "45.00", "Molho de tomate, muçarela e manjericão"]
+    ];
+    var ws = XLSX.utils.aoa_to_sheet(ws_data);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modelo_Cardapio");
+    XLSX.writeFile(wb, "Modelo_Importacao_Cardapio.xlsx");
+});
+
+document.getElementById('btn-import-excel').addEventListener('click', function() {
+    document.getElementById('excel-upload').click();
+});
+
+document.getElementById('excel-upload').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var data = new Uint8Array(e.target.result);
+        var workbook = XLSX.read(data, { type: 'array' });
+        
+        var firstSheetName = workbook.SheetNames[0];
+        var worksheet = workbook.Sheets[firstSheetName];
+        
+        // Converte a planilha para JSON (array de objetos)
+        var json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        // Remove cabeçalho
+        if (json.length > 0) json.shift();
+        
+        var count = 0;
+        json.forEach(function(row) {
+            // Mapeando: Nome do Item | Código PDV | Categoria | Preço | Descrição
+            if (row[0] && String(row[0]).trim() !== '') {
+                var name = String(row[0]).trim();
+                var pdv = row[1] ? String(row[1]).trim() : '';
+                var category = row[2] ? String(row[2]).trim() : '';
+                var priceStr = row[3] ? String(row[3]).trim() : '';
+                var desc = row[4] ? String(row[4]).trim() : '';
+                
+                var priceMatches = priceStr.match(/\d+([.,]\d+)?/);
+                var price = priceMatches ? parseFloat(priceMatches[0].replace(',', '.')) : 0;
+                
+                var newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString() + Math.random();
+                
+                items.push({
+                    id: newId,
+                    name: name,
+                    codigo_pdv: pdv,
+                    category: category,
+                    price: price.toFixed(2),
+                    desc: desc,
+                    available: true,
+                    createdAt: new Date().toISOString()
+                });
+                count++;
+            }
+        });
+        
+        document.getElementById('excel-upload').value = ''; // reseta
+        
+        if (count > 0) {
+            syncToBackend();
+            renderItems();
+            showToast(count + ' item(ns) importado(s) com sucesso!');
+        } else {
+            showToast('Nenhum item encontrado no Excel.');
+        }
+    };
+    reader.readAsArrayBuffer(file);
 });
