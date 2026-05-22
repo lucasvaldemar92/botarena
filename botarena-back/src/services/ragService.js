@@ -1,31 +1,69 @@
-const menuRepository = require('../repositories/menuRepository');
-const ragRepository = require('../repositories/ragRepository');
+const fs = require('fs').promises;
 
 class RagService {
+    constructor(ragRepo) {
+        this.ragRepo = ragRepo;
+    }
+
+    /**
+     * Splits text into overlapping semantic chunks
+     * @param {string} text 
+     * @param {number} maxChunkSize 
+     * @param {number} overlap 
+     * @returns {Array<string>}
+     */
+    generateSemanticChunks(text, maxChunkSize = 1000, overlap = 200) {
+        if (!text) return [];
+        const blocks = text.split(/\n\s*\n/);
+        
+        if (blocks.length > 1 && blocks.every(b => b.length <= maxChunkSize)) {
+            return blocks.map(b => b.trim()).filter(b => b);
+        }
+        
+        const chunks = [];
+        for (let i = 0; i < text.length; i += (maxChunkSize - overlap)) {
+            chunks.push(text.substring(i, i + maxChunkSize));
+        }
+        return chunks;
+    }
+
+    /**
+     * Extracts text from plain text files
+     * @param {string} filePath 
+     * @returns {Promise<string>}
+     */
+    async extractTextFromFile(filePath) {
+        return await fs.readFile(filePath, 'utf8');
+    }
+
     /**
      * SOURCE 1: menu-catalog -> Lê 100% dos produtos estruturados do banco (Açaí, Gelados, etc.)
      */
     async syncCatalogToRag() {
+        let menuRepoInst;
         try {
-            const allProducts = await menuRepository.getAllActiveProducts();
+            const container = require('../container');
+            menuRepoInst = container.menuRepo;
+        } catch (e) {
+            console.warn('Fallback: container not available, RAG sync may fail.');
+        }
+
+        try {
+            const allProducts = await menuRepoInst.getAllActiveProducts();
             
             let catalogText = "=== CARDÁPIO DE PRODUTOS FIXOS (AÇAÍ, GELADOS, BEBIDAS) ===\n\n";
-            allProducts.forEach(item => {
-                // Filtra para garantir que o almoço diário não entre por aqui
-                if (item.category !== 'almoco_executivo') {
-                    catalogText += `Produto: ${item.name}\nPreço: R$ ${item.price.toFixed(2)}\n`;
-                    if (item.description) catalogText += `Detalhes: ${item.description}\n`;
-                    catalogText += `-----------------------------------\n`;
-                }
-            });
+            if (allProducts && allProducts.forEach) {
+                allProducts.forEach(item => {
+                    if (item.category !== 'almoco_executivo') {
+                        catalogText += `Produto: ${item.name}\nPreço: R$ ${item.price.toFixed(2)}\n`;
+                        if (item.description) catalogText += `Detalhes: ${item.description}\n`;
+                        catalogText += `-----------------------------------\n`;
+                    }
+                });
+            }
 
-            await ragRepository.clearChunksByType('menu_catalog_fixed');
-            await ragRepository.saveChunks([{
-                sourceType: 'menu_catalog_fixed',
-                sourceName: 'database_integrated_catalog',
-                contentText: catalogText,
-                metadata: { updatedAt: new Date().toISOString() }
-            }]);
+            await this.ragRepo.deleteChunksBySource('menu_catalog_fixed', 'database_integrated_catalog');
+            await this.ragRepo.saveChunks('menu_catalog_fixed', 'database_integrated_catalog', [catalogText]);
 
             return { success: true };
         } catch (error) {
@@ -42,14 +80,8 @@ class RagService {
             let lunchText = `=== CARDÁPIO DE ALMOÇO DO DIA (${new Date().toLocaleDateString('pt-BR')}) ===\n\n`;
             lunchText += rawText.trim();
 
-            // Limpa o almoço do dia anterior e grava o de hoje
-            await ragRepository.clearChunksByType('menu_lunch_volatile');
-            await ragRepository.saveChunks([{
-                sourceType: 'menu_lunch_volatile',
-                sourceName: sourceName,
-                contentText: lunchText,
-                metadata: { extractedAt: new Date().toISOString() }
-            }]);
+            await this.ragRepo.deleteChunksBySource('menu_lunch_volatile', sourceName);
+            await this.ragRepo.saveChunks('menu_lunch_volatile', sourceName, [lunchText]);
 
             return { success: true };
         } catch (error) {
@@ -59,4 +91,4 @@ class RagService {
     }
 }
 
-module.exports = new RagService();
+module.exports = RagService;
