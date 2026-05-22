@@ -247,17 +247,28 @@ function renderItems() {
             '</label>';
 
         header.innerHTML =
-            '<span class="category-group__title">' + catName + '</span>' +
+            '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
+                '<i class="fa-solid fa-chevron-down category-group__chevron"></i>' +
+                '<span class="category-group__title">' + catName + '</span>' +
+            '</div>' +
             '<div class="category-group__header-actions" style="display: flex; align-items: center; gap: 1rem;">' +
                 '<span class="category-group__count">' + catItems.length + ' item(ns)</span>' +
                 toggleHTML +
             '</div>';
         
+        header.addEventListener('click', function(e) {
+            if (e.target.closest('.switch')) return; // ignora click no switch
+            groupEl.classList.toggle('collapsed');
+        });
+        
         groupEl.appendChild(header);
 
         // Lista de itens do grupo em formato de tabela
-        var tableWrapper = document.createElement('div');
-        tableWrapper.className = 'category-group__table-wrapper';
+        var tableWrapperOuter = document.createElement('div');
+        tableWrapperOuter.className = 'category-group__table-wrapper';
+        
+        var tableWrapperInner = document.createElement('div');
+        tableWrapperInner.className = 'table-responsive-wrapper';
         
         var tableHTML = '<table class="category-table">' +
             '<thead>' +
@@ -272,12 +283,13 @@ function renderItems() {
             '</thead>' +
             '<tbody>';
 
-        catItems.forEach(function(item) {
+        catItems.forEach(function(item, index) {
             var priceFormatted = item.price ? 'R$ ' + item.price : '—';
             var badgeClass = item.available ? 'item-card__badge--on' : 'item-card__badge--off';
             var badgeText = item.available ? 'Sim' : 'Não';
             
-            tableHTML += '<tr class="item-row" data-id="' + item.id + '">' +
+            var rowClass = index >= 5 ? 'item-row hidden-row' : 'item-row';
+            tableHTML += '<tr class="' + rowClass + '" data-id="' + item.id + '">' +
                 '<td><span class="item-codigo-pdv" style="font-weight: 600; color: var(--color-primary);">' + (item.codigo_pdv || '—') + '</span></td>' +
                 '<td><span class="item-name">' + item.name + '</span></td>' +
                 '<td><span class="item-desc">' + (item.desc || '') + '</span></td>' +
@@ -297,9 +309,32 @@ function renderItems() {
         });
 
         tableHTML += '</tbody></table>';
-        tableWrapper.innerHTML = tableHTML;
+        tableWrapperInner.innerHTML = tableHTML;
+        tableWrapperOuter.appendChild(tableWrapperInner);
         
-        groupEl.appendChild(tableWrapper);
+        groupEl.appendChild(tableWrapperOuter);
+
+        if (catItems.length > 5) {
+            var footer = document.createElement('div');
+            footer.className = 'category-group__footer';
+            footer.style.textAlign = 'center';
+            footer.style.padding = '0.75rem';
+            footer.style.borderTop = '1px solid var(--border-color)';
+            
+            var btnShowAll = document.createElement('button');
+            btnShowAll.className = 'btn btn--outline btn--small';
+            btnShowAll.innerHTML = 'Ver todos os ' + catItems.length + ' itens';
+            btnShowAll.onclick = function() {
+                var hiddenRows = tableWrapperInner.querySelectorAll('.hidden-row');
+                hiddenRows.forEach(function(r) {
+                    r.classList.remove('hidden-row');
+                });
+                footer.style.display = 'none';
+            };
+            footer.appendChild(btnShowAll);
+            groupEl.appendChild(footer);
+        }
+
         itemListEl.appendChild(groupEl);
     });
 }
