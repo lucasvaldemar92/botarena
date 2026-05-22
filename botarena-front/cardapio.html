@@ -644,6 +644,82 @@
             white-space: nowrap;
         }
 
+        /* ── TABS ERP LAYOUT ── */
+        .cd-subtabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 0;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        .cd-subtabs::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        .cd-subtab {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border: none;
+            background: none;
+            position: relative;
+            transition: color 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cd-subtab:hover {
+            color: var(--text-main);
+        }
+
+        .cd-subtab.active {
+            color: var(--text-main);
+        }
+
+        .cd-subtab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-dark);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .cd-pane {
+            display: none;
+            animation: fadeInView 0.2s ease-out;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            overflow: hidden;
+        }
+
+        .cd-pane.active {
+            display: block;
+        }
+        
+        @keyframes fadeInView {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Adjust item-list to look like cd-container */
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0; /* Tabs and panes handle their own spacing */
+        }
+
         @media (max-width: 640px) {
             .page-header {
                 padding: 1rem;

@@ -7,6 +7,7 @@ let items = [];
 let categories = [];
 let editingId = null;
 let editingCategoryId = null;
+let currentTabCategory = null;
 
 // ── DOM ──
 const emptyState   = document.getElementById('empty-state');
@@ -201,7 +202,7 @@ priceInput.addEventListener('input', function(e) {
     e.target.value = v.replace('.', ',');
 });
 
-// ── RENDER (agrupado por categoria) ──
+// ── RENDER (agrupado por categoria com ABAS) ──
 function renderItems() {
     var count = items.length;
     itemCount.textContent = count + ' ' + (count === 1 ? 'item cadastrado' : 'itens cadastrado(s)');
@@ -219,51 +220,58 @@ function renderItems() {
     // Agrupa por categoria
     var groups = {};
     items.forEach(function(item) {
-        var cat = (item.category && item.category.trim()) ? item.category.trim() : 'Sem categoria';
+        var cat = (item.category && item.category.trim()) ? item.category.trim() : 'Geral';
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(item);
     });
 
-    // Renderiza cada grupo
-    Object.keys(groups).forEach(function(catName) {
+    var groupNames = Object.keys(groups);
+    if (!currentTabCategory || !groups[currentTabCategory]) {
+        currentTabCategory = groupNames[0];
+    }
+
+    // Criar container de tabs e panes
+    var tabsNav = document.createElement('nav');
+    tabsNav.className = 'cd-subtabs';
+    
+    var panesContainer = document.createElement('div');
+    panesContainer.className = 'cd-panes-container';
+
+    groupNames.forEach(function(catName) {
         var catItems = groups[catName];
-        var groupEl  = document.createElement('div');
-        
-        // Verifica o status da categoria no array global categories
         var catObj = categories.find(function(c) { return c.name === catName; });
         var isCatAvailable = catObj && catObj.available !== undefined ? catObj.available : true;
         
-        groupEl.className = 'category-group' + (isCatAvailable ? '' : ' category-group--disabled');
+        var isActive = (catName === currentTabCategory);
 
-        // Cabeçalho do grupo
-        var header = document.createElement('div');
-        header.className = 'category-group__header';
+        // 1. Criar a Aba (Tab)
+        var tabBtn = document.createElement('button');
+        tabBtn.className = 'cd-subtab' + (isActive ? ' active' : '');
+        if (!isCatAvailable) tabBtn.style.opacity = '0.6';
         
-        // Switch de Categoria
+        // Switch de Categoria (dentro da aba, ao lado do nome)
         var toggleHTML = 
-            '<label class="switch switch--small" title="Ativar/Desativar Categoria">' +
+            '<label class="switch switch--small" title="Ativar/Desativar Categoria" style="margin-left: 0.5rem;" onclick="event.stopPropagation()">' +
                 '<input type="checkbox" class="category-toggle" data-cat="' + catName + '" ' + (isCatAvailable ? 'checked' : '') + '>' +
                 '<span class="slider"></span>' +
             '</label>';
 
-        header.innerHTML =
-            '<div style="display: flex; align-items: center; gap: 0.5rem;">' +
-                '<i class="fa-solid fa-chevron-down category-group__chevron"></i>' +
-                '<span class="category-group__title">' + catName + '</span>' +
-            '</div>' +
-            '<div class="category-group__header-actions" style="display: flex; align-items: center; gap: 1rem;">' +
-                '<span class="category-group__count">' + catItems.length + ' item(ns)</span>' +
-                toggleHTML +
-            '</div>';
+        tabBtn.innerHTML = catName + 
+                           '<span style="background: #e2e8f0; color: var(--text-muted); padding: 0.1rem 0.5rem; border-radius: 100px; font-size: 0.75rem; margin-left: 0.5rem;">' + catItems.length + '</span>' + 
+                           toggleHTML;
         
-        header.addEventListener('click', function(e) {
-            if (e.target.closest('.switch')) return; // ignora click no switch
-            groupEl.classList.toggle('collapsed');
+        tabBtn.addEventListener('click', function(e) {
+            if (e.target.closest('.switch')) return;
+            currentTabCategory = catName;
+            renderItems();
         });
         
-        groupEl.appendChild(header);
+        tabsNav.appendChild(tabBtn);
 
-        // Lista de itens do grupo em formato de tabela
+        // 2. Criar o Painel (Pane) da Categoria
+        var paneEl = document.createElement('div');
+        paneEl.className = 'cd-pane' + (isActive ? ' active' : '');
+        
         var tableWrapperOuter = document.createElement('div');
         tableWrapperOuter.className = 'category-group__table-wrapper';
         
@@ -288,7 +296,7 @@ function renderItems() {
             var badgeClass = item.available ? 'item-card__badge--on' : 'item-card__badge--off';
             var badgeText = item.available ? 'Sim' : 'Não';
             
-            var rowClass = index >= 5 ? 'item-row hidden-row' : 'item-row';
+            var rowClass = 'item-row';
             tableHTML += '<tr class="' + rowClass + '" data-id="' + item.id + '">' +
                 '<td><span class="item-codigo-pdv" style="font-weight: 600; color: var(--color-primary);">' + (item.codigo_pdv || '—') + '</span></td>' +
                 '<td><span class="item-name">' + item.name + '</span></td>' +
@@ -312,31 +320,12 @@ function renderItems() {
         tableWrapperInner.innerHTML = tableHTML;
         tableWrapperOuter.appendChild(tableWrapperInner);
         
-        groupEl.appendChild(tableWrapperOuter);
-
-        if (catItems.length > 5) {
-            var footer = document.createElement('div');
-            footer.className = 'category-group__footer';
-            footer.style.textAlign = 'center';
-            footer.style.padding = '0.75rem';
-            footer.style.borderTop = '1px solid var(--border-color)';
-            
-            var btnShowAll = document.createElement('button');
-            btnShowAll.className = 'btn btn--outline btn--small';
-            btnShowAll.innerHTML = 'Ver todos os ' + catItems.length + ' itens';
-            btnShowAll.onclick = function() {
-                var hiddenRows = tableWrapperInner.querySelectorAll('.hidden-row');
-                hiddenRows.forEach(function(r) {
-                    r.classList.remove('hidden-row');
-                });
-                footer.style.display = 'none';
-            };
-            footer.appendChild(btnShowAll);
-            groupEl.appendChild(footer);
-        }
-
-        itemListEl.appendChild(groupEl);
+        paneEl.appendChild(tableWrapperOuter);
+        panesContainer.appendChild(paneEl);
     });
+
+    itemListEl.appendChild(tabsNav);
+    itemListEl.appendChild(panesContainer);
 }
 
 // ── DELEGATED EVENTS NA LISTA ──
