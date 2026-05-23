@@ -148,54 +148,8 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             const text = msg.body.toLowerCase().trim();
 
-            // Cardápio trigger (Dynamic Asset Management & Dinâmico do Catálogo)
-            if (['cardapio', 'cardápio', 'menu', '!cardapio', 'opcoes', 'opções', 'o que tem'].some(kw => text.includes(kw))) {
-                try {
-                    if (catalogRepo) {
-                        const items = await catalogRepo.findAll();
-                        const normais = items.filter(i => i.is_adicional === 0 && i.disponivel === 1);
-                        const adicionais = items.filter(i => i.is_adicional === 1 && i.disponivel === 1);
-
-                        if (normais.length > 0) {
-                            let responseText = `📋 *NOSSO CARDÁPIO* 🍽️\n\n`;
-                            const categorias = [...new Set(normais.map(i => i.categoria))];
-                            
-                            for (const cat of categorias) {
-                                responseText += `*🟢 ${cat.toUpperCase()}*\n`;
-                                const catItems = normais.filter(i => i.categoria === cat);
-                                
-                                for (const item of catItems) {
-                                    const descParts = item.descricao ? item.descricao.split(' ||| ') : [];
-                                    const cleanDesc = descParts[0] || '';
-                                    const precoStr = Number(item.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                                    
-                                    responseText += `• *${item.nome}* - _${precoStr}_\n`;
-                                    if (cleanDesc) {
-                                        responseText += `  _${cleanDesc}_\n`;
-                                    }
-
-                                    const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
-                                    if (meta.adicionalIds && meta.adicionalIds.length > 0) {
-                                        const vinculados = adicionais.filter(a => meta.adicionalIds.includes(a.id) || meta.adicionalIds.includes(String(a.id)));
-                                        if (vinculados.length > 0) {
-                                            responseText += `  *Opcionais:* `;
-                                            responseText += vinculados.map(a => `${a.nome} (+R$ ${Number(a.preco).toFixed(2)})`).join(', ');
-                                            responseText += `\n`;
-                                        }
-                                    }
-                                    responseText += `\n`;
-                                }
-                            }
-
-                            responseText += `🛵 Para fazer um pedido, basta digitar o nome do produto e os adicionais que deseja! (Ex: "Quero um X-Burguer com Bacon")`;
-                            await safeReply(msg, responseText, isClientReadyFn);
-                            return;
-                        }
-                    }
-                } catch (err) {
-                    console.error('Erro ao gerar cardápio dinâmico no bot:', err);
-                }
-
+            // Cardápio trigger (Dynamic Asset Management)
+            if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
                 const dailyMenu = await menuRepo.getLatestAsset();
                 if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
                     try {
@@ -211,7 +165,7 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 if (dailyMenu?.extracted_text) {
                     await safeReply(msg, dailyMenu.extracted_text, isClientReadyFn);
                 } else if (config.cardapio_url) {
-                    await safeReply(msg, `📋 Confira nosso cardápio: ${config.cardapio_url}`, isClientReadyFn);
+                    await safeReply(msg, `📋 Confira nosso cardápio completo: ${config.cardapio_url}`, isClientReadyFn);
                 } else {
                     await safeReply(msg, 'Nosso cardápio ainda não está disponível. Tente novamente mais tarde!', isClientReadyFn);
                 }
@@ -301,8 +255,9 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                     let matchedProduct = null;
                     for (const prod of normais) {
                         const normalizedProdName = normalizeText(prod.nome);
-                        if (normalizedMsg.includes(normalizedProdName) || 
-                            (prod.cod_pdv && normalizedMsg.includes(prod.cod_pdv))) {
+                        // Usamos regex com limites de palavra para evitar correspondências parciais de termos genéricos
+                        const prodRegex = new RegExp('\\b' + normalizedProdName + '\\b', 'i');
+                        if (prodRegex.test(normalizedMsg) || (prod.cod_pdv && normalizedMsg.includes(prod.cod_pdv))) {
                             matchedProduct = prod;
                             break;
                         }
@@ -310,45 +265,80 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
                     if (matchedProduct) {
                         const descParts = matchedProduct.descricao ? matchedProduct.descricao.split(' ||| ') : [];
+                        const cleanDesc = descParts[0] || '';
                         const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
                         const adIds = meta.adicionalIds || [];
 
-                        const matchedAdicionais = [];
-                        let adicionaisPrecoTotal = 0;
+                        // 1. Verifica se há intenção de PEDIR o prato na mensagem do usuário
+                        const orderKeywords = ['quero', 'pedir', 've', 'vê', 'vou', 'gostaria', 'pegar', 'comprar', 'me da', 'me dá', 'adiciona'];
+                        const isOrderIntent = orderKeywords.some(kw => normalizedMsg.includes(kw));
 
-                        if (adIds.length > 0) {
-                            const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
-                            for (const ad of vinculados) {
-                                const normalizedAdName = normalizeText(ad.nome);
-                                if (normalizedMsg.includes(normalizedAdName)) {
-                                    matchedAdicionais.push(ad);
-                                    adicionaisPrecoTotal += Number(ad.preco);
+                        if (isOrderIntent) {
+                            // Intenção de pedido: Calcula o total com adicionais e confirma
+                            const matchedAdicionais = [];
+                            let adicionaisPrecoTotal = 0;
+
+                            if (adIds.length > 0) {
+                                const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
+                                for (const ad of vinculados) {
+                                    const normalizedAdName = normalizeText(ad.nome);
+                                    const adRegex = new RegExp('\\b' + normalizedAdName + '\\b', 'i');
+                                    if (adRegex.test(normalizedMsg)) {
+                                        matchedAdicionais.push(ad);
+                                        adicionaisPrecoTotal += Number(ad.preco);
+                                    }
                                 }
                             }
+
+                            const basePrice = Number(matchedProduct.preco);
+                            const totalPrice = basePrice + adicionaisPrecoTotal;
+
+                            const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            const totalPriceStr = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                            let confirmText = `🛒 *Confirmando seu escolha:*\n\n`;
+                            confirmText += `🍔 *${matchedProduct.nome}* - ${basePriceStr}\n`;
+                            
+                            if (matchedAdicionais.length > 0) {
+                                confirmText += `*Adicionais:*\n`;
+                                matchedAdicionais.forEach(ad => {
+                                    const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                    confirmText += `  ➕ *${ad.nome}* (+ ${adPriceStr})\n`;
+                                });
+                            }
+                            
+                            confirmText += `\n💰 *Valor Total: ${totalPriceStr}*\n\n`;
+                            confirmText += `Confirmamos o item! Gostaria de adicionar mais alguma coisa ou deseja finalizar o pedido?`;
+
+                            await safeReply(msg, confirmText, isClientReadyFn);
+                            return;
+                        } else {
+                            // Consulta simples: Apresenta apenas as informações desse prato específico
+                            const basePrice = Number(matchedProduct.preco);
+                            const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            
+                            let infoText = `📋 *Informações do item:*\n\n`;
+                            infoText += `🍔 *${matchedProduct.nome}* - _${basePriceStr}_\n`;
+                            if (cleanDesc) {
+                                infoText += `_${cleanDesc}_\n`;
+                            }
+                            
+                            if (adIds.length > 0) {
+                                const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
+                                if (vinculados.length > 0) {
+                                    infoText += `\n*Adicionais disponíveis para este item:*\n`;
+                                    vinculados.forEach(ad => {
+                                        const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                        infoText += `- *${ad.nome}* (+ ${adPriceStr})\n`;
+                                    });
+                                }
+                            }
+                            
+                            infoText += `\n🛵 Para pedir este item, digite por exemplo: "Quero um ${matchedProduct.nome}"`;
+                            
+                            await safeReply(msg, infoText, isClientReadyFn);
+                            return;
                         }
-
-                        const basePrice = Number(matchedProduct.preco);
-                        const totalPrice = basePrice + adicionaisPrecoTotal;
-
-                        const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        const totalPriceStr = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-                        let confirmText = `🛒 *Confirmando sua escolha:*\n\n`;
-                        confirmText += `🍔 *${matchedProduct.nome}* - ${basePriceStr}\n`;
-                        
-                        if (matchedAdicionais.length > 0) {
-                            confirmText += `*Adicionais:*\n`;
-                            matchedAdicionais.forEach(ad => {
-                                const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                                confirmText += `  ➕ *${ad.nome}* (+ ${adPriceStr})\n`;
-                            });
-                        }
-                        
-                        confirmText += `\n💰 *Valor Total: ${totalPriceStr}*\n\n`;
-                        confirmText += `Confirmamos o item! Gostaria de adicionar mais alguma coisa ou deseja finalizar o pedido?`;
-
-                        await safeReply(msg, confirmText, isClientReadyFn);
-                        return;
                     }
                 } catch (err) {
                     console.error('Erro ao processar pedido dinâmico no bot:', err);
