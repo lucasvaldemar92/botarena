@@ -581,12 +581,17 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             return res.json([]);
         }
         try {
-            const client = getClient();
-            const chat = await client.getChatById(jid);
-            if (!chat) {
-                return res.status(404).json({ error: 'Chat não encontrado' });
+            if (!jid || jid.startsWith('0@') || jid === '0') {
+                return res.json([]);
             }
-            const messages = await chat.fetchMessages({ limit: 50 });
+
+            const client = getClient();
+            const chat = await client.getChatById(jid).catch(() => null);
+            if (!chat) {
+                return res.json([]);
+            }
+            
+            const messages = await chat.fetchMessages({ limit: 50 }).catch(() => []);
             
             const formattedMessages = messages.map(msg => ({
                 id: msg.id._serialized,
@@ -600,7 +605,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             res.json(formattedMessages);
         } catch (e) {
             console.error(`❌ [API] Error fetching messages for ${jid}:`, e);
-            res.status(500).json({ error: 'Erro ao buscar histórico de mensagens.' });
+            res.json([]);
         }
     });
 
