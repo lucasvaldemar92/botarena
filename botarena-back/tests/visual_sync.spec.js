@@ -15,7 +15,7 @@ test('Visual Sync & Story Filter Verification', async ({ page }) => {
     await expect(page).toHaveURL(/.*(dashboard|painel-administrativo).*/, { timeout: 5000 });
 
     // 2. Go to Atendimento (chat UI) via the header action button
-    await page.click('text=Atendimento');
+    await page.click('button[title="Ir para Atendimento"]');
     
     // Expect URL to transition to /atendimento
     await expect(page).toHaveURL(/.*atendimento.*/, { timeout: 5000 });
@@ -27,9 +27,9 @@ test('Visual Sync & Story Filter Verification', async ({ page }) => {
     const storyItem = page.locator('[data-testid="chat-item-story"]');
     await expect(storyItem).toHaveCount(0);
 
-    // Verify chat input is functional (not locked)
+    // Verify chat input is disabled initially when no conversation is selected
     const chatInput = page.locator('.chat-input');
-    await expect(chatInput).toBeEnabled();
+    await expect(chatInput).toBeDisabled();
 
     // 4. Take the visual screenshot
     await page.screenshot({ path: 'qa-evidence/last_test_state.png', fullPage: true });

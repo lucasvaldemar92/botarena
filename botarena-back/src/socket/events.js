@@ -72,6 +72,19 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, me
                 };
                 target = formatJID(target);
 
+                // 🔒 Sandbox Lock Mode (Evita envios para outros números)
+                if (process.env.SANDBOX_MODE === 'true') {
+                    if (!global.sandboxTargetJid) {
+                        global.sandboxTargetJid = target;
+                        console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                    }
+                    if (target !== global.sandboxTargetJid) {
+                        console.error(`🚫 [Sandbox] Envio bloqueado para ${target} (travado em ${global.sandboxTargetJid})`);
+                        socket.emit('message_error', { error: 'Envio bloqueado em Modo Sandbox' });
+                        return;
+                    }
+                }
+
                 // Task 1: TRAVA DE SEGURANÇA GLOBAL
                 const blockedTargets = ['status@broadcast', 'g.us'];
                 if (blockedTargets.some(bTarget => target.includes(bTarget))) {
@@ -111,6 +124,20 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, me
                     const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
                     
                     const target = (data.to && !data.to.includes('@')) ? `${data.to}@c.us` : data.to;
+
+                    // 🔒 Sandbox Lock Mode (Evita envios para outros números)
+                    if (process.env.SANDBOX_MODE === 'true') {
+                        if (!global.sandboxTargetJid) {
+                            global.sandboxTargetJid = target;
+                            console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                        }
+                        if (target !== global.sandboxTargetJid) {
+                            console.error(`🚫 [Sandbox] Envio de mídia bloqueado para ${target} (travado em ${global.sandboxTargetJid})`);
+                            socket.emit('message_error', { error: 'Envio de mídia bloqueado em Modo Sandbox' });
+                            return;
+                        }
+                    }
+
                     await client.sendMessage(target, media);
                     
                     // console.log(`✅ [WhatsApp] Media menu sent to ${target}`);

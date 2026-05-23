@@ -20,7 +20,7 @@
     const simPix = document.querySelector('[data-testid="sim-pix"]');
 
     // Internal State (Protected by IIFE scope)
-    let activeChatID = '554499824696@c.us'; // Real developer sandbox ID
+    let activeChatID = null; // No active chat initially
     let currentConfig = null; // Store fetched settings
 
     const localState = {

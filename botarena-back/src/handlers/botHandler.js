@@ -51,19 +51,43 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
             return;
         }
 
+        // 🔒 Sandbox Lock Mode (Trava o bot em um único número de teste em dev)
+        if (process.env.SANDBOX_MODE === 'true') {
+            if (!global.sandboxTargetJid) {
+                global.sandboxTargetJid = targetJid;
+                console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+            }
+            if (targetJid !== global.sandboxTargetJid) {
+                console.log(`🚫 [Sandbox] Mensagem de entrada ignorada de ${targetJid} (travado em ${global.sandboxTargetJid})`);
+                return;
+            }
+        }
+
         if (msg.body) {
             msg.body = sanitizeHtml(msg.body, { allowedTags: [], allowedAttributes: {} });
             
             // --- Contact Sync Logic (Step 3) ---
             try {
-                const contact = await msg.getContact();
-                io.emit('whatsapp_contact_sync', {
-                    name: contact.name || contact.pushname || '',
-                    phone: contact.number || '',
-                    jid: contact.id._serialized
-                });
+                let contact = null;
+                // Busca o contato do cliente pelo targetJid (evita obter dados do próprio bot em mensagens fromMe)
+                if (typeof client.getContactById === 'function') {
+                    contact = await client.getContactById(targetJid);
+                } else if (typeof msg.getContact === 'function') {
+                    contact = await msg.getContact();
+                }
+
+                if (contact && contact.id && contact.id._serialized) {
+                    io.emit('whatsapp_contact_sync', {
+                        name: contact.name || contact.pushname || '',
+                        phone: contact.number || '',
+                        jid: contact.id._serialized
+                    });
+                }
             } catch (err) {
-                console.error('❌ [Sync] Error fetching contact for sync:', err.message);
+                // Silencia logs de erro nos testes unitários que não possuem os métodos mockados
+                if (!err.message.includes('not a function')) {
+                    console.error('❌ [Sync] Error fetching contact for sync:', err.message);
+                }
             }
 
             io.emit('new_message', {

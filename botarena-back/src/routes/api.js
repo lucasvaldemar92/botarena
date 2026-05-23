@@ -565,13 +565,6 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     // ==========================================
     router.get('/chats', authMiddleware, async (req, res) => {
         if (!isClientReady()) {
-            if (process.env.NODE_ENV === 'development') {
-                const mockChats = [
-                    { id: '5511999998888@c.us', name: 'Ana Silva', time: '10:30', preview: 'Olá, gostaria de fazer um pedido.' },
-                    { id: '5521988887777@c.us', name: 'Bruno Oliveira', time: 'Ontem', preview: 'Obrigado pelo atendimento!' }
-                ];
-                return res.json(mockChats);
-            }
             return res.json([]);
         }
         try {
@@ -607,13 +600,6 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.get('/chats/:jid/messages', authMiddleware, async (req, res) => {
         const { jid } = req.params;
         if (!isClientReady()) {
-            if (process.env.NODE_ENV === 'development') {
-                const mockMsgs = [
-                    { id: 'msg1', body: 'Olá!', from: jid, to: 'me', fromMe: false, timestamp: Math.floor(Date.now()/1000) - 60 },
-                    { id: 'msg2', body: 'Como posso te ajudar?', from: 'me', to: jid, fromMe: true, timestamp: Math.floor(Date.now()/1000) - 30 }
-                ];
-                return res.json(mockMsgs);
-            }
             return res.json([]);
         }
         try {
@@ -652,16 +638,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         // // console.log('📡 [API] GET /api/contacts');
         
         if (!isClientReady()) {
-            if (process.env.NODE_ENV === 'development') {
-                // Modo teste/desenvolvimento: retorna contatos fictícios
-                const mockContacts = [
-                    { id: '5511999998888@c.us', name: 'Ana Silva', pushname: 'Ana', number: '5511999998888' },
-                    { id: '5521988887777@c.us', name: 'Bruno Oliveira', pushname: 'Bruno', number: '5521988887777' },
-                    { id: '5531977776666@c.us', name: 'Carlos Santos', pushname: 'Carlos', number: '5531977776666' }
-                ];
-                return res.json(mockContacts);
-            }
-            return res.status(503).json({ error: 'Bot desconectado. Conecte o WhatsApp para ver os contatos.' });
+            return res.json([]);
         }
 
         try {
