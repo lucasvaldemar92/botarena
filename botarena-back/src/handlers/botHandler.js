@@ -251,91 +251,101 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
                     const normalizedMsg = normalizeText(text);
 
-                    // Procura match de algum produto principal
-                    let matchedProduct = null;
+                    // Procura match de todos os produtos principais citados na mensagem
+                    const matchedProducts = [];
                     for (const prod of normais) {
                         const normalizedProdName = normalizeText(prod.nome);
-                        // Usamos regex com limites de palavra para evitar correspondências parciais de termos genéricos
                         const prodRegex = new RegExp('\\b' + normalizedProdName + '\\b', 'i');
                         if (prodRegex.test(normalizedMsg) || (prod.cod_pdv && normalizedMsg.includes(prod.cod_pdv))) {
-                            matchedProduct = prod;
-                            break;
+                            matchedProducts.push(prod);
                         }
                     }
 
-                    if (matchedProduct) {
-                        const descParts = matchedProduct.descricao ? matchedProduct.descricao.split(' ||| ') : [];
-                        const cleanDesc = descParts[0] || '';
-                        const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
-                        const adIds = meta.adicionalIds || [];
-
-                        // 1. Verifica se há intenção de PEDIR o prato na mensagem do usuário
+                    if (matchedProducts.length > 0) {
                         const orderKeywords = ['quero', 'pedir', 've', 'vê', 'vou', 'gostaria', 'pegar', 'comprar', 'me da', 'me dá', 'adiciona'];
                         const isOrderIntent = orderKeywords.some(kw => normalizedMsg.includes(kw));
 
                         if (isOrderIntent) {
-                            // Intenção de pedido: Calcula o total com adicionais e confirma
-                            const matchedAdicionais = [];
-                            let adicionaisPrecoTotal = 0;
+                            let confirmText = `🛒 *Confirmando sua escolha:*\n\n`;
+                            let grandTotal = 0;
 
-                            if (adIds.length > 0) {
-                                const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
-                                for (const ad of vinculados) {
-                                    const normalizedAdName = normalizeText(ad.nome);
-                                    const adRegex = new RegExp('\\b' + normalizedAdName + '\\b', 'i');
-                                    if (adRegex.test(normalizedMsg)) {
-                                        matchedAdicionais.push(ad);
-                                        adicionaisPrecoTotal += Number(ad.preco);
+                            for (const product of matchedProducts) {
+                                const descParts = product.descricao ? product.descricao.split(' ||| ') : [];
+                                const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
+                                const adIds = meta.adicionalIds || [];
+
+                                const matchedAdicionais = [];
+                                let adicionaisPrecoTotal = 0;
+
+                                if (adIds.length > 0) {
+                                    const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
+                                    for (const ad of vinculados) {
+                                        const normalizedAdName = normalizeText(ad.nome);
+                                        const adRegex = new RegExp('\\b' + normalizedAdName + '\\b', 'i');
+                                        if (adRegex.test(normalizedMsg)) {
+                                            matchedAdicionais.push(ad);
+                                            adicionaisPrecoTotal += Number(ad.preco);
+                                        }
                                     }
                                 }
+
+                                const basePrice = Number(product.preco);
+                                const productTotal = basePrice + adicionaisPrecoTotal;
+                                grandTotal += productTotal;
+
+                                const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                
+                                confirmText += `🍔 *${product.nome}* - ${basePriceStr}\n`;
+                                if (matchedAdicionais.length > 0) {
+                                    matchedAdicionais.forEach(ad => {
+                                        const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                        confirmText += `  ➕ *${ad.nome}* (+ ${adPriceStr})\n`;
+                                    });
+                                }
+                                confirmText += `\n`;
                             }
 
-                            const basePrice = Number(matchedProduct.preco);
-                            const totalPrice = basePrice + adicionaisPrecoTotal;
-
-                            const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                            const totalPriceStr = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-                            let confirmText = `🛒 *Confirmando seu escolha:*\n\n`;
-                            confirmText += `🍔 *${matchedProduct.nome}* - ${basePriceStr}\n`;
-                            
-                            if (matchedAdicionais.length > 0) {
-                                confirmText += `*Adicionais:*\n`;
-                                matchedAdicionais.forEach(ad => {
-                                    const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                                    confirmText += `  ➕ *${ad.nome}* (+ ${adPriceStr})\n`;
-                                });
-                            }
-                            
-                            confirmText += `\n💰 *Valor Total: ${totalPriceStr}*\n\n`;
-                            confirmText += `Confirmamos o item! Gostaria de adicionar mais alguma coisa ou deseja finalizar o pedido?`;
+                            const grandTotalStr = grandTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            confirmText += `💰 *Valor Total: ${grandTotalStr}*\n\n`;
+                            confirmText += `Confirmamos o pedido! Gostaria de adicionar mais alguma coisa ou deseja finalizar o pedido?`;
 
                             await safeReply(msg, confirmText, isClientReadyFn);
                             return;
                         } else {
-                            // Consulta simples: Apresenta apenas as informações desse prato específico
-                            const basePrice = Number(matchedProduct.preco);
-                            const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                            
-                            let infoText = `📋 *Informações do item:*\n\n`;
-                            infoText += `🍔 *${matchedProduct.nome}* - _${basePriceStr}_\n`;
-                            if (cleanDesc) {
-                                infoText += `_${cleanDesc}_\n`;
-                            }
-                            
-                            if (adIds.length > 0) {
-                                const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
-                                if (vinculados.length > 0) {
-                                    infoText += `\n*Adicionais disponíveis para este item:*\n`;
-                                    vinculados.forEach(ad => {
-                                        const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                                        infoText += `- *${ad.nome}* (+ ${adPriceStr})\n`;
-                                    });
+                            // Consulta simples de múltiplos itens
+                            let infoText = matchedProducts.length === 1 ? `📋 *Informações do item:*\n\n` : `📋 *Informações dos itens solicitados:*\n\n`;
+
+                            for (const product of matchedProducts) {
+                                const descParts = product.descricao ? product.descricao.split(' ||| ') : [];
+                                const cleanDesc = descParts[0] || '';
+                                const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
+                                const adIds = meta.adicionalIds || [];
+
+                                const basePrice = Number(product.preco);
+                                const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                                infoText += `🍔 *${product.nome}* - _${basePriceStr}_\n`;
+                                if (cleanDesc) {
+                                    infoText += `_${cleanDesc}_\n`;
                                 }
+
+                                if (adIds.length > 0) {
+                                    const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
+                                    if (vinculados.length > 0) {
+                                        infoText += `*Adicionais disponíveis:* `;
+                                        infoText += vinculados.map(ad => `${ad.nome} (+ R$ ${Number(ad.preco).toFixed(2)})`).join(', ');
+                                        infoText += `\n`;
+                                    }
+                                }
+                                infoText += `\n`;
                             }
-                            
-                            infoText += `\n🛵 Para pedir este item, digite por exemplo: "Quero um ${matchedProduct.nome}"`;
-                            
+
+                            if (matchedProducts.length === 1) {
+                                infoText += `🛵 Para pedir este item, digite por exemplo: "Quero um ${matchedProducts[0].nome}"`;
+                            } else {
+                                infoText += `🛵 Para pedir estes itens, digite por exemplo: "Quero um ${matchedProducts[0].nome} e um ${matchedProducts[1].nome}"`;
+                            }
+
                             await safeReply(msg, infoText, isClientReadyFn);
                             return;
                         }
@@ -343,6 +353,12 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 } catch (err) {
                     console.error('Erro ao processar pedido dinâmico no bot:', err);
                 }
+            }
+
+            // Reconhecimento de fechamento de pedido se o usuário disser que é somente isso
+            if (['somente isso', 'so isso', 'finalizar', 'fechar', 'fechar pedido', 'concluir'].some(kw => text.includes(kw))) {
+                await safeReply(msg, `🏁 *Perfeito!* Vamos fechar o seu pedido. Por favor, nos informe a forma de pagamento (PIX, Cartão ou Dinheiro) e o endereço de entrega completo. 🛵`, isClientReadyFn);
+                return;
             }
 
             // Knowledge Base lookup
