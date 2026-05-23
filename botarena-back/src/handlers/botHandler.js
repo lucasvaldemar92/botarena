@@ -36,7 +36,7 @@ async function safeReply(msg, text, isClientReadyFn) {
  * @param {Object} repos.knowledgeRepo
  * @param {Object} repos.menuRepo
  */
-function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo, orderRepo }) {
+function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo, orderRepo, catalogRepo }) {
     const consumerService = require('../services/consumerService');
 
     client.removeAllListeners('message');
@@ -148,24 +148,64 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             const text = msg.body.toLowerCase().trim();
 
-            // Cardápio trigger (Dynamic Asset Management)
-            if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
-                // // console.log(`🍽️ [Bot] Cardápio trigger detected for ${contactId} (fromMe: ${msg.fromMe})`);
+            // Cardápio trigger (Dynamic Asset Management & Dinâmico do Catálogo)
+            if (['cardapio', 'cardápio', 'menu', '!cardapio', 'opcoes', 'opções', 'o que tem'].some(kw => text.includes(kw))) {
+                try {
+                    if (catalogRepo) {
+                        const items = await catalogRepo.findAll();
+                        const normais = items.filter(i => i.is_adicional === 0 && i.disponivel === 1);
+                        const adicionais = items.filter(i => i.is_adicional === 1 && i.disponivel === 1);
+
+                        if (normais.length > 0) {
+                            let responseText = `📋 *NOSSO CARDÁPIO* 🍽️\n\n`;
+                            const categorias = [...new Set(normais.map(i => i.categoria))];
+                            
+                            for (const cat of categorias) {
+                                responseText += `*🟢 ${cat.toUpperCase()}*\n`;
+                                const catItems = normais.filter(i => i.categoria === cat);
+                                
+                                for (const item of catItems) {
+                                    const descParts = item.descricao ? item.descricao.split(' ||| ') : [];
+                                    const cleanDesc = descParts[0] || '';
+                                    const precoStr = Number(item.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                    
+                                    responseText += `• *${item.nome}* - _${precoStr}_\n`;
+                                    if (cleanDesc) {
+                                        responseText += `  _${cleanDesc}_\n`;
+                                    }
+
+                                    const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
+                                    if (meta.adicionalIds && meta.adicionalIds.length > 0) {
+                                        const vinculados = adicionais.filter(a => meta.adicionalIds.includes(a.id) || meta.adicionalIds.includes(String(a.id)));
+                                        if (vinculados.length > 0) {
+                                            responseText += `  *Opcionais:* `;
+                                            responseText += vinculados.map(a => `${a.nome} (+R$ ${Number(a.preco).toFixed(2)})`).join(', ');
+                                            responseText += `\n`;
+                                        }
+                                    }
+                                    responseText += `\n`;
+                                }
+                            }
+
+                            responseText += `🛵 Para fazer um pedido, basta digitar o nome do produto e os adicionais que deseja! (Ex: "Quero um X-Burguer com Bacon")`;
+                            await safeReply(msg, responseText, isClientReadyFn);
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Erro ao gerar cardápio dinâmico no bot:', err);
+                }
+
                 const dailyMenu = await menuRepo.getLatestAsset();
-                
                 if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
-                    // // console.log(`📦 [Bot] Found binary menu: ${dailyMenu.mimetype}, size: ${dailyMenu.base64_data.length} chars`);
                     try {
                         const { MessageMedia } = require('whatsapp-web.js');
                         const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
                         await client.sendMessage(contactId, media);
-                        // // console.log(`🍽️ [Bot] Media menu sent SUCCESSFULLY to ${contactId}`);
                         return;
                     } catch (mediaErr) {
                         console.error('❌ [Bot] Error sending media menu:', mediaErr);
                     }
-                } else {
-                    // // console.log('⚠️ [Bot] No binary menu found in DB, falling back to text.');
                 }
 
                 if (dailyMenu?.extracted_text) {
@@ -238,6 +278,81 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                     await safeReply(msg, `❌ Falha ao enviar para o PDV: ${result.reason}`, isClientReadyFn);
                 }
                 return;
+            }
+
+            // --- DETECTOR DE PEDIDOS E ADICIONAIS DINÂMICOS ---
+            if (catalogRepo) {
+                try {
+                    const allItems = await catalogRepo.findAll();
+                    const normais = allItems.filter(i => i.is_adicional === 0 && i.disponivel === 1);
+                    const adicionais = allItems.filter(i => i.is_adicional === 1 && i.disponivel === 1);
+
+                    const normalizeText = (str) => {
+                        return str.toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/[^\w\s]/gi, '')
+                            .trim();
+                    };
+
+                    const normalizedMsg = normalizeText(text);
+
+                    // Procura match de algum produto principal
+                    let matchedProduct = null;
+                    for (const prod of normais) {
+                        const normalizedProdName = normalizeText(prod.nome);
+                        if (normalizedMsg.includes(normalizedProdName) || 
+                            (prod.cod_pdv && normalizedMsg.includes(prod.cod_pdv))) {
+                            matchedProduct = prod;
+                            break;
+                        }
+                    }
+
+                    if (matchedProduct) {
+                        const descParts = matchedProduct.descricao ? matchedProduct.descricao.split(' ||| ') : [];
+                        const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
+                        const adIds = meta.adicionalIds || [];
+
+                        const matchedAdicionais = [];
+                        let adicionaisPrecoTotal = 0;
+
+                        if (adIds.length > 0) {
+                            const vinculados = adicionais.filter(a => adIds.includes(a.id) || adIds.includes(String(a.id)));
+                            for (const ad of vinculados) {
+                                const normalizedAdName = normalizeText(ad.nome);
+                                if (normalizedMsg.includes(normalizedAdName)) {
+                                    matchedAdicionais.push(ad);
+                                    adicionaisPrecoTotal += Number(ad.preco);
+                                }
+                            }
+                        }
+
+                        const basePrice = Number(matchedProduct.preco);
+                        const totalPrice = basePrice + adicionaisPrecoTotal;
+
+                        const basePriceStr = basePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        const totalPriceStr = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                        let confirmText = `🛒 *Confirmando sua escolha:*\n\n`;
+                        confirmText += `🍔 *${matchedProduct.nome}* - ${basePriceStr}\n`;
+                        
+                        if (matchedAdicionais.length > 0) {
+                            confirmText += `*Adicionais:*\n`;
+                            matchedAdicionais.forEach(ad => {
+                                const adPriceStr = Number(ad.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                confirmText += `  ➕ *${ad.nome}* (+ ${adPriceStr})\n`;
+                            });
+                        }
+                        
+                        confirmText += `\n💰 *Valor Total: ${totalPriceStr}*\n\n`;
+                        confirmText += `Confirmamos o item! Gostaria de adicionar mais alguma coisa ou deseja finalizar o pedido?`;
+
+                        await safeReply(msg, confirmText, isClientReadyFn);
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Erro ao processar pedido dinâmico no bot:', err);
+                }
             }
 
             // Knowledge Base lookup

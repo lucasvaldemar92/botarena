@@ -36,6 +36,42 @@ const catalogItemSchema = z.object({
 function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService, orderRepo, catalogRepo }) {
     const router = express.Router();
 
+    // Helper to synchronize Catalog Items into RAG Semantic Database
+    async function syncCatalogItemToRAG(item) {
+        if (!ragService || !ragRepo) return;
+        try {
+            if (item.disponivel === 0 || item.disponivel === false) {
+                await ragRepo.deleteChunksBySource('catalog', item.id.toString()).catch(() => {});
+                return;
+            }
+
+            let descText = '';
+            const descParts = item.descricao ? item.descricao.split(' ||| ') : [];
+            const cleanDesc = descParts[0] || '';
+            const precoFormatado = Number(item.preco).toFixed(2);
+
+            if (item.is_adicional === 1) {
+                descText = `Adicional: ${item.nome}\nPreço: R$ ${precoFormatado}\nCategoria: ${item.categoria}\nDescrição: ${cleanDesc}`;
+            } else {
+                let adicionaisListStr = '';
+                const meta = descParts[1] ? JSON.parse(descParts[1]) : {};
+                if (meta.adicionalIds && meta.adicionalIds.length > 0) {
+                    const allItems = await catalogRepo.findAll();
+                    const vinculados = allItems.filter(x => x.is_adicional === 1 && (meta.adicionalIds.includes(x.id) || meta.adicionalIds.includes(String(x.id))));
+                    if (vinculados.length > 0) {
+                        adicionaisListStr = '\nAdicionais disponíveis:\n' + vinculados.map(a => `- ${a.nome} (+ R$ ${Number(a.preco).toFixed(2)})`).join('\n');
+                    }
+                }
+                descText = `Produto: ${item.nome}\nPreço: R$ ${precoFormatado}\nCategoria: ${item.categoria}\nDescrição: ${cleanDesc}${adicionaisListStr}`;
+            }
+
+            const chunks = ragService.generateSemanticChunks(descText);
+            await ragRepo.saveChunks('catalog', item.id.toString(), chunks);
+        } catch (err) {
+            console.error(`❌ [RAG Catalog Sync] Erro ao sincronizar item ${item?.id} com RAG:`, err);
+        }
+    }
+
     // ==========================================
     // 📊 STATUS ROUTE (public)
     // ==========================================
@@ -762,6 +798,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         try {
             const validData = catalogItemSchema.parse(req.body);
             const newItem = await catalogRepo.create(validData);
+            await syncCatalogItemToRAG(newItem);
             res.status(201).json(newItem);
         } catch (err) {
             if (err instanceof z.ZodError) return res.status(400).json({ errors: err.errors });
@@ -775,6 +812,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             const validData = catalogItemSchema.parse(req.body);
             const updatedItem = await catalogRepo.update(req.params.id, validData);
             if (!updatedItem) return res.status(404).json({ error: "Item não encontrado" });
+            await syncCatalogItemToRAG(updatedItem);
             res.json(updatedItem);
         } catch (err) {
             if (err instanceof z.ZodError) return res.status(400).json({ errors: err.errors });
@@ -787,6 +825,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         try {
             const success = await catalogRepo.delete(req.params.id);
             if (!success) return res.status(404).json({ error: "Item não encontrado" });
+            await ragRepo.deleteChunksBySource('catalog', req.params.id.toString()).catch(() => {});
             res.json({ success: true });
         } catch (err) {
             res.status(500).json({ error: err.message });
@@ -797,11 +836,34 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.patch('/catalog/:id/toggle', authMiddleware, async (req, res) => {
         try {
             const updatedStatus = await catalogRepo.toggleDisponivel(req.params.id);
+            const fullItem = await catalogRepo.findById(req.params.id);
+            if (fullItem) {
+                await syncCatalogItemToRAG(fullItem);
+            }
             res.json(updatedStatus);
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
     });
+
+    // Batch Ingest inicial de itens do cardápio no RAG
+    if (ragRepo && ragService && catalogRepo) {
+        (async () => {
+            try {
+                const items = await catalogRepo.findAll();
+                let syncCount = 0;
+                for (const item of items) {
+                    if (item.disponivel === 1) {
+                        await syncCatalogItemToRAG(item);
+                        syncCount++;
+                    }
+                }
+                console.log(`✅ [RAG Catalog Sync Startup] ${syncCount} itens de catálogo indexados no RAG.`);
+            } catch (err) {
+                console.error('❌ [RAG Catalog Sync Startup] Falha na indexação inicial:', err);
+            }
+        })();
+    }
 
     return router;
 }
