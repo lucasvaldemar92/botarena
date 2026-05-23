@@ -765,11 +765,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border-color)';
                 
+                const descParts = (item.descricao || '').split(' ||| ');
+                const displayDesc = descParts[0] || '-';
+                
+                let totalPreco = Number(item.preco) || 0;
+                if (item.is_adicional === 0 && descParts[1]) {
+                    try {
+                        const meta = JSON.parse(descParts[1]);
+                        if (meta.adicionalIds && meta.adicionalIds.length > 0) {
+                            const vinculados = catalogItems.filter(x => x.is_adicional === 1 && meta.adicionalIds.includes(x.id));
+                            const somaAdicionais = vinculados.reduce((sum, ad) => sum + (Number(ad.preco) || 0), 0);
+                            totalPreco += somaAdicionais;
+                        }
+                    } catch (e) {
+                        console.warn('Falha ao calcular soma de adicionais no painel administrativo:', e);
+                    }
+                }
+                
                 tr.innerHTML = `
                     <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">${item.cod_pdv || '-'}</td>
                     <td style="padding: 1rem; font-weight: 600; color: var(--text-main);">${item.nome}</td>
-                    <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.descricao || ''}">${item.descricao || '-'}</td>
-                    <td style="padding: 1rem; font-weight: 600;">R$ ${Number(item.preco).toFixed(2)}</td>
+                    <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${displayDesc}">${displayDesc}</td>
+                    <td style="padding: 1rem; font-weight: 600;">R$ ${Number(totalPreco).toFixed(2)}</td>
                     <td style="padding: 1rem; text-align: center;">
                         <label class="switch switch--small" style="margin: 0 auto; display: inline-block;">
                             <input type="checkbox" data-action="toggle-catalog-status" data-id="${item.id}" ${item.disponivel === 1 ? 'checked' : ''}>
@@ -840,4 +857,549 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => loadCatalog());
     });
     
+    // ==========================================
+    // 🍴 LÓGICA E CONTROLE DOS MODAIS DE CATÁLOGO
+    // ==========================================
+    let selectedAdicionais = [];
+    let currentProductId = null;
+    let currentAdicionalId = null;
+
+    const productAdicionalSearch = document.getElementById('product-adicional-search');
+    const autocompleteResults = document.getElementById('autocomplete-results-box');
+    const productSelectedTagsContainer = document.getElementById('product-selected-adicionais-tags');
+
+    // Auto-popula categorias no select dos modais
+    function populateCategoriesDropdowns(categories) {
+        const productCatSelect = document.getElementById('product-categoria');
+        const adicionalCatSelect = document.getElementById('adicional-vinculo-categorias');
+        
+        if (productCatSelect) {
+            productCatSelect.innerHTML = '<option value="" disabled selected>Selecione uma categoria...</option>' + 
+                categories.map(cat => `<option value="${cat}">${cat}</option>`).join('') +
+                '<option value="Geral">Geral</option>';
+        }
+        
+        if (adicionalCatSelect) {
+            adicionalCatSelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+        }
+    }
+
+    // Modal de Produto (Novo Item / Editar Item)
+    function openProductModal(item = null) {
+        const modal = document.getElementById('modal-produto');
+        const form = document.getElementById('form-product');
+        const title = document.getElementById('product-modal-title');
+        
+        currentProductId = item ? item.id : null;
+        
+        // Obter categorias únicas existentes na memória
+        const categories = [...new Set(catalogItems.filter(i => i.is_adicional === 0).map(i => i.categoria))];
+        populateCategoriesDropdowns(categories);
+
+        const doOpen = () => {
+            if (modal) modal.style.display = 'flex';
+            if (item) {
+                if (title) title.innerHTML = '<i class="fa-solid fa-utensils"></i> Editar Item';
+                document.getElementById('product-cod-pdv').value = item.cod_pdv || '';
+                document.getElementById('product-nome').value = item.nome || '';
+                document.getElementById('product-preco').value = item.preco || 0;
+                document.getElementById('product-categoria').value = item.categoria || '';
+                
+                const parts = (item.descricao || '').split(' ||| ');
+                document.getElementById('product-descricao').value = parts[0] || '';
+                
+                selectedAdicionais = [];
+                if (parts[1]) {
+                    try {
+                        const meta = JSON.parse(parts[1]);
+                        if (meta.adicionalIds) {
+                            selectedAdicionais = catalogItems.filter(x => x.is_adicional === 1 && meta.adicionalIds.includes(x.id));
+                        }
+                    } catch (e) {
+                        console.warn('Falha ao processar metadados de adicionais:', e);
+                    }
+                }
+                renderSelectedAdicionaisTags();
+            } else {
+                if (title) title.innerHTML = '<i class="fa-solid fa-utensils"></i> Cadastro de Item';
+                if (form) form.reset();
+                selectedAdicionais = [];
+                renderSelectedAdicionaisTags();
+            }
+        };
+
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.open('modal-produto', doOpen, closeProductModal);
+        } else {
+            doOpen();
+        }
+    }
+
+    function closeProductModal() {
+        const modal = document.getElementById('modal-produto');
+        if (modal) modal.style.display = 'none';
+        const form = document.getElementById('form-product');
+        if (form) form.reset();
+        selectedAdicionais = [];
+        currentProductId = null;
+        if (productAdicionalSearch) productAdicionalSearch.value = '';
+        if (autocompleteResults) autocompleteResults.style.display = 'none';
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.close('modal-produto');
+        }
+    }
+
+    // Modal de Adicional (Novo Adicional / Editar Adicional)
+    function openAdicionalModal(item = null) {
+        const modal = document.getElementById('modal-adicional');
+        const form = document.getElementById('form-adicional');
+        const title = document.getElementById('adicional-modal-title');
+        
+        currentAdicionalId = item ? item.id : null;
+        
+        const categories = [...new Set(catalogItems.filter(i => i.is_adicional === 0).map(i => i.categoria))];
+        populateCategoriesDropdowns(categories);
+
+        const doOpen = () => {
+            if (modal) modal.style.display = 'flex';
+            if (item) {
+                if (title) title.innerHTML = '<i class="fa-solid fa-circle-plus"></i> Editar Adicional Global';
+                document.getElementById('adicional-cod-pdv').value = item.cod_pdv || '';
+                document.getElementById('adicional-nome').value = item.nome || '';
+                document.getElementById('adicional-preco').value = item.preco || 0;
+                
+                const parts = (item.descricao || '').split(' ||| ');
+                let linkedCategories = [];
+                if (parts[1]) {
+                    try {
+                        const meta = JSON.parse(parts[1]);
+                        if (meta.categoryLinks) linkedCategories = meta.categoryLinks;
+                    } catch (e) {
+                        console.warn('Falha ao processar metadados de categorias:', e);
+                    }
+                }
+                const select = document.getElementById('adicional-vinculo-categorias');
+                if (select) {
+                    Array.from(select.options).forEach(opt => {
+                        opt.selected = linkedCategories.includes(opt.value);
+                    });
+                }
+            } else {
+                if (title) title.innerHTML = '<i class="fa-solid fa-circle-plus"></i> Cadastro de Adicional Global';
+                if (form) form.reset();
+                const select = document.getElementById('adicional-vinculo-categorias');
+                if (select) {
+                    Array.from(select.options).forEach(opt => opt.selected = false);
+                }
+            }
+        };
+
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.open('modal-adicional', doOpen, closeAdicionalModal);
+        } else {
+            doOpen();
+        }
+    }
+
+    function closeAdicionalModal() {
+        const modal = document.getElementById('modal-adicional');
+        if (modal) modal.style.display = 'none';
+        const form = document.getElementById('form-adicional');
+        if (form) form.reset();
+        currentAdicionalId = null;
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.close('modal-adicional');
+        }
+    }
+
+    // Gerenciador de Autocomplete de Adicionais
+    if (productAdicionalSearch) {
+        productAdicionalSearch.addEventListener('input', (e) => {
+            const value = e.target.value.toLowerCase().trim();
+            if (!value) {
+                if (autocompleteResults) autocompleteResults.style.display = 'none';
+                return;
+            }
+            const filteredAdicionais = catalogItems.filter(item => 
+                item.is_adicional === 1 && 
+                ((item.nome && item.nome.toLowerCase().includes(value)) || 
+                 (item.cod_pdv && String(item.cod_pdv).toLowerCase().includes(value)))
+            );
+            
+            if (autocompleteResults) {
+                if (filteredAdicionais.length === 0) {
+                    autocompleteResults.innerHTML = '<div class="autocomplete-item" style="color: var(--text-muted); cursor: default;">Nenhum adicional encontrado</div>';
+                } else {
+                    autocompleteResults.innerHTML = filteredAdicionais.map(ad => `
+                        <div class="autocomplete-item" data-id="${ad.id}">
+                            <strong>${ad.nome}</strong> ${ad.cod_pdv ? `(PDV: ${ad.cod_pdv})` : ''} - R$ ${Number(ad.preco).toFixed(2)}
+                        </div>
+                    `).join('');
+                }
+                autocompleteResults.style.display = 'block';
+            }
+        });
+
+        // Fechar autocomplete ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (autocompleteResults && !productAdicionalSearch.contains(e.target) && !autocompleteResults.contains(e.target)) {
+                autocompleteResults.style.display = 'none';
+            }
+        });
+    }
+
+    if (autocompleteResults) {
+        autocompleteResults.addEventListener('click', (e) => {
+            const itemEl = e.target.closest('.autocomplete-item');
+            if (itemEl && itemEl.dataset.id) {
+                const id = parseInt(itemEl.dataset.id);
+                const addition = catalogItems.find(x => x.id === id);
+                if (addition) {
+                    if (!selectedAdicionais.some(x => x.id === id)) {
+                        selectedAdicionais.push(addition);
+                        renderSelectedAdicionaisTags();
+                    }
+                    if (productAdicionalSearch) productAdicionalSearch.value = '';
+                    autocompleteResults.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Vincular adicionais clicando no botão "Vincular"
+    const btnAddAdicionalToItem = document.getElementById('btn-add-adicional-to-item');
+    if (btnAddAdicionalToItem && productAdicionalSearch) {
+        btnAddAdicionalToItem.addEventListener('click', () => {
+            const searchValue = productAdicionalSearch.value.toLowerCase().trim();
+            if (!searchValue) return;
+            
+            const found = catalogItems.find(item => 
+                item.is_adicional === 1 && 
+                ((item.nome && item.nome.toLowerCase() === searchValue) || 
+                 (item.cod_pdv && String(item.cod_pdv).toLowerCase() === searchValue))
+            );
+            
+            if (found) {
+                if (!selectedAdicionais.some(x => x.id === found.id)) {
+                    selectedAdicionais.push(found);
+                    renderSelectedAdicionaisTags();
+                }
+                productAdicionalSearch.value = '';
+                if (autocompleteResults) autocompleteResults.style.display = 'none';
+            } else {
+                const partial = catalogItems.find(item => 
+                    item.is_adicional === 1 && 
+                    ((item.nome && item.nome.toLowerCase().includes(searchValue)) || 
+                     (item.cod_pdv && String(item.cod_pdv).toLowerCase().includes(searchValue)))
+                );
+                if (partial) {
+                    if (!selectedAdicionais.some(x => x.id === partial.id)) {
+                        selectedAdicionais.push(partial);
+                        renderSelectedAdicionaisTags();
+                    }
+                    productAdicionalSearch.value = '';
+                    if (autocompleteResults) autocompleteResults.style.display = 'none';
+                } else {
+                    alert('Nenhum adicional correspondente encontrado.');
+                }
+            }
+        });
+    }
+
+    if (productSelectedTagsContainer) {
+        productSelectedTagsContainer.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.remove-tag');
+            if (removeBtn) {
+                const id = parseInt(removeBtn.dataset.id);
+                selectedAdicionais = selectedAdicionais.filter(x => x.id !== id);
+                renderSelectedAdicionaisTags();
+            }
+        });
+    }
+
+    function renderSelectedAdicionaisTags() {
+        if (!productSelectedTagsContainer) return;
+        if (selectedAdicionais.length === 0) {
+            productSelectedTagsContainer.innerHTML = '<span style="font-size:0.85rem; color:var(--text-muted);">Nenhum adicional vinculado.</span>';
+            return;
+        }
+        productSelectedTagsContainer.innerHTML = selectedAdicionais.map(ad => `
+            <span class="tag-premium">
+                <span>${ad.nome} (+R$ ${Number(ad.preco).toFixed(2)})</span>
+                <span class="remove-tag" data-id="${ad.id}">&times;</span>
+            </span>
+        `).join('');
+    }
+
+    // Envio do formulário do Produto
+    const formProduct = document.getElementById('form-product');
+    if (formProduct) {
+        formProduct.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const codPdv = document.getElementById('product-cod-pdv').value;
+            const nome = document.getElementById('product-nome').value;
+            const preco = parseFloat(document.getElementById('product-preco').value) || 0;
+            const categoria = document.getElementById('product-categoria').value;
+            const descInput = document.getElementById('product-descricao').value;
+            
+            // Serializar adicionais vinculados na descrição
+            const adIds = selectedAdicionais.map(x => x.id);
+            const metadataStr = JSON.stringify({ adicionalIds: adIds });
+            const finalDesc = descInput ? `${descInput} ||| ${metadataStr}` : ` ||| ${metadataStr}`;
+            
+            const payload = {
+                cod_pdv: codPdv || null,
+                nome,
+                preco,
+                categoria,
+                descricao: finalDesc,
+                is_adicional: false,
+                disponivel: true
+            };
+            
+            try {
+                if (currentProductId) {
+                    await window.utils.apiFetch(`/catalog/${currentProductId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    await window.utils.apiFetch('/catalog', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                }
+                
+                closeProductModal();
+                await loadCatalog();
+                showToast(currentProductId ? 'Item atualizado!' : 'Item cadastrado!');
+            } catch (err) {
+                console.error('Erro ao salvar item:', err);
+                alert(err.message || 'Erro ao salvar item.');
+            }
+        });
+    }
+
+    // Envio do formulário do Adicional
+    const formAdicional = document.getElementById('form-adicional');
+    if (formAdicional) {
+        formAdicional.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const codPdv = document.getElementById('adicional-cod-pdv').value;
+            const nome = document.getElementById('adicional-nome').value;
+            const preco = parseFloat(document.getElementById('adicional-preco').value) || 0;
+            const select = document.getElementById('adicional-vinculo-categorias');
+            const selectedCategories = Array.from(select.selectedOptions).map(opt => opt.value);
+            
+            // Serializar categorias vinculadas na descrição
+            const metadataStr = JSON.stringify({ categoryLinks: selectedCategories });
+            const finalDesc = ` ||| ${metadataStr}`;
+            
+            const payload = {
+                cod_pdv: codPdv || null,
+                nome,
+                preco,
+                categoria: 'Adicionais',
+                descricao: finalDesc,
+                is_adicional: true,
+                disponivel: true
+            };
+            
+            try {
+                if (currentAdicionalId) {
+                    await window.utils.apiFetch(`/catalog/${currentAdicionalId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    await window.utils.apiFetch('/catalog', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                }
+                
+                closeAdicionalModal();
+                await loadCatalog();
+                showToast(currentAdicionalId ? 'Adicional atualizado!' : 'Adicional cadastrado!');
+            } catch (err) {
+                console.error('Erro ao salvar adicional:', err);
+                alert(err.message || 'Erro ao salvar adicional.');
+            }
+        });
+    }
+
+    // Configurar botões de fechar/cancelar dos modais
+    const btnCloseProductModal = document.getElementById('btn-close-product-modal');
+    if (btnCloseProductModal) btnCloseProductModal.addEventListener('click', closeProductModal);
+    
+    const btnCancelProductModal = document.getElementById('btn-cancel-product-modal');
+    if (btnCancelProductModal) btnCancelProductModal.addEventListener('click', closeProductModal);
+    
+    const btnCloseAdicionalModal = document.getElementById('btn-close-adicional-modal');
+    if (btnCloseAdicionalModal) btnCloseAdicionalModal.addEventListener('click', closeAdicionalModal);
+    
+    const btnCancelAdicionalModal = document.getElementById('btn-cancel-adicional-modal');
+    if (btnCancelAdicionalModal) btnCancelAdicionalModal.addEventListener('click', closeAdicionalModal);
+
+    // Registro dos modais no manager global do app
+    if (window.utils && window.utils.modalManager) {
+        window.utils.modalManager.register('modal-produto', closeProductModal);
+        window.utils.modalManager.register('modal-adicional', closeAdicionalModal);
+    }
+
+    // Delegador de cliques na tabela para ações de edição
+    document.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('[data-action="edit-catalog-item"]');
+        if (editBtn) {
+            const id = parseInt(editBtn.dataset.id);
+            const item = catalogItems.find(x => x.id === id);
+            if (item) {
+                if (item.is_adicional === 1) {
+                    openAdicionalModal(item);
+                } else {
+                    openProductModal(item);
+                }
+            }
+        }
+    });
+
+    // ==========================================
+    // 🍴 LÓGICA DOS BOTÕES DE AÇÕES DO CATÁLOGO
+    // ==========================================
+    
+    const btnAddCategory = document.getElementById('btn-add-category');
+    const btnDownloadModel = document.getElementById('btn-download-model');
+    const btnImportExcel = document.getElementById('btn-import-excel');
+    const btnCreateItem = document.getElementById('btn-create-item');
+    const btnCreateAdicional = document.getElementById('btn-create-adicional');
+    const excelUploadInput = document.getElementById('excel-upload');
+
+    if (btnAddCategory) {
+        btnAddCategory.addEventListener('click', () => {
+            const newCat = prompt('Digite o nome da nova categoria:');
+            if (newCat && newCat.trim()) {
+                const trimmed = newCat.trim();
+                const productCatSelect = document.getElementById('product-categoria');
+                if (productCatSelect) {
+                    const opt = document.createElement('option');
+                    opt.value = trimmed;
+                    opt.textContent = trimmed;
+                    productCatSelect.appendChild(opt);
+                    opt.selected = true;
+                }
+                const adicionalCatSelect = document.getElementById('adicional-vinculo-categorias');
+                if (adicionalCatSelect) {
+                    const opt = document.createElement('option');
+                    opt.value = trimmed;
+                    opt.textContent = trimmed;
+                    adicionalCatSelect.appendChild(opt);
+                }
+                alert(`Categoria "${trimmed}" adicionada com sucesso localmente! Selecione-a ao cadastrar ou salvar o item.`);
+            }
+        });
+    }
+
+    if (btnCreateItem) {
+        btnCreateItem.addEventListener('click', () => {
+            openProductModal();
+        });
+    }
+
+    if (btnCreateAdicional) {
+        btnCreateAdicional.addEventListener('click', () => {
+            openAdicionalModal();
+        });
+    }
+
+    if (btnDownloadModel) {
+        btnDownloadModel.addEventListener('click', () => {
+            if (typeof XLSX === 'undefined') {
+                alert('A biblioteca XLSX ainda não carregou.');
+                return;
+            }
+            const ws_data = [
+                ["Nome do Item", "Código PDV", "Categoria", "Preço", "Descrição"],
+                ["Ex: Pizza Margherita", "1001", "Pizzas", "45.00", "Molho de tomate, muçarela e manjericão"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Modelo_Cardapio");
+            XLSX.writeFile(wb, "Modelo_Importacao_Cardapio.xlsx");
+        });
+    }
+
+    if (btnImportExcel && excelUploadInput) {
+        btnImportExcel.addEventListener('click', () => {
+            excelUploadInput.click();
+        });
+
+        excelUploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (typeof XLSX === 'undefined') {
+                alert('A biblioteca XLSX não está disponível.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    // Remove cabeçalho
+                    if (json.length > 0) json.shift();
+                    
+                    let importCount = 0;
+                    for (const row of json) {
+                        const name = row[0] ? String(row[0]).trim() : '';
+                        if (!name) continue; // Pula linha vazia
+                        
+                        const pdv = row[1] ? String(row[1]).trim() : '';
+                        const category = row[2] ? String(row[2]).trim() : '';
+                        const priceStr = row[3] ? String(row[3]).trim() : '0';
+                        const desc = row[4] ? String(row[4]).trim() : '';
+                        
+                        const priceMatches = priceStr.match(/\d+([.,]\d+)?/);
+                        const price = priceMatches ? parseFloat(priceMatches[0].replace(',', '.')) : 0;
+
+                        // API Create Request
+                        const payload = {
+                            nome: name,
+                            cod_pdv: pdv || null,
+                            categoria: category || 'Geral', // Fallback se vazia
+                            preco: price,
+                            descricao: desc || null,
+                            is_adicional: false,
+                            disponivel: true
+                        };
+
+                        await window.utils.apiFetch('/catalog', {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        importCount++;
+                    }
+
+                    excelUploadInput.value = ''; // reseta
+                    if (importCount > 0) {
+                        alert(importCount + ' item(ns) importado(s) com sucesso!');
+                        await loadCatalog(); // Recarrega a tabela e pills
+                    } else {
+                        alert('Nenhum item válido encontrado no Excel.');
+                    }
+                } catch (err) {
+                    console.error('Erro na importação:', err);
+                    alert('Erro ao importar itens. Verifique o console.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
 });

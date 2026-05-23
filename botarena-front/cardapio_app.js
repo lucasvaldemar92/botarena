@@ -173,9 +173,28 @@ function openModal(item) {
     document.getElementById('item-codigo-pdv').value  = item && item.codigo_pdv? item.codigo_pdv: '';
     document.getElementById('item-category').value    = item && item.category  ? item.category  : '';
     document.getElementById('item-price').value       = item && item.price     ? item.price     : '';
-    document.getElementById('item-desc').value        = item && item.desc      ? item.desc      : '';
+    
+    var descText = '';
+    var adIds = [];
+    if (item && item.desc) {
+        var parts = item.desc.split(' ||| ');
+        descText = parts[0] || '';
+        if (parts[1]) {
+            try {
+                var meta = JSON.parse(parts[1]);
+                if (meta.adicionalIds) adIds = meta.adicionalIds;
+            } catch (e) {
+                console.warn('Falha ao processar metadados de adicionais:', e);
+            }
+        }
+    }
+    document.getElementById('item-desc').value        = descText;
     document.getElementById('item-available').checked = item ? item.available : true;
     document.getElementById('item-edit-id').value     = item && item.id        ? item.id        : '';
+
+    if (window.cardapioAdicionaisManager) {
+        window.cardapioAdicionaisManager.setSelected(adIds);
+    }
 
     modalOverlay.classList.add('active');
     document.getElementById('item-name').focus();
@@ -184,6 +203,9 @@ function openModal(item) {
 function closeModal() {
     modalOverlay.classList.remove('active');
     editingId = null;
+    if (window.cardapioAdicionaisManager) {
+        window.cardapioAdicionaisManager.clear();
+    }
 }
 
 document.getElementById('btn-novo-item').onclick = function() { openModal(); };
@@ -292,15 +314,38 @@ function renderItems() {
             '<tbody>';
 
         catItems.forEach(function(item, index) {
-            var priceFormatted = item.price ? 'R$ ' + item.price : '—';
+            var totalPreco = parseFloat(item.price) || 0;
+            var descParts = (item.desc || '').split(' ||| ');
+            var displayDesc = descParts[0] || '';
+            
+            if (descParts[1] && window.cardapioAdicionaisManager && typeof window.cardapioAdicionaisManager.getAvailableAdicionais === 'function') {
+                try {
+                    var meta = JSON.parse(descParts[1]);
+                    if (meta.adicionalIds && meta.adicionalIds.length > 0) {
+                        var available = window.cardapioAdicionaisManager.getAvailableAdicionais();
+                        var vinculados = available.filter(function(ad) {
+                            return meta.adicionalIds.includes(ad.id) || meta.adicionalIds.includes(String(ad.id));
+                        });
+                        var somaAdicionais = vinculados.reduce(function(sum, ad) {
+                            return sum + (parseFloat(ad.preco) || 0);
+                        }, 0);
+                        totalPreco += somaAdicionais;
+                    }
+                } catch (e) {
+                    console.warn('Falha ao calcular soma de adicionais no cardápio:', e);
+                }
+            }
+            
+            var priceFormatted = totalPreco ? 'R$ ' + totalPreco.toFixed(2) : (item.price ? 'R$ ' + parseFloat(item.price).toFixed(2) : '—');
             var badgeClass = item.available ? 'item-card__badge--on' : 'item-card__badge--off';
             var badgeText = item.available ? 'Sim' : 'Não';
             
             var rowClass = 'item-row';
+            
             tableHTML += '<tr class="' + rowClass + '" data-id="' + item.id + '">' +
                 '<td><span class="item-codigo-pdv" style="font-weight: 600; color: var(--color-primary);">' + (item.codigo_pdv || '—') + '</span></td>' +
                 '<td><span class="item-name">' + item.name + '</span></td>' +
-                '<td><span class="item-desc">' + (item.desc || '') + '</span></td>' +
+                '<td><span class="item-desc">' + displayDesc + '</span></td>' +
                 '<td><span class="item-price">' + priceFormatted + '</span></td>' +
                 '<td><button class="item-card__badge ' + badgeClass + '" data-action="toggle-item" data-id="' + item.id + '" style="border:none; cursor:pointer; font-family:inherit;" title="Clique para alterar">' + badgeText + '</button></td>' +
                 '<td style="text-align:right;">' +
@@ -381,7 +426,7 @@ modalSave.addEventListener('click', function() {
     var codigo_pdv= document.getElementById('item-codigo-pdv').value.trim();
     var category  = document.getElementById('item-category').value.trim();
     var price     = document.getElementById('item-price').value.trim();
-    var desc      = document.getElementById('item-desc').value.trim();
+    var descText  = document.getElementById('item-desc').value.trim();
     var available = document.getElementById('item-available').checked;
 
     // Validação: nome obrigatório
@@ -396,6 +441,13 @@ modalSave.addEventListener('click', function() {
         }, 1600);
         return;
     }
+
+    // Obter adicionais selecionados
+    var adIds = [];
+    if (window.cardapioAdicionaisManager) {
+        adIds = window.cardapioAdicionaisManager.getSelectedIds();
+    }
+    var desc = descText ? descText + ' ||| ' + JSON.stringify({ adicionalIds: adIds }) : ' ||| ' + JSON.stringify({ adicionalIds: adIds });
 
     // 1. Fecha o modal imediatamente
     modalOverlay.classList.remove('active');
@@ -527,3 +579,184 @@ document.getElementById('excel-upload').addEventListener('change', function(e) {
     };
     reader.readAsArrayBuffer(file);
 });
+
+// Camada de Gerenciamento de Vínculos de Adicionais (Autocomplete e Lookup Síncrono)
+(() => {
+    const localState = {
+        availableAdicionais: [], // Carregado via GET /api/catalog/adicionais
+        selectedAdicionaisForCurrentProduct: new Set()
+    };
+
+    const searchInput = document.getElementById('product-adicional-search');
+    const resultsBox = document.getElementById('autocomplete-results-box');
+    const tagsContainer = document.getElementById('product-selected-adicionais-tags');
+
+    // 1. Mecanismo de Busca Visual e Lookup por Código do PDV
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            if (!query) {
+                resultsBox.style.display = 'none';
+                return;
+            }
+
+            // Filtra buscando por Nome OU correspondência exata do Código do PDV
+            const matches = localState.availableAdicionais.filter(ad => 
+                ad.nome.toLowerCase().includes(query) || 
+                (ad.cod_pdv && ad.cod_pdv.toString() === query)
+            );
+
+            if (matches.length > 0) {
+                resultsBox.innerHTML = matches.map(ad => `
+                    <div class="autocomplete-item" data-id="${ad.id}" data-nome="${ad.nome}" data-cod="${ad.cod_pdv || ''}">
+                        <strong>${ad.nome}</strong> <span style="color:#718096; font-size:12px;">(PDV: ${ad.cod_pdv || '-'})</span>
+                    </div>
+                `).join('');
+                resultsBox.style.display = 'block';
+            } else {
+                resultsBox.innerHTML = `<div class="autocomplete-no-results">Nenhum adicional encontrado.</div>`;
+                resultsBox.style.display = 'block';
+            }
+        });
+        
+        // Fechar autocomplete ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (resultsBox && !searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+                resultsBox.style.display = 'none';
+            }
+        });
+    }
+
+    // 2. Delegação de Eventos para Seleção no Dropdown do Autocomplete
+    if (resultsBox) {
+        resultsBox.addEventListener('click', (e) => {
+            const item = e.target.closest('.autocomplete-item');
+            if (!item) return;
+
+            addAdicionalTag({
+                id: item.dataset.id,
+                nome: item.dataset.nome,
+                cod_pdv: item.dataset.cod
+            });
+
+            resultsBox.style.display = 'none';
+            searchInput.value = '';
+        });
+    }
+
+    // Vincular adicionais clicando no botão "Vincular"
+    const btnVincular = document.getElementById('btn-add-adicional-to-item');
+    if (btnVincular && searchInput) {
+        btnVincular.addEventListener('click', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query) return;
+            
+            const found = localState.availableAdicionais.find(ad => 
+                ad.nome.toLowerCase() === query || 
+                (ad.cod_pdv && ad.cod_pdv.toString() === query)
+            );
+            
+            if (found) {
+                addAdicionalTag({
+                    id: found.id,
+                    nome: found.nome,
+                    cod_pdv: found.cod_pdv
+                });
+                resultsBox.style.display = 'none';
+                searchInput.value = '';
+            } else {
+                const partial = localState.availableAdicionais.find(ad => 
+                    ad.nome.toLowerCase().includes(query) || 
+                    (ad.cod_pdv && ad.cod_pdv.toString().includes(query))
+                );
+                if (partial) {
+                    addAdicionalTag({
+                        id: partial.id,
+                        nome: partial.nome,
+                        cod_pdv: partial.cod_pdv
+                    });
+                    resultsBox.style.display = 'none';
+                    searchInput.value = '';
+                } else {
+                    alert('Nenhum adicional correspondente encontrado.');
+                }
+            }
+        });
+    }
+
+    // 3. Renderizador Síncrono de Tags Visuais (UX Automática)
+    function addAdicionalTag(adicional) {
+        // Converter ID para string para consistência no Set
+        const idStr = String(adicional.id);
+        if (localState.selectedAdicionaisForCurrentProduct.has(idStr)) return;
+
+        localState.selectedAdicionaisForCurrentProduct.add(idStr);
+
+        const span = document.createElement('span');
+        span.className = 'badge-adicional-tag';
+        span.dataset.id = idStr;
+        span.style = "background: #EDF2F7; color: #2D3748; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; margin: 4px;";
+        span.innerHTML = `
+            ${adicional.nome} <span style="font-size: 11px; color: #718096;">(Cód: ${adicional.cod_pdv || '-'})</span>
+            <i class="fa-solid fa-xmark remove-tag-btn" style="cursor:pointer; color:#E53E3E;"></i>
+        `;
+
+        tagsContainer.appendChild(span);
+    }
+
+    // 4. Delegação para Remoção de Vínculo na Tag (Botão X)
+    if (tagsContainer) {
+        tagsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-tag-btn')) {
+                const tag = e.target.closest('.badge-adicional-tag');
+                localState.selectedAdicionaisForCurrentProduct.delete(String(tag.dataset.id));
+                tag.remove();
+            }
+        });
+    }
+
+    // Carregar adicionais do banco
+    async function loadAvailableAdicionais() {
+        try {
+            if (window.utils && window.utils.apiFetch) {
+                const data = await window.utils.apiFetch('/catalog/adicionais');
+                localState.availableAdicionais = data || [];
+            }
+        } catch (e) {
+            console.error('Erro ao carregar adicionais no autocomplete:', e);
+        }
+    }
+
+    // Expor globalmente para a página
+    window.cardapioAdicionaisManager = {
+        setSelected: (adicionalIds) => {
+            localState.selectedAdicionaisForCurrentProduct.clear();
+            if (tagsContainer) tagsContainer.innerHTML = '';
+            
+            if (adicionalIds && adicionalIds.length > 0) {
+                adicionalIds.forEach(id => {
+                    const ad = localState.availableAdicionais.find(x => x.id == id);
+                    if (ad) {
+                        addAdicionalTag(ad);
+                    } else {
+                        // Fallback temporário
+                        addAdicionalTag({ id: id, nome: `Adicional #${id}`, cod_pdv: '' });
+                    }
+                });
+            }
+        },
+        getSelectedIds: () => {
+            return Array.from(localState.selectedAdicionaisForCurrentProduct).map(id => parseInt(id) || id);
+        },
+        clear: () => {
+            localState.selectedAdicionaisForCurrentProduct.clear();
+            if (tagsContainer) tagsContainer.innerHTML = '';
+        },
+        reload: loadAvailableAdicionais,
+        getAvailableAdicionais: () => localState.availableAdicionais
+    };
+
+    // Inicializa carregamento
+    loadAvailableAdicionais();
+})();
+

@@ -740,6 +740,137 @@
                 max-width: none;
             }
         }
+
+        /* Estilos dos Adicionais no Cardápio (Alta Densidade) */
+        .settings-linear-block {
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .block-header h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+
+        .input-table-row {
+            display: flex;
+            gap: 0.75rem;
+            width: 100%;
+            align-items: flex-end;
+        }
+
+        .input-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cell-70 { flex: 7; }
+        .cell-30 { flex: 3; }
+
+        .settings-linear-block .label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-row-style {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+            background: #fff;
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        .input-row-style:focus {
+            border-color: var(--accent-dark);
+            box-shadow: 0 0 0 3px rgba(17, 27, 33, 0.08);
+        }
+
+        .autocomplete-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            z-index: 10000;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 0.25rem;
+        }
+
+        .autocomplete-item {
+            padding: 0.6rem 0.875rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            text-align: left;
+            transition: background 0.15s ease;
+        }
+
+        .autocomplete-item:hover {
+            background: #f1f5f9;
+        }
+
+        .autocomplete-no-results {
+            padding: 0.6rem 0.875rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            cursor: default;
+        }
+
+        .selected-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-premium-dark {
+            background: var(--accent-dark);
+            color: white;
+            border: none;
+            padding: 0.625rem 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-premium-dark:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 
@@ -837,6 +968,27 @@
                         <input type="checkbox" id="item-available" checked>
                         <span class="slider"></span>
                     </label>
+                </div>
+
+                <div class="settings-linear-block">
+                    <div class="block-header"><h4><i class="fa-solid fa-puzzle-piece"></i> Adicionais Vinculados a este Produto</h4></div>
+                    
+                    <div class="input-table-row">
+                        <div class="input-cell cell-70">
+                            <span class="label">Buscar Adicional (Nome ou Cód. PDV)</span>
+                            <div class="autocomplete-wrapper">
+                                <input type="text" id="product-adicional-search" class="input-row-style" placeholder="Digite 'Morango' ou o código do PDV...">
+                                <div id="autocomplete-results-box" class="autocomplete-results" style="display: none;"></div>
+                            </div>
+                        </div>
+                        <div class="input-cell cell-30" style="display: flex; align-items: flex-end;">
+                            <button type="button" id="btn-add-adicional-to-item" class="btn-premium-dark" style="width: 100%; height: 38px;"><i class="fa-solid fa-plus"></i> Vincular</button>
+                        </div>
+                    </div>
+
+                    <div class="selected-tags-container" id="product-selected-adicionais-tags">
+                        <!-- Populadas dinamicamente -->
+                    </div>
                 </div>
             </div>
             <div class="modal__footer">
