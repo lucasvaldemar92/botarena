@@ -98,8 +98,8 @@ if (socket) {
     });
 
     socket.on('qr', (qrData) => {
-        updateQRCode(qrData);
         updateConnectionStatus(false);
+        updateQRCode(qrData);
     });
 
     socket.on('auth_success', () => {
