@@ -1364,6 +1364,8 @@
 
                     <article class="card" style="padding: 2rem;">
                         <div class="company-settings-form">
+                            <!-- Block 1: Dados da Empresa -->
+                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;"><i class="fa-solid fa-building" style="color: var(--color-primary);"></i> Informações Principais</h3>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="company-name">Razão Social</label>
@@ -1373,46 +1375,45 @@
                                     <label for="trade-name">Nome Fantasia</label>
                                     <input type="text" id="trade-name" name="trade_name" data-testid="trade-name" placeholder="Ex: Arena Juvenal" class="input-premium">
                                 </div>
-                            </div>
-
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label for="cnpj">CNPJ</label>
                                     <input type="text" id="cnpj" name="cnpj" data-testid="cnpj" placeholder="00.000.000/0001-00" class="input-premium">
                                 </div>
-                                <div class="form-group">
-                                    <label for="base-cep">CEP de Origem</label>
-                                    <input type="text" id="base-cep" name="base_cep" data-testid="base-cep" placeholder="89248-000" class="input-premium">
-                                </div>
                             </div>
-
                             <div class="form-row">
-                                <div class="form-group style-street">
-                                    <label for="company-street">Rua / Logradouro</label>
-                                    <input type="text" id="company-street" name="company_street" data-testid="company-street" placeholder="Ex: Av. Beira Mar" class="input-premium">
-                                </div>
-                                <div class="form-group style-number">
-                                    <label for="company-number">Número</label>
-                                    <input type="text" id="company-number" name="company_number" data-testid="company-number" placeholder="123" class="input-premium">
-                                </div>
-                            </div>
-
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="company-neighborhood">Bairro</label>
-                                    <input type="text" id="company-neighborhood" name="company_neighborhood" data-testid="company-neighborhood" placeholder="Ex: Pontal do Norte" class="input-premium">
-                                </div>
                                 <div class="form-group">
                                     <label for="company-phone">WhatsApp Operação</label>
                                     <input type="text" id="company-phone" name="company_phone" data-testid="company-phone" placeholder="(47) 99999-9999" class="input-premium">
                                 </div>
-                            </div>
-
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label for="company-email">E-mail Administrativo</label>
                                     <input type="email" id="company-email" name="company_email" data-testid="company-email" placeholder="admin@arenajuvenal.com.br" class="input-premium">
                                 </div>
+                            </div>
+
+                            <!-- Block 2: Bloco Endereço -->
+                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;"><i class="fa-solid fa-map-location-dot" style="color: var(--color-secondary);"></i> Endereço</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="base-cep">CEP de Origem</label>
+                                    <input type="text" id="base-cep" name="base_cep" data-testid="base-cep" placeholder="89248-000" class="input-premium">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company-neighborhood">Bairro</label>
+                                    <input type="text" id="company-neighborhood" name="company_neighborhood" data-testid="company-neighborhood" placeholder="Ex: Pontal do Norte" class="input-premium">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group style-street" style="flex: 3;">
+                                    <label for="company-street">Rua / Logradouro</label>
+                                    <input type="text" id="company-street" name="company_street" data-testid="company-street" placeholder="Ex: Av. Beira Mar" class="input-premium">
+                                </div>
+                                <div class="form-group style-number" style="flex: 1;">
+                                    <label for="company-number">Número</label>
+                                    <input type="text" id="company-number" name="company_number" data-testid="company-number" placeholder="123" class="input-premium">
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group">
                                     <label for="company-coordinates">Coordenadas (Latitude, Longitude)</label>
                                     <input type="text" id="company-coordinates" data-testid="company-coordinates" placeholder="Ex: -25.9221, -48.6083" class="input-premium">
@@ -1436,28 +1437,30 @@
                                 Disponível como atalho no menu do chat
                             </p>
 
-                            <!-- Integração PDV (Consumer) -->
+                            <!-- Integração PDV -->
                             <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span><i class="fa-solid fa-cash-register" style="color: #f59e0b;"></i> Integração PDV (Consumer)</span>
-                                <label class="switch" style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 400;">
-                                    Ativar Integração
-                                    <input type="checkbox" id="consumer-active" data-testid="consumer-active">
-                                    <span class="slider round"></span>
-                                </label>
+                                <span><i class="fa-solid fa-cash-register" style="color: #f59e0b;"></i> Integração PDV</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-main);">Ativar Integração</span>
+                                    <label class="switch switch--small" style="margin: 0;">
+                                        <input type="checkbox" id="consumer-active" data-testid="consumer-active">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
                             </h3>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="consumer-client-id">Client ID</label>
-                                    <input type="text" id="consumer-client-id" name="consumer_client_id" data-testid="consumer-client-id" placeholder="Ex: e617c...51d" class="input-premium">
+                                    <input type="text" id="consumer-client-id" name="consumer_client_id" data-testid="consumer-client-id" placeholder="ID de Integração PDV" class="input-premium">
                                 </div>
                                 <div class="form-group">
                                     <label for="consumer-client-secret">Client Secret</label>
-                                    <input type="text" id="consumer-client-secret" name="consumer_client_secret" data-testid="consumer-client-secret" placeholder="Ex: f2a81...b29" class="input-premium">
+                                    <input type="text" id="consumer-client-secret" name="consumer_client_secret" data-testid="consumer-client-secret" placeholder="Token Secreto PDV" class="input-premium">
                                 </div>
                             </div>
                             <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -0.5rem; display: block;">
                                 <i class="fa-solid fa-circle-info" style="color: #3b82f6; margin-right: 0.25rem;"></i>
-                                Solicite estas chaves ao suporte do Programa Consumer (Premium).
+                                Insira as chaves fornecidas pelo seu sistema de PDV de retaguarda.
                             </p>
                         </div>
 
@@ -1467,6 +1470,76 @@
                             </button>
                         </div>
                     </article>
+                </div>
+            </section>
+
+            <!-- 3.5 Cadastro de Cardápio (Nativo) -->
+            <section id="view-menu-catalog" class="view-section">
+                <div class="catalog-view-container" data-tab="menu-catalog" style="max-width: 1000px; margin: 0 auto;">
+                    
+                    <div class="catalog-action-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div class="action-title-group">
+                            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Cadastro de Cardápio</h2>
+                            <p style="color: var(--text-muted);">Gerenciamento de itens, insumos e adicionais do ecossistema</p>
+                        </div>
+                        <div class="action-buttons-group" style="display: flex; gap: 0.5rem; align-items: stretch;">
+                            <button id="btn-add-category" class="btn" style="background-color: #6B46C1; color: #fff; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;"><i class="fa-solid fa-folder-plus"></i> Categoria</button>
+                            <button id="btn-download-model" class="btn" style="background-color: #3182CE; color: #fff; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;"><i class="fa-solid fa-file-excel"></i> Planilha Modelo</button>
+                            <button id="btn-import-excel" class="btn" style="background-color: #38A169; color: #fff; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;"><i class="fa-solid fa-upload"></i> Importar Excel</button>
+                            <button id="btn-create-item" class="btn" style="background-color: #1A202C; color: #fff; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;"><i class="fa-solid fa-plus"></i> Novo Item</button>
+                        </div>
+                    </div>
+
+                    <div class="catalog-filter-bar" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="chips-scroll-wrapper" id="category-chips-container" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap;">
+                            <button class="chip-btn active" data-filter="all" style="padding: 0.4rem 1rem; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">Todos <span class="counter" id="count-all" style="background: var(--bg-main); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">0</span></button>
+                            <!-- Categorias injetadas aqui dinamicamente -->
+                        </div>
+                        <div style="display: flex;">
+                            <button class="chip-btn" data-filter="adicionais" id="chip-adicionais-trigger" style="padding: 0.4rem 1rem; border-radius: 20px; border: 1px solid #D69E2E; background: var(--bg-card); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; --accent-amber: #D69E2E;">
+                                <i class="fa-solid fa-wand-magic-sparkles" style="color: #D69E2E;"></i> Adicionais <span class="counter" style="background: #D69E2E; color: white; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.8rem;" id="count-adicionais">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="banner-info-amber card" id="banner-adicionais-info" style="display: none; background-color: #FEFCBF; border-left: 4px solid #D69E2E; padding: 1rem; margin-bottom: 1.5rem; border-radius: var(--radius-md);">
+                        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                            <div class="banner-icon" style="color: #D69E2E; font-size: 1.25rem;"><i class="fa-solid fa-circle-info"></i></div>
+                            <div class="banner-text">
+                                <h4 style="margin: 0 0 0.25rem 0; color: #975A16; font-weight: 700;">Adicionais Globais Ativos</h4>
+                                <p style="margin: 0; color: #744210; font-size: 0.9rem;">Os itens desta aba ficam visíveis em todo o fluxo do bot como opcionais dinâmicos ou complementos de sobremesas e pratos da Arena.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="catalog-search-wrapper" style="margin-bottom: 1.5rem;">
+                        <div class="search-input-box" style="position: relative; display: flex; align-items: center;">
+                            <i class="fa-solid fa-magnifying-glass search-icon" style="position: absolute; left: 1rem; color: var(--text-muted);"></i>
+                            <input type="text" id="catalog-search-input" placeholder="Buscar por nome do item, descrição ou código do PDV..." class="input-full-width" style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                        </div>
+                    </div>
+
+                    <div class="catalog-table-wrapper card" style="overflow-x: auto;">
+                        <table class="table-premium" id="table-catalog-items" style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); background: var(--bg-main);">
+                                    <th width="12%" style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Cód. PDV</th>
+                                    <th width="25%" style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Nome</th>
+                                    <th width="35%" style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Descrição</th>
+                                    <th width="10%" style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Preço</th>
+                                    <th width="10%" style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; text-align: center;">Disponível</th>
+                                    <th width="8%" style="padding: 1rem; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; text-align: center;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalog-table-body">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                        <div id="catalog-empty-state" style="display: none; padding: 3rem; text-align: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-utensils" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--border-color);"></i>
+                            <p>Nenhum item encontrado.</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -1605,7 +1678,7 @@
                 'clientes': { title: '👥 Clientes', isIframe: true, src: '/clientes.html' },
                 'cardapio': { title: '🍽️ Cardápio Digital', isIframe: true, src: '/dashboard/cardapio' },
                 'pedidos': { title: '🧾 Gestão de Pedidos', isIframe: true, src: '/pedidos.html' },
-                'menu-catalog': { title: '🍴 Cadastro de Cardápio', isIframe: true, src: '/cardapio.html' },
+                'menu-catalog': { title: '🍴 Cadastro de Cardápio', isIframe: false, id: 'view-menu-catalog' },
                 'delivery-fee': { title: '🛵 Taxa de Entrega', isIframe: false, id: 'view-delivery-fee' },
                 'rag': { title: '🧠 Memória IA (RAG)', isIframe: false, id: 'view-rag' },
                 'company-data': { title: '🏢 Dados da Empresa', isIframe: false, id: 'view-company-data' },

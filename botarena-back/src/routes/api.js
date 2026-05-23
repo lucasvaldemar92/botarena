@@ -6,6 +6,18 @@ const AuthService          = require('../services/AuthService');
 const { configSchema }     = require('../schemas/configSchema');
 const { knowledgeSchema }  = require('../schemas/knowledgeSchema');
 const { menuSchema }       = require('../schemas/menuSchema');
+const { z }                = require('zod');
+
+// Esquemas de Validação Zod para o Catálogo
+const catalogItemSchema = z.object({
+    cod_pdv: z.string().nullable().optional(),
+    nome: z.string().min(1, "Nome é obrigatório"),
+    descricao: z.string().nullable().optional(),
+    preco: z.number().nonnegative("Preço não pode ser negativo").default(0),
+    categoria: z.string().min(1, "Categoria é obrigatória"),
+    is_adicional: z.boolean().default(false),
+    disponivel: z.boolean().default(true)
+});
 
 /**
  * createApiRouter — Returns an Express Router with all API routes.
@@ -21,7 +33,7 @@ const { menuSchema }       = require('../schemas/menuSchema');
  * @param {Object}   deps.orderRepo       - OrderRepo instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService, orderRepo }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService, orderRepo, catalogRepo }) {
     const router = express.Router();
 
     // ==========================================
@@ -622,6 +634,87 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         } catch (e) {
             console.error('❌ [API] Error updating order status:', e);
             res.status(500).json({ error: 'Erro interno ao atualizar status do pedido.' });
+        }
+    });
+
+    // ==========================================
+    // 🍴 CATALOG ROUTES (Zod Validated)
+    // ==========================================
+    
+    // GET: Listar todos os itens
+    router.get('/catalog', async (req, res) => {
+        try {
+            const items = await catalogRepo.findAll();
+            res.json(items);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // GET: Listar categorias únicas para os chips de filtros
+    router.get('/catalog/categories', async (req, res) => {
+        try {
+            const items = await catalogRepo.findAll();
+            const normalCategories = [...new Set(items.filter(i => i.is_adicional === 0).map(i => i.categoria))];
+            res.json(normalCategories);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // GET: Listar apenas adicionais
+    router.get('/catalog/adicionais', async (req, res) => {
+        try {
+            const adicionais = await catalogRepo.findAdicionais();
+            res.json(adicionais);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // POST: Criar novo item de cardápio (Protegido)
+    router.post('/catalog', authMiddleware, async (req, res) => {
+        try {
+            const validData = catalogItemSchema.parse(req.body);
+            const newItem = await catalogRepo.create(validData);
+            res.status(201).json(newItem);
+        } catch (err) {
+            if (err instanceof z.ZodError) return res.status(400).json({ errors: err.errors });
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // PUT: Atualizar item (Protegido)
+    router.put('/catalog/:id', authMiddleware, async (req, res) => {
+        try {
+            const validData = catalogItemSchema.parse(req.body);
+            const updatedItem = await catalogRepo.update(req.params.id, validData);
+            if (!updatedItem) return res.status(404).json({ error: "Item não encontrado" });
+            res.json(updatedItem);
+        } catch (err) {
+            if (err instanceof z.ZodError) return res.status(400).json({ errors: err.errors });
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // DELETE: Remover item (Protegido)
+    router.delete('/catalog/:id', authMiddleware, async (req, res) => {
+        try {
+            const success = await catalogRepo.delete(req.params.id);
+            if (!success) return res.status(404).json({ error: "Item não encontrado" });
+            res.json({ success: true });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // PATCH: Alternar disponibilidade rápida (Protegido)
+    router.patch('/catalog/:id/toggle', authMiddleware, async (req, res) => {
+        try {
+            const updatedStatus = await catalogRepo.toggleDisponivel(req.params.id);
+            res.json(updatedStatus);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
         }
     });
 

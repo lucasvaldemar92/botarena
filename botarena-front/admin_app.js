@@ -606,4 +606,238 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // ==========================================
+    // 🍴 MENU CATALOG (V2) LOGIC
+    // ==========================================
+    
+    let catalogItems = [];
+    let currentCategoryFilter = 'all';
+    
+    const tableCatalogBody = document.getElementById('catalog-table-body');
+    const categoryChipsContainer = document.getElementById('category-chips-container');
+    const countAll = document.getElementById('count-all');
+    const chipAdicionaisTrigger = document.getElementById('chip-adicionais-trigger');
+    const countAdicionais = document.getElementById('count-adicionais');
+    const searchInput = document.getElementById('catalog-search-input');
+    const emptyState = document.getElementById('catalog-empty-state');
+    const bannerAdicionais = document.getElementById('banner-adicionais-info');
+    
+    async function loadCatalog() {
+        try {
+            // Wait for both main catalog items and categories
+            const [itemsResponse, categoriesResponse, adicionaisResponse] = await Promise.all([
+                window.utils.apiFetch('/catalog'),
+                window.utils.apiFetch('/catalog/categories'),
+                window.utils.apiFetch('/catalog/adicionais')
+            ]);
+            
+            // Combine items since the backend split them up depending on logic
+            // Actually /catalog already returns all items (both normal and adicionais).
+            catalogItems = itemsResponse;
+            
+            renderCategoryChips(categoriesResponse);
+            applyFiltersAndRender();
+            
+        } catch (err) {
+            console.error('Erro ao carregar catálogo:', err);
+        }
+    }
+    
+    function renderCategoryChips(categories) {
+        if (!categoryChipsContainer) return;
+        
+        // Remove old dynamic chips
+        const dynamicChips = categoryChipsContainer.querySelectorAll('.dynamic-chip');
+        dynamicChips.forEach(c => c.remove());
+        
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'chip-btn dynamic-chip';
+            btn.dataset.filter = cat;
+            btn.style.cssText = 'padding: 0.4rem 1rem; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;';
+            
+            const countSpan = document.createElement('span');
+            countSpan.className = 'counter';
+            countSpan.style.cssText = 'background: var(--bg-main); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.8rem;';
+            
+            btn.textContent = cat + ' ';
+            btn.appendChild(countSpan);
+            
+            categoryChipsContainer.appendChild(btn);
+        });
+        
+        bindChipEvents();
+    }
+    
+    function bindChipEvents() {
+        const allChips = document.querySelectorAll('.chip-btn');
+        allChips.forEach(chip => {
+            // Remove previous event listener safely
+            const newChip = chip.cloneNode(true);
+            chip.parentNode.replaceChild(newChip, chip);
+            
+            newChip.addEventListener('click', (e) => {
+                document.querySelectorAll('.chip-btn').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.borderColor = c.dataset.filter === 'adicionais' ? 'var(--accent-amber)' : 'var(--border-color)';
+                    const badge = c.querySelector('.counter');
+                    if (badge) {
+                        badge.style.background = c.dataset.filter === 'adicionais' ? 'var(--accent-amber)' : 'var(--bg-main)';
+                        badge.style.color = 'var(--text-main)';
+                    }
+                });
+                
+                const target = e.currentTarget;
+                target.classList.add('active');
+                
+                // Highlight active state
+                if (target.dataset.filter === 'adicionais') {
+                    target.style.borderColor = 'var(--accent-amber)';
+                    target.querySelector('.counter').style.background = 'var(--accent-amber)';
+                    target.querySelector('.counter').style.color = 'white';
+                    bannerAdicionais.style.display = 'block';
+                } else {
+                    target.style.borderColor = 'var(--accent-dark)';
+                    target.querySelector('.counter').style.background = 'var(--accent-dark)';
+                    target.querySelector('.counter').style.color = 'white';
+                    bannerAdicionais.style.display = 'none';
+                }
+                
+                currentCategoryFilter = target.dataset.filter;
+                applyFiltersAndRender();
+            });
+        });
+    }
+    
+    function applyFiltersAndRender() {
+        if (!tableCatalogBody) return;
+        
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        
+        // Count totals
+        const totalAdicionais = catalogItems.filter(i => i.is_adicional === 1).length;
+        if(countAdicionais) countAdicionais.textContent = totalAdicionais;
+        
+        const totalNormal = catalogItems.filter(i => i.is_adicional === 0).length;
+        if(countAll) countAll.textContent = totalNormal;
+        
+        // Update category chip counts
+        const dynamicChips = document.querySelectorAll('.dynamic-chip');
+        dynamicChips.forEach(chip => {
+            const cat = chip.dataset.filter;
+            const catCount = catalogItems.filter(i => i.is_adicional === 0 && i.categoria === cat).length;
+            const counter = chip.querySelector('.counter');
+            if(counter) counter.textContent = catCount;
+        });
+        
+        // Filter elements
+        const filtered = catalogItems.filter(item => {
+            // 1. Filter by category
+            if (currentCategoryFilter === 'adicionais' && item.is_adicional === 0) return false;
+            if (currentCategoryFilter !== 'adicionais' && currentCategoryFilter !== 'all' && item.categoria !== currentCategoryFilter) return false;
+            if (currentCategoryFilter === 'all' && item.is_adicional === 1) return false; // "Todos" = "Todos Normais"
+            
+            // 2. Filter by search
+            if (searchTerm) {
+                const searchMatch = (
+                    (item.nome && item.nome.toLowerCase().includes(searchTerm)) ||
+                    (item.descricao && item.descricao.toLowerCase().includes(searchTerm)) ||
+                    (item.cod_pdv && String(item.cod_pdv).toLowerCase().includes(searchTerm))
+                );
+                if (!searchMatch) return false;
+            }
+            return true;
+        });
+        
+        renderTable(filtered);
+    }
+    
+    function renderTable(items) {
+        tableCatalogBody.innerHTML = '';
+        
+        if (items.length === 0) {
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+            
+            items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                
+                tr.innerHTML = `
+                    <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">${item.cod_pdv || '-'}</td>
+                    <td style="padding: 1rem; font-weight: 600; color: var(--text-main);">${item.nome}</td>
+                    <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.descricao || ''}">${item.descricao || '-'}</td>
+                    <td style="padding: 1rem; font-weight: 600;">R$ ${Number(item.preco).toFixed(2)}</td>
+                    <td style="padding: 1rem; text-align: center;">
+                        <label class="switch switch--small" style="margin: 0 auto; display: inline-block;">
+                            <input type="checkbox" data-action="toggle-catalog-status" data-id="${item.id}" ${item.disponivel === 1 ? 'checked' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                    </td>
+                    <td style="padding: 1rem; text-align: center;">
+                        <button class="btn btn--outline" data-action="edit-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; margin-right: 0.25rem;"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn--outline" data-action="delete-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; color: #e11d48; border-color: #ffe4e6;"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tableCatalogBody.appendChild(tr);
+            });
+        }
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            applyFiltersAndRender();
+        });
+    }
+    
+    document.addEventListener('change', async (e) => {
+        if (e.target && e.target.dataset.action === 'toggle-catalog-status') {
+            const id = e.target.dataset.id;
+            try {
+                await window.utils.apiFetch(`/catalog/${id}/toggle`, { method: 'PATCH' });
+                // Update local memory state without reloading full array
+                const item = catalogItems.find(i => i.id == id);
+                if (item) item.disponivel = e.target.checked ? 1 : 0;
+            } catch (err) {
+                alert('Erro ao atualizar disponibilidade: ' + err.message);
+                e.target.checked = !e.target.checked; // revert UI
+            }
+        }
+    });
+
+    document.addEventListener('click', async (e) => {
+        const deleteBtn = e.target.closest('[data-action="delete-catalog-item"]');
+        if (deleteBtn) {
+            if (confirm('Deseja excluir este item do cardápio?')) {
+                try {
+                    await window.utils.apiFetch(`/catalog/${deleteBtn.dataset.id}`, { method: 'DELETE' });
+                    await loadCatalog();
+                } catch(err) {
+                    alert('Erro ao excluir: ' + err.message);
+                }
+            }
+        }
+    });
+    
+    // Load when app starts if menu is the target route or on demand
+    // For now we just eagerly load it, or rely on navigation clicks.
+    window.addEventListener('popstate', (e) => {
+        if (window.location.pathname.includes('/menu-catalog')) {
+            loadCatalog();
+        }
+    });
+
+    // Trigger initial load if we start on the route
+    if (window.location.pathname.includes('/menu-catalog')) {
+        loadCatalog();
+    }
+    
+    // Bind sidebar clicks to also trigger load
+    const menuCatBtns = document.querySelectorAll('.sidebar__item[data-tab="menu-catalog"]');
+    menuCatBtns.forEach(btn => {
+        btn.addEventListener('click', () => loadCatalog());
+    });
+    
 });

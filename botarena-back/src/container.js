@@ -14,6 +14,7 @@ const DeliveryFeeRepository = require('./repositories/DeliveryFeeRepository');
 const RagRepository       = require('./repositories/ragRepository');
 const RagService          = require('./services/ragService');
 const OrderRepo           = require('./repositories/orderRepo');
+const CatalogRepository   = require('./repositories/CatalogRepository');
 
 // Multi-tenant: default company ID for single-restaurant mode.
 // In the future, this will come from JWT claims or request context.
@@ -27,6 +28,7 @@ const deliveryFeeRepo = new DeliveryFeeRepository(db, DEFAULT_COMPANY_ID);
 const ragRepo       = new RagRepository(db, DEFAULT_COMPANY_ID);
 const ragService    = new RagService(ragRepo);
 const orderRepo     = new OrderRepo(db);
+const catalogRepo   = new CatalogRepository(db, DEFAULT_COMPANY_ID);
 
 module.exports = {
     db,
@@ -38,5 +40,6 @@ module.exports = {
     ragRepo,
     ragService,
     orderRepo,
+    catalogRepo,
     DEFAULT_COMPANY_ID
 };
