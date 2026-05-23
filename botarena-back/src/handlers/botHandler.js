@@ -45,13 +45,9 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
         // 🛡️ Ignore WhatsApp status/stories — must be the FIRST check
         if (msg.isStatus) return;
 
-        // Ignore messages sent by the system (fromMe) – Bot only reacts to external messages
-        if (msg.fromMe === true || msg.id.fromMe === true) {
-            return; // Completely ignore any message sent by the system/operator
-        }
-
         // Task 1: Strict JID Lockdown
-        if (msg.from === 'status@broadcast' || msg.from.includes('@g.us')) {
+        const targetJid = msg.fromMe ? msg.to : msg.from;
+        if (!targetJid || targetJid === 'status@broadcast' || targetJid.includes('@g.us')) {
             return;
         }
 
@@ -78,6 +74,11 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
                 fromMe:    msg.fromMe,
                 timestamp: msg.timestamp
             });
+        }
+
+        // Ignore messages sent by the system (fromMe) – Bot only reacts to external messages
+        if (msg.fromMe === true || msg.id.fromMe === true) {
+            return; // Completely ignore any message sent by the system/operator for bot response
         }
 
         if (!msg.body) return;
