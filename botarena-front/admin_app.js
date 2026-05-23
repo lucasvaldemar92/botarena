@@ -201,10 +201,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDisconnect = document.getElementById('btn-disconnect-bot');
     if (btnDisconnect) {
         btnDisconnect.addEventListener('click', async () => {
-            if (confirm('Tem certeza que deseja desconectar o WhatsApp?')) {
-                // Here you would call an API endpoint to explicitly logout.
-                // Since there is no /api/auth/logout currently, we assume socket.emit('logout') works.
-                if (socket) socket.emit('logout');
+            if (confirm('Tem certeza que deseja desconectar o WhatsApp? Isso exigirá um novo scan do QR Code.')) {
+                const originalHTML = btnDisconnect.innerHTML;
+                btnDisconnect.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Desconectando...';
+                btnDisconnect.disabled = true;
+                try {
+                    if (window.utils && window.utils.apiFetch) {
+                        await window.utils.apiFetch('/logout', { method: 'POST' });
+                    } else {
+                        await fetch(`${BASE_URL}/api/logout`, { method: 'POST' });
+                    }
+                } catch (err) {
+                    console.error('❌ [Disconnect] Error:', err);
+                    btnDisconnect.innerHTML = originalHTML;
+                    btnDisconnect.disabled = false;
+                    alert('Erro ao desconectar: ' + err.message);
+                }
             }
         });
     }
