@@ -525,6 +525,86 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     });
 
     // ==========================================
+    // 👥 WHATSAPP CHATS & MESSAGES ROUTES (🔒 Protected)
+    // ==========================================
+    router.get('/chats', authMiddleware, async (req, res) => {
+        if (!isClientReady()) {
+            if (process.env.NODE_ENV === 'development') {
+                const mockChats = [
+                    { id: '5511999998888@c.us', name: 'Ana Silva', time: '10:30', preview: 'Olá, gostaria de fazer um pedido.' },
+                    { id: '5521988887777@c.us', name: 'Bruno Oliveira', time: 'Ontem', preview: 'Obrigado pelo atendimento!' }
+                ];
+                return res.json(mockChats);
+            }
+            return res.json([]);
+        }
+        try {
+            const client = getClient();
+            const chats = await client.getChats();
+            
+            const formattedChats = chats
+                .filter(chat => !chat.isGroup && chat.id.server === 'c.us')
+                .map(chat => {
+                    let preview = '';
+                    let time = '';
+                    if (chat.lastMessage) {
+                        preview = chat.lastMessage.body || '';
+                        const date = new Date(chat.lastMessage.timestamp * 1000);
+                        time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+                    return {
+                        id: chat.id._serialized,
+                        name: chat.name || 'Sem nome',
+                        unreadCount: chat.unreadCount || 0,
+                        time: time || 'agora',
+                        preview: preview
+                    };
+                });
+            
+            res.json(formattedChats);
+        } catch (e) {
+            console.error('❌ [API] Error fetching chats:', e);
+            res.status(500).json({ error: 'Erro ao buscar conversas no WhatsApp.' });
+        }
+    });
+
+    router.get('/chats/:jid/messages', authMiddleware, async (req, res) => {
+        const { jid } = req.params;
+        if (!isClientReady()) {
+            if (process.env.NODE_ENV === 'development') {
+                const mockMsgs = [
+                    { id: 'msg1', body: 'Olá!', from: jid, to: 'me', fromMe: false, timestamp: Math.floor(Date.now()/1000) - 60 },
+                    { id: 'msg2', body: 'Como posso te ajudar?', from: 'me', to: jid, fromMe: true, timestamp: Math.floor(Date.now()/1000) - 30 }
+                ];
+                return res.json(mockMsgs);
+            }
+            return res.json([]);
+        }
+        try {
+            const client = getClient();
+            const chat = await client.getChatById(jid);
+            if (!chat) {
+                return res.status(404).json({ error: 'Chat não encontrado' });
+            }
+            const messages = await chat.fetchMessages({ limit: 50 });
+            
+            const formattedMessages = messages.map(msg => ({
+                id: msg.id._serialized,
+                body: msg.body || '',
+                from: msg.from,
+                to: msg.to,
+                fromMe: msg.fromMe,
+                timestamp: msg.timestamp
+            }));
+            
+            res.json(formattedMessages);
+        } catch (e) {
+            console.error(`❌ [API] Error fetching messages for ${jid}:`, e);
+            res.status(500).json({ error: 'Erro ao buscar histórico de mensagens.' });
+        }
+    });
+
+    // ==========================================
     // 👥 WHATSAPP CONTACTS ROUTES (🔒 Protected)
     // ==========================================
     router.get('/contacts', authMiddleware, async (req, res) => {

@@ -129,6 +129,11 @@
             if (existingChat) {
                 existingChat.time = timeString;
                 existingChat.preview = msg.body || '';
+                // Move o chat para o topo da lista
+                localState.activeChats = [
+                    existingChat,
+                    ...localState.activeChats.filter(chat => chat.id !== senderJid)
+                ];
             } else {
                 const phoneFromJid = senderJid.split('@')[0];
                 const matchedClient = localState.clients.find(c => 
@@ -167,6 +172,12 @@
                         ${checkmarks}
                     </div>
                 `;
+                
+                // Remove placeholders se houver
+                const placeholder = chatHistory.querySelector('div');
+                if (placeholder && (placeholder.textContent.includes('Nenhuma mensagem anterior') || placeholder.textContent.includes('Selecione um contato'))) {
+                    chatHistory.innerHTML = '';
+                }
                 
                 chatHistory.appendChild(msgDiv);
                 scrollToBottom();
@@ -208,7 +219,9 @@
             document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('chat-item--active'));
             item.classList.add('chat-item--active');
             
-            activeChatID = item.getAttribute('data-chat-id');
+            const newActiveChatID = item.getAttribute('data-chat-id');
+            const chatChanged = activeChatID !== newActiveChatID;
+            activeChatID = newActiveChatID;
 
             // Atualiza o cabeçalho com os dados reais do contato ativo
             const chatObj = localState.activeChats.find(chat => chat.id === activeChatID);
@@ -232,6 +245,11 @@
             }
             if (btnSend) btnSend.disabled = isBlocked;
             if (btnPix) btnPix.disabled = isBlocked;
+
+            // Carrega o histórico de mensagens se mudou o chat
+            if (chatChanged && !isBlocked) {
+                loadChatHistory(activeChatID);
+            }
         }
 
         // 2. Quick Replies
@@ -431,14 +449,14 @@
             if (headerSpan) headerSpan.textContent = name;
             if (headerImg) headerImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e0e0e0&color=333`;
             
-            const history = document.querySelector('.chat-messages');
-            if (history) history.innerHTML = '';
-            
             const chatInput = document.getElementById('main-chat-input');
             if (chatInput) {
                 chatInput.disabled = false;
                 chatInput.placeholder = "Digite uma mensagem";
             }
+
+            // Carrega o histórico do WhatsApp para este contato selecionado
+            loadChatHistory(id);
         };
 
         // Funções dinâmicas de contatos
@@ -456,6 +474,16 @@
                     <span class="archived-count">0</span>
                 </div>
             `;
+            
+            if (localState.activeChats.length === 0) {
+                chatListContainer.innerHTML = archivedHTML + `
+                    <div style="padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+                        Nenhuma conversa ativa.<br>
+                        <span style="font-size: 0.8rem; color: #a0aec0;">Clique no ícone de nova conversa no topo para iniciar.</span>
+                    </div>
+                `;
+                return;
+            }
             
             let itemsHTML = '';
             localState.activeChats.forEach(chat => {
@@ -507,33 +535,107 @@
             }).join('');
         }
 
+        async function loadChatHistory(jid) {
+            const chatHistory = document.querySelector('.chat-messages');
+            if (!chatHistory) return;
+
+            chatHistory.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted);">
+                    <div style="width: 30px; height: 30px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 0.5rem;"></div>
+                    <span>Carregando histórico...</span>
+                </div>
+            `;
+
+            try {
+                if (window.utils && window.utils.apiFetch) {
+                    const messages = await window.utils.apiFetch(`/chats/${jid}/messages`);
+                    
+                    chatHistory.innerHTML = '';
+                    
+                    if (!messages || messages.length === 0) {
+                        chatHistory.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.95rem;">
+                                Nenhuma mensagem anterior encontrada.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    messages.forEach(msg => {
+                        const msgId = msg.id || ('hist_' + msg.timestamp);
+                        const isSentByMe = msg.fromMe;
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = `message ${isSentByMe ? 'message--sent' : 'message--received'} fade-in-section`;
+                        msgDiv.setAttribute('data-msg-id', msgId);
+                        
+                        const date = new Date(msg.timestamp * 1000);
+                        const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        let checkmarks = '';
+                        if (isSentByMe) {
+                            checkmarks = `<span class="message__status"><i class="fa-solid fa-check" style="color: #64748b;"></i></span>`;
+                        }
+
+                        msgDiv.innerHTML = `
+                            <div class="message__bubble">
+                                <p class="message__text">${sanitizeHTML(msg.body) || '...'}</p>
+                                <span class="message__time">${timeString}</span>
+                                ${checkmarks}
+                            </div>
+                        `;
+                        chatHistory.appendChild(msgDiv);
+                    });
+
+                    scrollToBottom();
+                }
+            } catch (err) {
+                console.error('Erro ao carregar histórico do chat:', err);
+                chatHistory.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ef4444; font-size: 0.95rem;">
+                        Erro ao carregar histórico de mensagens.
+                    </div>
+                `;
+            }
+        }
+
         async function loadClientsAndChats() {
             try {
                 if (window.utils && window.utils.apiFetch) {
                     const clients = await window.utils.apiFetch('/clients');
                     localState.clients = clients || [];
                     
-                    // Monta as conversas iniciais baseadas nos clientes cadastrados
-                    localState.activeChats = localState.clients.map(c => {
-                        const jid = c.contact_jid || (c.phone ? `${c.phone.replace(/\D/g, '')}@c.us` : null);
-                        return {
-                            id: jid,
-                            name: c.name,
-                            phone: c.phone || '',
-                            time: '—',
-                            preview: 'Conversa iniciada'
-                        };
-                    }).filter(chat => chat.id);
+                    // Puxa as conversas ativas reais do WhatsApp conectado
+                    const chats = await window.utils.apiFetch('/chats');
+                    localState.activeChats = chats || [];
                     
-                    if (localState.activeChats.length > 0) {
-                        activeChatID = localState.activeChats[0].id;
-                        
-                        // Atualiza o cabeçalho inicial
-                        const headerSpan = document.querySelector('.chat-main__header span');
-                        const headerImg = document.querySelector('.chat-main__header img');
-                        if (headerSpan) headerSpan.textContent = localState.activeChats[0].name;
-                        if (headerImg) headerImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(localState.activeChats[0].name)}&background=e0e0e0&color=333`;
+                    // Associa nomes do banco aos chats se o nome no WhatsApp vier genérico ou vazio
+                    localState.activeChats.forEach(chat => {
+                        const phoneFromJid = chat.id.split('@')[0];
+                        const matchedClient = localState.clients.find(c => 
+                            c.contact_jid === chat.id || 
+                            (c.phone && c.phone.replace(/\D/g, '') === phoneFromJid)
+                        );
+                        if (matchedClient) {
+                            chat.name = matchedClient.name;
+                        }
+                    });
+                    
+                    activeChatID = null;
+                    
+                    // Limpa o cabeçalho e histórico de mensagens de início
+                    const headerSpan = document.querySelector('.chat-main__header span');
+                    const headerImg = document.querySelector('.chat-main__header img');
+                    if (headerSpan) headerSpan.textContent = 'Selecione uma conversa';
+                    if (headerImg) headerImg.src = 'https://ui-avatars.com/api/?name=Chat&background=e0e0e0&color=333';
+                    
+                    const chatInput = document.getElementById('main-chat-input');
+                    if (chatInput) {
+                        chatInput.disabled = true;
+                        chatInput.placeholder = "Selecione uma conversa no menu ou inicie um novo chat";
                     }
+                    
+                    const history = document.querySelector('.chat-messages');
+                    if (history) history.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.95rem;">Selecione um contato ou nova conversa para começar a digitar.</div>';
                     
                     renderSidebarChats();
                     populateContactsListModal();
