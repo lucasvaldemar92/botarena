@@ -12,3 +12,5 @@ yarn-error.log*
 *.db-wal
 *.db-shm
 botarena-back/test-results/
+scratch/
+qa-evidence/
