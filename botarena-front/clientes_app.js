@@ -7,22 +7,28 @@
 
     // --- DOM Elements ---
     const elements = {
-        modal:         document.getElementById('modal-registration'),
-        modalTitle:    document.getElementById('modal-title'),
-        btnNew:        document.getElementById('btn-new-client'),
-        btnClose:      document.getElementById('modal-close'),
-        btnCancel:     document.getElementById('btn-cancel'),
-        btnSubmit:     document.getElementById('btn-submit'),
-        form:          document.getElementById('form-client'),
-        sourceBadge:   document.getElementById('client-source-badge'),
-        inputName:     document.getElementById('client-name'),
-        inputBirth:    document.getElementById('client-birth'),
-        inputPhone:    document.getElementById('client-phone'),
-        inputCEP:      document.getElementById('client-cep'),
-        inputAddress:  document.getElementById('client-address'),
-        inputNumber:   document.getElementById('client-number'),
-        tableBody:     document.getElementById('clients-table-body'),
-        clientCount:   document.getElementById('client-count')
+        modal:              document.getElementById('modal-registration'),
+        modalTitle:         document.getElementById('modal-title'),
+        btnNew:             document.getElementById('btn-new-client'),
+        btnClose:           document.getElementById('modal-close'),
+        btnCancel:          document.getElementById('btn-cancel'),
+        btnSubmit:          document.getElementById('btn-submit'),
+        form:               document.getElementById('form-client'),
+        sourceBadge:        document.getElementById('client-source-badge'),
+        inputName:          document.getElementById('client-name'),
+        inputBirth:         document.getElementById('client-birth'),
+        inputPhone:         document.getElementById('client-phone'),
+        inputCEP:           document.getElementById('client-cep'),
+        inputAddress:       document.getElementById('client-address'),
+        inputNumber:        document.getElementById('client-number'),
+        tableBody:          document.getElementById('clients-table-body'),
+        clientCount:        document.getElementById('client-count'),
+        paginationControls: document.getElementById('pagination-controls'),
+        paginationInfo:     document.getElementById('pagination-info'),
+        paginationLimit:    document.getElementById('pagination-limit'),
+        btnPrevPage:        document.getElementById('btn-prev-page'),
+        btnNextPage:        document.getElementById('btn-next-page'),
+        currentPageNum:     document.getElementById('current-page-num')
     };
 
     // --- State Management ---
@@ -31,7 +37,9 @@
         editingId: null,   // null = novo cadastro, number = editando
         clients: [],
         socket: null,
-        redirectAfterSave: null
+        redirectAfterSave: null,
+        currentPage: 1,
+        itemsPerPage: 10
     };
 
     // --- API Calls ---
@@ -149,18 +157,38 @@
             }
         },
         renderTable: () => {
-            elements.clientCount.innerText = `${state.clients.length} cadastrados`;
+            const totalClients = state.clients.length;
+            elements.clientCount.innerText = `${totalClients} cadastrados`;
 
-            if (state.clients.length === 0) {
+            if (totalClients === 0) {
                 elements.tableBody.innerHTML = `
                     <tr>
                         <td colspan="8" class="empty-state">Nenhum cliente cadastrado.</td>
                     </tr>
                 `;
+                if (elements.paginationControls) {
+                    elements.paginationControls.style.display = 'none';
+                }
                 return;
             }
 
-            elements.tableBody.innerHTML = state.clients.map(client => `
+            // Paginação Dinâmica
+            const limitVal = elements.paginationLimit ? elements.paginationLimit.value : '10';
+            state.itemsPerPage = limitVal === 'all' ? totalClients : parseInt(limitVal, 10);
+            
+            const totalPages = Math.ceil(totalClients / state.itemsPerPage) || 1;
+            if (state.currentPage > totalPages) {
+                state.currentPage = totalPages;
+            }
+            if (state.currentPage < 1) {
+                state.currentPage = 1;
+            }
+
+            const start = (state.currentPage - 1) * state.itemsPerPage;
+            const end = start + state.itemsPerPage;
+            const paginatedClients = state.clients.slice(start, end);
+
+            elements.tableBody.innerHTML = paginatedClients.map(client => `
                 <tr data-id="${client.id}" data-testid="client-row-${client.id}">
                     <td>${client.name || '---'}</td>
                     <td>${client.birth_date || '---'}</td>
@@ -185,6 +213,30 @@
                     </td>
                 </tr>
             `).join('');
+
+            // Atualiza os controles de paginação
+            if (elements.paginationControls) {
+                elements.paginationControls.style.display = 'flex';
+                
+                const showFrom = totalClients === 0 ? 0 : start + 1;
+                const showTo = Math.min(end, totalClients);
+                
+                if (elements.paginationInfo) {
+                    elements.paginationInfo.textContent = `Mostrando ${showFrom}-${showTo} de ${totalClients} clientes`;
+                }
+                
+                if (elements.currentPageNum) {
+                    elements.currentPageNum.textContent = state.currentPage;
+                }
+                
+                if (elements.btnPrevPage) {
+                    elements.btnPrevPage.disabled = state.currentPage === 1;
+                }
+                
+                if (elements.btnNextPage) {
+                    elements.btnNextPage.disabled = state.currentPage === totalPages;
+                }
+            }
         }
     };
 
@@ -234,6 +286,22 @@
             }
         }
 
+        if (target.closest('#btn-prev-page')) {
+            if (state.currentPage > 1) {
+                state.currentPage--;
+                ui.renderTable();
+            }
+        }
+
+        if (target.closest('#btn-next-page')) {
+            const totalClients = state.clients.length;
+            const totalPages = Math.ceil(totalClients / state.itemsPerPage) || 1;
+            if (state.currentPage < totalPages) {
+                state.currentPage++;
+                ui.renderTable();
+            }
+        }
+
         const editBtn = target.closest('[data-action="edit"]');
         if (editBtn) {
             const client = state.clients.find(c => c.id === parseInt(editBtn.dataset.id));
@@ -266,6 +334,13 @@
         };
         api.saveClient(payload);
     });
+
+    if (elements.paginationLimit) {
+        elements.paginationLimit.addEventListener('change', () => {
+            state.currentPage = 1;
+            ui.renderTable();
+        });
+    }
 
     // --- Initialization ---
     const init = async () => {
