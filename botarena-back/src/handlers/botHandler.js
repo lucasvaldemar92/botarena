@@ -51,14 +51,30 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
             return;
         }
 
-        // 🔒 Sandbox Lock Mode (Trava o bot em um único número de teste em dev)
+        // 🔒 Sandbox Lock Mode (Trava o bot no número de teste configurado no .env)
         if (process.env.SANDBOX_MODE === 'true') {
-            if (!global.sandboxTargetJid) {
-                global.sandboxTargetJid = targetJid;
-                console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+            const targetNumber = targetJid.split('@')[0].replace(/\D/g, '');
+            const allowedPhone = process.env.SANDBOX_TARGET_PHONE ? process.env.SANDBOX_TARGET_PHONE.replace(/\D/g, '') : null;
+            
+            let isAllowed = false;
+            if (allowedPhone) {
+                const allowedSuffix = allowedPhone.slice(-7);
+                const targetSuffix = targetNumber.slice(-7);
+                if (allowedSuffix && targetSuffix && allowedSuffix === targetSuffix) {
+                    isAllowed = true;
+                }
+            } else {
+                if (!global.sandboxTargetJid) {
+                    global.sandboxTargetJid = targetJid;
+                    console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                }
+                if (targetJid === global.sandboxTargetJid) {
+                    isAllowed = true;
+                }
             }
-            if (targetJid !== global.sandboxTargetJid) {
-                console.log(`🚫 [Sandbox] Mensagem de entrada ignorada de ${targetJid} (travado em ${global.sandboxTargetJid})`);
+
+            if (!isAllowed) {
+                console.log(`🚫 [Sandbox] Mensagem de entrada ignorada de ${targetJid} (não autorizada pelo sandbox)`);
                 return;
             }
         }

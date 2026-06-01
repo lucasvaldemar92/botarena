@@ -74,12 +74,28 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, me
 
                 // 🔒 Sandbox Lock Mode (Evita envios para outros números)
                 if (process.env.SANDBOX_MODE === 'true') {
-                    if (!global.sandboxTargetJid) {
-                        global.sandboxTargetJid = target;
-                        console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                    const targetNumber = target.split('@')[0].replace(/\D/g, '');
+                    const allowedPhone = process.env.SANDBOX_TARGET_PHONE ? process.env.SANDBOX_TARGET_PHONE.replace(/\D/g, '') : null;
+                    
+                    let isAllowed = false;
+                    if (allowedPhone) {
+                        const allowedSuffix = allowedPhone.slice(-7);
+                        const targetSuffix = targetNumber.slice(-7);
+                        if (allowedSuffix && targetSuffix && allowedSuffix === targetSuffix) {
+                            isAllowed = true;
+                        }
+                    } else {
+                        if (!global.sandboxTargetJid) {
+                            global.sandboxTargetJid = target;
+                            console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                        }
+                        if (target === global.sandboxTargetJid) {
+                            isAllowed = true;
+                        }
                     }
-                    if (target !== global.sandboxTargetJid) {
-                        console.error(`🚫 [Sandbox] Envio bloqueado para ${target} (travado em ${global.sandboxTargetJid})`);
+
+                    if (!isAllowed) {
+                        console.error(`🚫 [Sandbox] Envio bloqueado para ${target} (não autorizado pelo sandbox)`);
                         socket.emit('message_error', { error: 'Envio bloqueado em Modo Sandbox' });
                         return;
                     }
@@ -127,12 +143,28 @@ function setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, me
 
                     // 🔒 Sandbox Lock Mode (Evita envios para outros números)
                     if (process.env.SANDBOX_MODE === 'true') {
-                        if (!global.sandboxTargetJid) {
-                            global.sandboxTargetJid = target;
-                            console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                        const targetNumber = target.split('@')[0].replace(/\D/g, '');
+                        const allowedPhone = process.env.SANDBOX_TARGET_PHONE ? process.env.SANDBOX_TARGET_PHONE.replace(/\D/g, '') : null;
+                        
+                        let isAllowed = false;
+                        if (allowedPhone) {
+                            const allowedSuffix = allowedPhone.slice(-7);
+                            const targetSuffix = targetNumber.slice(-7);
+                            if (allowedSuffix && targetSuffix && allowedSuffix === targetSuffix) {
+                                isAllowed = true;
+                            }
+                        } else {
+                            if (!global.sandboxTargetJid) {
+                                global.sandboxTargetJid = target;
+                                console.log(`🔒 [Sandbox] Chat travado globalmente para o contato: ${global.sandboxTargetJid}`);
+                            }
+                            if (target === global.sandboxTargetJid) {
+                                isAllowed = true;
+                            }
                         }
-                        if (target !== global.sandboxTargetJid) {
-                            console.error(`🚫 [Sandbox] Envio de mídia bloqueado para ${target} (travado em ${global.sandboxTargetJid})`);
+
+                        if (!isAllowed) {
+                            console.error(`🚫 [Sandbox] Envio de mídia bloqueado para ${target} (não autorizado pelo sandbox)`);
                             socket.emit('message_error', { error: 'Envio de mídia bloqueado em Modo Sandbox' });
                             return;
                         }
