@@ -173,6 +173,38 @@
             }
 
             // Paginação Dinâmica
+            if (elements.paginationControls) {
+                if (totalClients <= 10) {
+                    elements.paginationControls.style.display = 'none';
+                    state.itemsPerPage = totalClients;
+                    state.currentPage = 1;
+                } else {
+                    elements.paginationControls.style.display = 'flex';
+                    
+                    if (elements.paginationLimit) {
+                        const previousValue = elements.paginationLimit.value;
+                        const defaultLimits = [10, 25, 50];
+                        const availableLimits = defaultLimits.filter(limit => limit < totalClients);
+                        
+                        let optionsHTML = '';
+                        availableLimits.forEach(limit => {
+                            optionsHTML += `<option value="${limit}">${limit} por página</option>`;
+                        });
+                        optionsHTML += `<option value="all">Ver todos</option>`;
+                        
+                        elements.paginationLimit.innerHTML = optionsHTML;
+                        
+                        // Tenta manter o valor selecionado anteriormente se ainda for válido
+                        const hasPrevious = Array.from(elements.paginationLimit.options).some(opt => opt.value === previousValue);
+                        if (hasPrevious) {
+                            elements.paginationLimit.value = previousValue;
+                        } else {
+                            elements.paginationLimit.value = '10';
+                        }
+                    }
+                }
+            }
+
             const limitVal = elements.paginationLimit ? elements.paginationLimit.value : '10';
             state.itemsPerPage = limitVal === 'all' ? totalClients : parseInt(limitVal, 10);
             
@@ -215,7 +247,7 @@
             `).join('');
 
             // Atualiza os controles de paginação
-            if (elements.paginationControls) {
+            if (elements.paginationControls && totalClients > 10) {
                 elements.paginationControls.style.display = 'flex';
                 
                 const showFrom = totalClients === 0 ? 0 : start + 1;
