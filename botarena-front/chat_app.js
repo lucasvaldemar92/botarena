@@ -198,20 +198,9 @@
     function renderSidebarChats() {
         const chatListContainer = document.querySelector('.chat-list');
         if (!chatListContainer) return;
-
-        // Preserva o cabeçalho "Arquivadas"
-        const archivedHTML = `
-            <div class="chat-list__archived">
-                <div class="archived-left">
-                    <i class="fa-solid fa-box-archive"></i>
-                    <span>Arquivadas</span>
-                </div>
-                <span class="archived-count">0</span>
-            </div>
-        `;
         
         if (localState.activeChats.length === 0) {
-            chatListContainer.innerHTML = archivedHTML + `
+            chatListContainer.innerHTML = `
                 <div style="padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
                     Nenhuma conversa ativa.<br>
                     <span style="font-size: 0.8rem; color: #a0aec0;">Clique no ícone de nova conversa no topo para iniciar.</span>
@@ -242,7 +231,7 @@
             `;
         });
         
-        chatListContainer.innerHTML = archivedHTML + itemsHTML;
+        chatListContainer.innerHTML = itemsHTML;
     }
 
     function populateContactsListModal() {
@@ -364,10 +353,19 @@
                 if (headerImg) headerImg.src = 'https://ui-avatars.com/api/?name=Chat&background=e0e0e0&color=333';
                 
                 const chatInput = document.getElementById('main-chat-input');
+                const btnSend = document.getElementById('main-send-btn');
+                const btnPix = document.getElementById('quick-reply-pix');
+                const btnRota = document.getElementById('quick-reply-rota');
+                const btnMenuQuick = document.getElementById('quick-reply-menu');
+
                 if (chatInput) {
                     chatInput.disabled = true;
                     chatInput.placeholder = "Selecione uma conversa no menu ou inicie um novo chat";
                 }
+                if (btnSend) btnSend.disabled = true;
+                if (btnPix) btnPix.disabled = true;
+                if (btnRota) btnRota.disabled = true;
+                if (btnMenuQuick) btnMenuQuick.disabled = true;
                 
                 const history = document.querySelector('.chat-messages');
                 if (history) history.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.95rem;">Selecione um contato ou nova conversa para começar a digitar.</div>';
@@ -423,16 +421,21 @@
             const chatInput = document.getElementById('main-chat-input');
             const btnSend = document.getElementById('main-send-btn');
             const btnPix = document.getElementById('quick-reply-pix');
+            const btnRota = document.getElementById('quick-reply-rota');
+            const btnMenuQuick = document.getElementById('quick-reply-menu');
 
             const isBlocked = activeChatID && (activeChatID.includes('broadcast') || activeChatID.includes('@g.us'));
+            const isSelectable = activeChatID && !isBlocked;
             
             if (chatInput) {
-                chatInput.disabled = isBlocked;
+                chatInput.disabled = !isSelectable;
                 chatInput.placeholder = isBlocked ? "🚫 Não é permitido enviar mensagens aqui." : "Digite uma mensagem";
                 if (isBlocked) chatInput.value = "";
             }
-            if (btnSend) btnSend.disabled = isBlocked;
-            if (btnPix) btnPix.disabled = isBlocked;
+            if (btnSend) btnSend.disabled = !isSelectable;
+            if (btnPix) btnPix.disabled = !isSelectable;
+            if (btnRota) btnRota.disabled = !isSelectable;
+            if (btnMenuQuick) btnMenuQuick.disabled = !isSelectable;
 
             // Carrega o histórico de mensagens se mudou o chat
             if (chatChanged && !isBlocked) {
@@ -445,15 +448,15 @@
         if (!chatInput) return;
 
         if (e.target.id === 'quick-reply-pix' || e.target.closest('#quick-reply-pix')) {
-            if (activeChatID?.includes('broadcast')) return;
+            if (!activeChatID || activeChatID.includes('broadcast')) return;
             const pixKey = (currentConfig && currentConfig.pix) ? currentConfig.pix : 'Não configurada';
             chatInput.value = `Nossa chave PIX:\n- Favorecido: ${currentConfig?.empresa || 'Arena Juvenal'}\n- Chave: ${pixKey}\n- Banco: Digital`;
             chatInput.focus();
             chatInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
-        if (e.target.id === 'quick-reply-rota') {
-            if (activeChatID?.includes('broadcast')) return;
+        if (e.target.id === 'quick-reply-rota' || e.target.closest('#quick-reply-rota')) {
+            if (!activeChatID || activeChatID.includes('broadcast')) return;
             chatInput.value = `Seu pedido já saiu para entrega e deve chegar em instantes! 🛵💨`;
             chatInput.focus();
             chatInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -638,10 +641,19 @@
             if (headerImg) headerImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e0e0e0&color=333`;
             
             const chatInput = document.getElementById('main-chat-input');
+            const btnSend = document.getElementById('main-send-btn');
+            const btnPix = document.getElementById('quick-reply-pix');
+            const btnRota = document.getElementById('quick-reply-rota');
+            const btnMenuQuick = document.getElementById('quick-reply-menu');
+
             if (chatInput) {
                 chatInput.disabled = false;
                 chatInput.placeholder = "Digite uma mensagem";
             }
+            if (btnSend) btnSend.disabled = false;
+            if (btnPix) btnPix.disabled = false;
+            if (btnRota) btnRota.disabled = false;
+            if (btnMenuQuick) btnMenuQuick.disabled = false;
 
             // Carrega o histórico do WhatsApp para este contato selecionado
             loadChatHistory(id);
