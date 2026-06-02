@@ -871,8 +871,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </label>
                 </td>
                 <td style="padding: 1rem; text-align: center;">
-                    <button class="btn btn--outline" data-action="edit-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; margin-right: 0.25rem;"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn btn--outline" data-action="delete-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; color: #e11d48; border-color: #ffe4e6;"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn btn--outline" data-action="edit-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; margin-right: 0.25rem;" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn--outline" data-action="duplicate-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; margin-right: 0.25rem; color: #4f46e5; border-color: #e0e7ff;" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
+                    <button class="btn btn--outline" data-action="delete-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; color: #e11d48; border-color: #ffe4e6;" title="Excluir"><i class="fa-solid fa-trash"></i></button>
                 </td>
             `;
             tableCatalogBody.appendChild(tr);
@@ -974,6 +975,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     await loadCatalog();
                 } catch(err) {
                     alert('Erro ao excluir: ' + err.message);
+                }
+            }
+        }
+
+        const duplicateBtn = e.target.closest('[data-action="duplicate-catalog-item"]');
+        if (duplicateBtn) {
+            const id = parseInt(duplicateBtn.dataset.id);
+            const item = catalogItems.find(x => x.id === id);
+            if (item) {
+                if (confirm(`Deseja duplicar o item "${item.nome}" e copiar todos os seus vínculos?`)) {
+                    const payload = {
+                        cod_pdv: null, // Evita duplicar código PDV único
+                        nome: `${item.nome} (Cópia)`,
+                        preco: Number(item.preco) || 0,
+                        categoria: item.categoria,
+                        descricao: item.descricao, // Mantém os vínculos serializados na descrição
+                        is_adicional: item.is_adicional === 1 || item.is_adicional === true,
+                        disponivel: item.disponivel === 1 || item.disponivel === true
+                    };
+                    
+                    try {
+                        await window.utils.apiFetch('/catalog', {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        await loadCatalog();
+                        showToast('Item duplicado com sucesso!');
+                    } catch (err) {
+                        console.error('Erro ao duplicar item:', err);
+                        alert('Erro ao duplicar item: ' + err.message);
+                    }
                 }
             }
         }
