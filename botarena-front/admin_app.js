@@ -625,6 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let catalogItems = [];
     let currentCategoryFilter = 'all';
+    let catalogCurrentPage = 1;
+    let catalogItemsPerPage = 10;
     
     const tableCatalogBody = document.getElementById('catalog-table-body');
     const categoryChipsContainer = document.getElementById('category-chips-container');
@@ -634,6 +636,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('catalog-search-input');
     const emptyState = document.getElementById('catalog-empty-state');
     const bannerAdicionais = document.getElementById('banner-adicionais-info');
+
+    // Referências do DOM da Paginação do Catálogo
+    const catalogPaginationControls = document.getElementById('catalog-pagination-controls');
+    const catalogPaginationInfo     = document.getElementById('catalog-pagination-info');
+    const catalogPaginationLimit    = document.getElementById('catalog-pagination-limit');
+    const catalogBtnPrevPage        = document.getElementById('catalog-btn-prev-page');
+    const catalogBtnNextPage        = document.getElementById('catalog-btn-next-page');
+    const catalogCurrentPageNum     = document.getElementById('catalog-current-page-num');
     
     async function loadCatalog() {
         try {
@@ -717,6 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 currentCategoryFilter = target.dataset.filter;
+                catalogCurrentPage = 1; // Reset para página 1
                 applyFiltersAndRender();
             });
         });
@@ -767,59 +778,177 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderTable(items) {
         tableCatalogBody.innerHTML = '';
+        const totalItems = items.length;
         
-        if (items.length === 0) {
+        if (totalItems === 0) {
             emptyState.style.display = 'block';
-        } else {
-            emptyState.style.display = 'none';
-            
-            items.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.style.borderBottom = '1px solid var(--border-color)';
+            if (catalogPaginationControls) {
+                catalogPaginationControls.style.display = 'none';
+            }
+            return;
+        }
+        
+        emptyState.style.display = 'none';
+
+        // Lógica de Paginação Dinâmica
+        if (catalogPaginationControls) {
+            if (totalItems <= 10) {
+                catalogPaginationControls.style.display = 'none';
+                catalogItemsPerPage = totalItems;
+                catalogCurrentPage = 1;
+            } else {
+                catalogPaginationControls.style.display = 'flex';
                 
-                const descParts = (item.descricao || '').split(' ||| ');
-                const displayDesc = descParts[0] || '-';
-                
-                let totalPreco = Number(item.preco) || 0;
-                if (item.is_adicional === 0 && descParts[1]) {
-                    try {
-                        const meta = JSON.parse(descParts[1]);
-                        if (meta.adicionalIds && meta.adicionalIds.length > 0) {
-                            const vinculados = catalogItems.filter(x => x.is_adicional === 1 && meta.adicionalIds.includes(x.id));
-                            const somaAdicionais = vinculados.reduce((sum, ad) => sum + (Number(ad.preco) || 0), 0);
-                            totalPreco += somaAdicionais;
-                        }
-                    } catch (e) {
-                        console.warn('Falha ao calcular soma de adicionais no painel administrativo:', e);
+                if (catalogPaginationLimit) {
+                    const previousValue = catalogPaginationLimit.value;
+                    const defaultLimits = [10, 25, 50];
+                    const availableLimits = defaultLimits.filter(limit => limit < totalItems);
+                    
+                    let optionsHTML = '';
+                    availableLimits.forEach(limit => {
+                        optionsHTML += `<option value="${limit}">${limit} por página</option>`;
+                    });
+                    optionsHTML += `<option value="all">Ver todos</option>`;
+                    
+                    catalogPaginationLimit.innerHTML = optionsHTML;
+                    
+                    // Tenta manter o valor anterior
+                    const hasPrevious = Array.from(catalogPaginationLimit.options).some(opt => opt.value === previousValue);
+                    if (hasPrevious) {
+                        catalogPaginationLimit.value = previousValue;
+                    } else {
+                        catalogPaginationLimit.value = '10';
                     }
                 }
-                
-                tr.innerHTML = `
-                    <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">${item.cod_pdv || '-'}</td>
-                    <td style="padding: 1rem; font-weight: 600; color: var(--text-main);">${item.nome}</td>
-                    <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${displayDesc}">${displayDesc}</td>
-                    <td style="padding: 1rem; font-weight: 600;">R$ ${Number(totalPreco).toFixed(2)}</td>
-                    <td style="padding: 1rem; text-align: center;">
-                        <label class="switch switch--small" style="margin: 0 auto; display: inline-block;">
-                            <input type="checkbox" data-action="toggle-catalog-status" data-id="${item.id}" ${item.disponivel === 1 ? 'checked' : ''}>
-                            <span class="slider round"></span>
-                        </label>
-                    </td>
-                    <td style="padding: 1rem; text-align: center;">
-                        <button class="btn btn--outline" data-action="edit-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; margin-right: 0.25rem;"><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn btn--outline" data-action="delete-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; color: #e11d48; border-color: #ffe4e6;"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tableCatalogBody.appendChild(tr);
-            });
+            }
+        }
+
+        const limitVal = catalogPaginationLimit ? catalogPaginationLimit.value : '10';
+        catalogItemsPerPage = limitVal === 'all' ? totalItems : parseInt(limitVal, 10);
+
+        const totalPages = Math.ceil(totalItems / catalogItemsPerPage) || 1;
+        if (catalogCurrentPage > totalPages) {
+            catalogCurrentPage = totalPages;
+        }
+        if (catalogCurrentPage < 1) {
+            catalogCurrentPage = 1;
+        }
+
+        const start = (catalogCurrentPage - 1) * catalogItemsPerPage;
+        const end = start + catalogItemsPerPage;
+        const paginatedItems = items.slice(start, end);
+
+        paginatedItems.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            
+            const descParts = (item.descricao || '').split(' ||| ');
+            const displayDesc = descParts[0] || '-';
+            
+            let totalPreco = Number(item.preco) || 0;
+            if (item.is_adicional === 0 && descParts[1]) {
+                try {
+                    const meta = JSON.parse(descParts[1]);
+                    if (meta.adicionalIds && meta.adicionalIds.length > 0) {
+                        const vinculados = catalogItems.filter(x => x.is_adicional === 1 && meta.adicionalIds.includes(x.id));
+                        const somaAdicionais = vinculados.reduce((sum, ad) => sum + (Number(ad.preco) || 0), 0);
+                        totalPreco += somaAdicionais;
+                    }
+                } catch (e) {
+                    console.warn('Falha ao calcular soma de adicionais no painel administrativo:', e);
+                }
+            }
+            
+            tr.innerHTML = `
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">${item.cod_pdv || '-'}</td>
+                <td style="padding: 1rem; font-weight: 600; color: var(--text-main);">${item.nome}</td>
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${displayDesc}">${displayDesc}</td>
+                <td style="padding: 1rem; font-weight: 600;">R$ ${Number(totalPreco).toFixed(2)}</td>
+                <td style="padding: 1rem; text-align: center;">
+                    <label class="switch switch--small" style="margin: 0 auto; display: inline-block;">
+                        <input type="checkbox" data-action="toggle-catalog-status" data-id="${item.id}" ${item.disponivel === 1 ? 'checked' : ''}>
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td style="padding: 1rem; text-align: center;">
+                    <button class="btn btn--outline" data-action="edit-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; margin-right: 0.25rem;"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn--outline" data-action="delete-catalog-item" data-id="${item.id}" style="padding: 0.3rem 0.6rem; color: #e11d48; border-color: #ffe4e6;"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+            tableCatalogBody.appendChild(tr);
+        });
+
+        // Atualiza os controles de paginação
+        if (catalogPaginationControls && totalItems > 10) {
+            catalogPaginationControls.style.display = 'flex';
+            
+            const showFrom = totalItems === 0 ? 0 : start + 1;
+            const showTo = Math.min(end, totalItems);
+            
+            if (catalogPaginationInfo) {
+                catalogPaginationInfo.textContent = `Mostrando ${showFrom}-${showTo} de ${totalItems} itens`;
+            }
+            
+            if (catalogCurrentPageNum) {
+                catalogCurrentPageNum.textContent = catalogCurrentPage;
+            }
+            
+            if (catalogBtnPrevPage) {
+                catalogBtnPrevPage.disabled = catalogCurrentPage === 1;
+            }
+            
+            if (catalogBtnNextPage) {
+                catalogBtnNextPage.disabled = catalogCurrentPage === totalPages;
+            }
         }
     }
     
     if (searchInput) {
         searchInput.addEventListener('input', () => {
+            catalogCurrentPage = 1; // Reset para página 1
             applyFiltersAndRender();
         });
     }
+
+    if (catalogPaginationLimit) {
+        catalogPaginationLimit.addEventListener('change', () => {
+            catalogCurrentPage = 1;
+            applyFiltersAndRender();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target.closest('#catalog-btn-prev-page')) {
+            if (catalogCurrentPage > 1) {
+                catalogCurrentPage--;
+                applyFiltersAndRender();
+            }
+        }
+        if (target.closest('#catalog-btn-next-page')) {
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const filteredCount = catalogItems.filter(item => {
+                if (currentCategoryFilter === 'adicionais' && item.is_adicional === 0) return false;
+                if (currentCategoryFilter !== 'adicionais' && currentCategoryFilter !== 'all' && item.categoria !== currentCategoryFilter) return false;
+                if (currentCategoryFilter === 'all' && item.is_adicional === 1) return false;
+                if (searchTerm) {
+                    const searchMatch = (
+                        (item.nome && item.nome.toLowerCase().includes(searchTerm)) ||
+                        (item.descricao && item.descricao.toLowerCase().includes(searchTerm)) ||
+                        (item.cod_pdv && String(item.cod_pdv).toLowerCase().includes(searchTerm))
+                    );
+                    if (!searchMatch) return false;
+                }
+                return true;
+            }).length;
+
+            const totalPages = Math.ceil(filteredCount / catalogItemsPerPage) || 1;
+            if (catalogCurrentPage < totalPages) {
+                catalogCurrentPage++;
+                applyFiltersAndRender();
+            }
+        }
+    });
     
     document.addEventListener('change', async (e) => {
         if (e.target && e.target.dataset.action === 'toggle-catalog-status') {
