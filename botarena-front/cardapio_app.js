@@ -539,17 +539,30 @@ document.getElementById('excel-upload').addEventListener('change', function(e) {
         if (json.length > 0) json.shift();
         
         var count = 0;
+        var skippedCount = 0;
+        
         json.forEach(function(row) {
             // Mapeando: Nome do Item | Código PDV | Categoria | Preço | Descrição
             if (row[0] && String(row[0]).trim() !== '') {
                 var name = String(row[0]).trim();
                 var pdv = row[1] ? String(row[1]).trim() : '';
+                
+                if (!pdv || !/^\d+$/.test(pdv)) {
+                    skippedCount++;
+                    return; // ignora se não tiver código ou se tiver letras
+                }
+                
                 var category = row[2] ? String(row[2]).trim() : '';
                 var priceStr = row[3] ? String(row[3]).trim() : '';
                 var desc = row[4] ? String(row[4]).trim() : '';
                 
                 var priceMatches = priceStr.match(/\d+([.,]\d+)?/);
                 var price = priceMatches ? parseFloat(priceMatches[0].replace(',', '.')) : 0;
+                
+                if (price <= 0) {
+                    skippedCount++;
+                    return; // ignora preço zero ou menor
+                }
                 
                 var newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString() + Math.random();
                 
@@ -572,9 +585,13 @@ document.getElementById('excel-upload').addEventListener('change', function(e) {
         if (count > 0) {
             syncToBackend();
             renderItems();
-            showToast(count + ' item(ns) importado(s) com sucesso!');
+            var msg = count + ' item(ns) importado(s) com sucesso!';
+            if (skippedCount > 0) {
+                msg += ' (' + skippedCount + ' item(ns) inválido(s) ignorado(s))';
+            }
+            showToast(msg);
         } else {
-            showToast('Nenhum item encontrado no Excel.');
+            showToast('Nenhum item válido encontrado no Excel.');
         }
     };
     reader.readAsArrayBuffer(file);

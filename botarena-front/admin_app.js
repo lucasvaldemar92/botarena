@@ -742,10 +742,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Count totals
         const totalAdicionais = catalogItems.filter(i => i.is_adicional === 1).length;
-        if(countAdicionais) countAdicionais.textContent = totalAdicionais;
+        const countAdicionaisEl = document.getElementById('count-adicionais');
+        if (countAdicionaisEl) countAdicionaisEl.textContent = totalAdicionais;
         
         const totalNormal = catalogItems.filter(i => i.is_adicional === 0).length;
-        if(countAll) countAll.textContent = totalNormal;
+        const countAllEl = document.getElementById('count-all');
+        if (countAllEl) countAllEl.textContent = totalNormal;
         
         // Update category chip counts
         const dynamicChips = document.querySelectorAll('.dynamic-chip');
@@ -1305,15 +1307,42 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
+    // Impedir fisicamente a digitação de letras no código PDV
+    const productCodPdvInput = document.getElementById('product-cod-pdv');
+    if (productCodPdvInput) {
+        productCodPdvInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^\d]/g, '');
+        });
+    }
+
+    const adicionalCodPdvInput = document.getElementById('adicional-cod-pdv');
+    if (adicionalCodPdvInput) {
+        adicionalCodPdvInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^\d]/g, '');
+        });
+    }
+
     // Envio do formulário do Produto
     const formProduct = document.getElementById('form-product');
     if (formProduct) {
         formProduct.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const codPdv = document.getElementById('product-cod-pdv').value;
-            const nome = document.getElementById('product-nome').value;
+            const codPdv = document.getElementById('product-cod-pdv').value.trim();
+            const nome = document.getElementById('product-nome').value.trim();
             const preco = parseFloat(document.getElementById('product-preco').value) || 0;
+
+            if (codPdv && !/^\d+$/.test(codPdv)) {
+                alert("O código do item (PDV) deve conter apenas números.");
+                document.getElementById('product-cod-pdv').focus();
+                return;
+            }
+            if (preco <= 0) {
+                alert("O preço do produto deve ser maior que zero.");
+                document.getElementById('product-preco').focus();
+                return;
+            }
+
             const categoriaVal = document.getElementById('product-categoria').value;
             const categoriaId = parseInt(categoriaVal, 10);
             const selectedCat = catalogCategories.find(c => c.id === categoriaId);
@@ -1365,9 +1394,21 @@ document.addEventListener('DOMContentLoaded', () => {
         formAdicional.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const codPdv = document.getElementById('adicional-cod-pdv').value;
-            const nome = document.getElementById('adicional-nome').value;
+            const codPdv = document.getElementById('adicional-cod-pdv').value.trim();
+            const nome = document.getElementById('adicional-nome').value.trim();
             const preco = parseFloat(document.getElementById('adicional-preco').value) || 0;
+
+            if (codPdv && !/^\d+$/.test(codPdv)) {
+                alert("O código do adicional (PDV) deve conter apenas números.");
+                document.getElementById('adicional-cod-pdv').focus();
+                return;
+            }
+            if (preco <= 0) {
+                alert("O preço do adicional deve ser maior que zero.");
+                document.getElementById('adicional-preco').focus();
+                return;
+            }
+
             const select = document.getElementById('adicional-vinculo-categorias');
             const selectedCategories = Array.from(select.selectedOptions).map(opt => opt.value);
             
@@ -1444,6 +1485,189 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
+    // 📁 GERENCIADOR DE CATEGORIAS (MODAL PREMIUM)
+    // ==========================================
+
+    function openCategoryManagerModal() {
+        const modal = document.getElementById('modal-gerenciar-categorias');
+        const doOpen = () => {
+            if (modal) modal.style.display = 'flex';
+            renderCategoryManagerList();
+        };
+
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.open('modal-gerenciar-categorias', doOpen, closeCategoryManagerModal);
+        } else {
+            doOpen();
+        }
+    }
+
+    function closeCategoryManagerModal() {
+        const modal = document.getElementById('modal-gerenciar-categorias');
+        if (modal) modal.style.display = 'none';
+        
+        const form = document.getElementById('form-create-category');
+        if (form) form.reset();
+        
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.close('modal-gerenciar-categorias');
+        }
+    }
+
+    function renderCategoryManagerList() {
+        const listContainer = document.getElementById('category-manager-list');
+        if (!listContainer) return;
+        
+        if (catalogCategories.length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); margin: 1rem 0;">Nenhuma categoria cadastrada.</p>';
+            return;
+        }
+        
+        listContainer.innerHTML = catalogCategories.map(cat => {
+            const isGeral = cat.nome.toLowerCase() === 'geral';
+            
+            return `
+                <div class="category-item-row" data-id="${cat.id}" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); gap: 0.5rem;">
+                    <!-- Nome normal -->
+                    <span class="category-name-span" style="font-weight: 600; flex: 1; color: var(--text-main);">${cat.nome}</span>
+                    
+                    <!-- Input para edição -->
+                    <input type="text" class="category-edit-input input-row-style" value="${cat.nome}" style="display: none; flex: 1; height: 32px; padding: 0.25rem 0.5rem;" />
+                    
+                    <div class="category-action-buttons" style="display: flex; gap: 0.25rem;">
+                        <!-- Botões Modo Visualização -->
+                        <button type="button" class="btn-edit-category btn btn-outline" data-id="${cat.id}" style="padding: 0.25rem 0.5rem; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Editar"><i class="fa-solid fa-pen" style="font-size: 0.8rem;"></i></button>
+                        ${isGeral ? '' : `
+                            <button type="button" class="btn-delete-category btn btn-outline" data-id="${cat.id}" style="padding: 0.25rem 0.5rem; height: 32px; border-radius: var(--radius-sm); border-color: #feb2b2; color: #c53030; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Excluir"><i class="fa-solid fa-trash" style="font-size: 0.8rem;"></i></button>
+                        `}
+                        
+                        <!-- Botões Modo Edição -->
+                        <button type="button" class="btn-save-category btn" data-id="${cat.id}" style="display: none; padding: 0.25rem 0.5rem; height: 32px; border-radius: var(--radius-sm); background: #38A169; color: white; border: none; align-items: center; justify-content: center; cursor: pointer;" title="Salvar"><i class="fa-solid fa-check" style="font-size: 0.8rem;"></i></button>
+                        <button type="button" class="btn-cancel-edit-category btn btn-outline" data-id="${cat.id}" style="display: none; padding: 0.25rem 0.5rem; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Cancelar"><i class="fa-solid fa-xmark" style="font-size: 0.8rem;"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Event listeners para o Modal de Gerenciamento de Categorias
+    const btnCloseCategoryManagerModal = document.getElementById('btn-close-category-manager-modal');
+    if (btnCloseCategoryManagerModal) btnCloseCategoryManagerModal.addEventListener('click', closeCategoryManagerModal);
+    
+    const btnCloseCategoryManagerFooter = document.getElementById('btn-close-category-manager-footer');
+    if (btnCloseCategoryManagerFooter) btnCloseCategoryManagerFooter.addEventListener('click', closeCategoryManagerModal);
+
+    // Registro do modal no manager
+    if (window.utils && window.utils.modalManager) {
+        window.utils.modalManager.register('modal-gerenciar-categorias', closeCategoryManagerModal);
+    }
+
+    // Formulário de criar nova categoria (dentro do modal)
+    const formCreateCategory = document.getElementById('form-create-category');
+    if (formCreateCategory) {
+        formCreateCategory.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('new-category-name');
+            const name = input ? input.value.trim() : '';
+            if (name) {
+                try {
+                    await window.utils.apiFetch('/catalog/categories', {
+                        method: 'POST',
+                        body: JSON.stringify({ nome: name })
+                    });
+                    input.value = '';
+                    await loadCatalog(); // recarrega categorias locais
+                    renderCategoryManagerList(); // re-renderiza lista no modal
+                    showToast(`Categoria "${name}" criada com sucesso!`);
+                } catch (err) {
+                    alert(err.message || 'Erro ao criar categoria.');
+                }
+            }
+        });
+    }
+
+    // Delegação de cliques na lista de categorias (Editar / Excluir / Salvar / Cancelar)
+    const categoryManagerList = document.getElementById('category-manager-list');
+    if (categoryManagerList) {
+        categoryManagerList.addEventListener('click', async (e) => {
+            const row = e.target.closest('.category-item-row');
+            if (!row) return;
+            
+            const id = parseInt(row.dataset.id, 10);
+            const spanName = row.querySelector('.category-name-span');
+            const inputEdit = row.querySelector('.category-edit-input');
+            const btnEdit = row.querySelector('.btn-edit-category');
+            const btnDelete = row.querySelector('.btn-delete-category');
+            const btnSave = row.querySelector('.btn-save-category');
+            const btnCancel = row.querySelector('.btn-cancel-edit-category');
+            
+            // Ação: Iniciar Edição
+            if (e.target.closest('.btn-edit-category')) {
+                if (spanName) spanName.style.display = 'none';
+                if (inputEdit) {
+                    inputEdit.style.display = 'block';
+                    inputEdit.focus();
+                }
+                if (btnEdit) btnEdit.style.display = 'none';
+                if (btnDelete) btnDelete.style.display = 'none';
+                if (btnSave) btnSave.style.display = 'flex';
+                if (btnCancel) btnCancel.style.display = 'flex';
+            }
+            
+            // Ação: Cancelar Edição
+            else if (e.target.closest('.btn-cancel-edit-category')) {
+                if (spanName) spanName.style.display = 'block';
+                if (inputEdit) {
+                    inputEdit.style.display = 'none';
+                    inputEdit.value = spanName.textContent; // restaura valor anterior
+                }
+                if (btnEdit) btnEdit.style.display = 'flex';
+                if (btnDelete) btnDelete.style.display = 'flex';
+                if (btnSave) btnSave.style.display = 'none';
+                if (btnCancel) btnCancel.style.display = 'none';
+            }
+            
+            // Ação: Salvar Edição
+            else if (e.target.closest('.btn-save-category')) {
+                const novoNome = inputEdit ? inputEdit.value.trim() : '';
+                if (!novoNome) {
+                    alert('O nome da categoria não pode ser vazio.');
+                    return;
+                }
+                try {
+                    await window.utils.apiFetch(`/catalog/categories/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ nome: novoNome })
+                    });
+                    await loadCatalog(); // recarrega categorias
+                    renderCategoryManagerList(); // atualiza modal
+                    showToast('Categoria atualizada com sucesso!');
+                } catch (err) {
+                    alert(err.message || 'Erro ao atualizar categoria.');
+                }
+            }
+            
+            // Ação: Excluir Categoria
+            else if (e.target.closest('.btn-delete-category')) {
+                const cat = catalogCategories.find(c => c.id === id);
+                const nomeCat = cat ? cat.nome : '';
+                if (confirm(`Tem certeza que deseja excluir a categoria "${nomeCat}"?\nNota: Só é possível excluir categorias que não possuam produtos vinculados.`)) {
+                    try {
+                        await window.utils.apiFetch(`/catalog/categories/${id}`, {
+                            method: 'DELETE'
+                        });
+                        await loadCatalog(); // recarrega categorias e produtos
+                        renderCategoryManagerList(); // atualiza modal
+                        showToast('Categoria excluída com sucesso!');
+                    } catch (err) {
+                        alert(err.message || 'Erro ao excluir categoria.');
+                    }
+                }
+            }
+        });
+    }
+
+    // ==========================================
     // 🍴 LÓGICA DOS BOTÕES DE AÇÕES DO CATÁLOGO
     // ==========================================
     
@@ -1455,22 +1679,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const excelUploadInput = document.getElementById('excel-upload');
 
     if (btnAddCategory) {
-        btnAddCategory.addEventListener('click', async () => {
-            const name = prompt('Digite o nome da nova categoria:');
-            if (name && name.trim()) {
-                const trimmed = name.trim();
-                try {
-                    await window.utils.apiFetch('/catalog/categories', {
-                        method: 'POST',
-                        body: JSON.stringify({ nome: trimmed })
-                    });
-                    
-                    await loadCatalog();
-                    showToast(`Categoria "${trimmed}" criada com sucesso!`);
-                } catch (err) {
-                    alert(err.message || 'Erro ao criar categoria.');
-                }
-            }
+        btnAddCategory.addEventListener('click', () => {
+            openCategoryManagerModal();
         });
     }
 
@@ -1557,6 +1767,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (json.length > 0) json.shift();
                     
                     let importCount = 0;
+                    let skippedCount = 0;
+                    let invalidPdvCount = 0;
+                    let invalidPriceCount = 0;
+                    
                     for (const row of json) {
                         const name = row[0] ? String(row[0]).trim() : '';
                         if (!name) continue; // Pula linha vazia
@@ -1564,7 +1778,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         const pdv = row[1] ? String(row[1]).trim() : '';
                         if (!pdv) {
                             console.log(`⚠️ [Importação] Pulando item "${name}" porque o código PDV está vazio na planilha.`);
+                            skippedCount++;
                             continue; // Ignora se o código PDV for nulo/vazio para evitar duplicação
+                        }
+                        
+                        // Validação de letras no código PDV
+                        if (!/^\d+$/.test(pdv)) {
+                            console.warn(`⚠️ [Importação] Pulando item "${name}" porque o código PDV "${pdv}" contém letras ou caracteres especiais.`);
+                            invalidPdvCount++;
+                            continue;
                         }
                         
                         const category = row[2] ? String(row[2]).trim() : '';
@@ -1573,6 +1795,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         const priceMatches = priceStr.match(/\d+([.,]\d+)?/);
                         const price = priceMatches ? parseFloat(priceMatches[0].replace(',', '.')) : 0;
+                        
+                        // Validação de preço maior que zero
+                        if (price <= 0) {
+                            console.warn(`⚠️ [Importação] Pulando item "${name}" porque o preço (${price}) deve ser maior que zero.`);
+                            invalidPriceCount++;
+                            continue;
+                        }
 
                         // Verifica se já existe um item com esse código PDV
                         const existingItem = catalogItems.find(item => item.cod_pdv && String(item.cod_pdv).trim() === pdv);
@@ -1621,10 +1850,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     excelUploadInput.value = ''; // reseta
                     if (importCount > 0) {
-                        alert(importCount + ' item(ns) importado(s) com sucesso!');
+                        let msg = `${importCount} item(ns) importado(s) com sucesso!`;
+                        if (invalidPdvCount > 0 || invalidPriceCount > 0 || skippedCount > 0) {
+                            msg += `\n(${invalidPdvCount} ignorado(s) por código inválido, ${invalidPriceCount} por preço inválido, ${skippedCount} sem código).`;
+                        }
+                        alert(msg);
                         await loadCatalog(); // Recarrega a tabela e pills
                     } else {
-                        alert('Nenhum item válido encontrado no Excel.');
+                        let msg = 'Nenhum item válido importado do Excel.';
+                        if (invalidPdvCount > 0 || invalidPriceCount > 0 || skippedCount > 0) {
+                            msg += `\nMotivos: ${invalidPdvCount} código(s) inválido(s), ${invalidPriceCount} preço(s) inválido(s), ${skippedCount} sem código.`;
+                        }
+                        alert(msg);
                     }
                 } catch (err) {
                     console.error('Erro na importação:', err);

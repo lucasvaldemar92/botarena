@@ -2015,6 +2015,31 @@
         </div>
     </div>
 
+    <!-- Modal de Gerenciamento de Categorias -->
+    <div id="modal-gerenciar-categorias" class="modal-premium" style="display: none;">
+        <div class="modal-content-linear" style="max-width: 500px; width: 100%;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-folder-open"></i> Gerenciar Categorias</h3>
+                <button id="btn-close-category-manager-modal" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            
+            <!-- Criar Nova Categoria -->
+            <form id="form-create-category" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                <input type="text" id="new-category-name" class="input-row-style" placeholder="Nome da nova categoria" required style="flex: 1;">
+                <button type="submit" class="btn" style="background: var(--accent-dark); color: white; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;"><i class="fa-solid fa-plus"></i> Adicionar</button>
+            </form>
+            
+            <!-- Lista de Categorias com Opção de Editar e Excluir -->
+            <div style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;" id="category-manager-list">
+                <!-- Injetado via JS -->
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <button type="button" id="btn-close-category-manager-footer" class="btn btn-outline" style="padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/src/assets/js/utils.js"></script>
     <script src="/admin_app.js"></script>
     <script src="/js/company_data_app.js"></script>

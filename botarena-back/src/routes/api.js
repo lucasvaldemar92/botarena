@@ -10,10 +10,12 @@ const { z }                = require('zod');
 
 // Esquemas de Validação Zod para o Catálogo
 const catalogItemSchema = z.object({
-    cod_pdv: z.string().nullable().optional(),
+    cod_pdv: z.string().nullable().optional().refine(val => !val || /^\d+$/.test(val), {
+        message: "O código PDV deve conter apenas números"
+    }),
     nome: z.string().min(1, "Nome é obrigatório"),
     descricao: z.string().nullable().optional(),
-    preco: z.number().nonnegative("Preço não pode ser negativo").default(0),
+    preco: z.number().positive("Preço deve ser maior que zero"),
     categoria: z.string().min(1, "Categoria é obrigatória"),
     categoria_id: z.number().int().nullable().optional(),
     is_adicional: z.boolean().default(false),
@@ -775,6 +777,39 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             const newCat = await catalogRepo.createCategory(trimmed);
             res.status(201).json(newCat);
         } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // PUT: Editar categoria (Protegido)
+    router.put('/catalog/categories/:id', authMiddleware, async (req, res) => {
+        try {
+            const { nome } = req.body;
+            if (!nome || !nome.trim()) {
+                return res.status(400).json({ error: "Nome da categoria é obrigatório." });
+            }
+            const trimmed = nome.trim();
+            const existing = await catalogRepo.findCategoryByName(trimmed);
+            if (existing && existing.id !== parseInt(req.params.id, 10)) {
+                return res.status(409).json({ error: `A categoria "${trimmed}" já existe.` });
+            }
+            const updated = await catalogRepo.updateCategory(parseInt(req.params.id, 10), trimmed);
+            res.json(updated);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // DELETE: Excluir categoria (Protegido)
+    router.delete('/catalog/categories/:id', authMiddleware, async (req, res) => {
+        try {
+            const success = await catalogRepo.deleteCategory(parseInt(req.params.id, 10));
+            if (!success) return res.status(404).json({ error: "Categoria não encontrada" });
+            res.json({ success: true });
+        } catch (err) {
+            if (err.message && err.message.includes('produtos vinculados')) {
+                return res.status(400).json({ error: err.message });
+            }
             res.status(500).json({ error: err.message });
         }
     });

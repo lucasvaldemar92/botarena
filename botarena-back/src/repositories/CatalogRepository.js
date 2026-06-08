@@ -140,6 +140,25 @@ class CatalogRepository extends BaseRepository {
         const result = await this.db.run(sql, [this.companyId, nome]);
         return { id: result.lastID, company_id: this.companyId, nome };
     }
+
+    async updateCategory(id, nome) {
+        const sql = `UPDATE catalog_categories SET nome = ? WHERE company_id = ? AND id = ?`;
+        await this.db.run(sql, [nome, this.companyId, id]);
+        return { id, company_id: this.companyId, nome };
+    }
+
+    async deleteCategory(id) {
+        // Verifica se há produtos ou adicionais vinculados a esta categoria
+        const checkSql = `SELECT COUNT(*) as count FROM catalog_items WHERE company_id = ? AND categoria_id = ?`;
+        const row = await this.db.get(checkSql, [this.companyId, id]);
+        if (row && row.count > 0) {
+            throw new Error("Não é possível excluir a categoria pois existem produtos vinculados a ela.");
+        }
+
+        const sqlDelete = `DELETE FROM catalog_categories WHERE company_id = ? AND id = ?`;
+        const result = await this.db.run(sqlDelete, [this.companyId, id]);
+        return result.changes > 0;
+    }
 }
 
 module.exports = CatalogRepository;
