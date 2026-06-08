@@ -774,6 +774,12 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.post('/catalog', authMiddleware, async (req, res) => {
         try {
             const validData = catalogItemSchema.parse(req.body);
+            if (validData.cod_pdv) {
+                const existing = await catalogRepo.findByPdv(validData.cod_pdv);
+                if (existing) {
+                    return res.status(409).json({ error: `Código PDV "${validData.cod_pdv}" já cadastrado para o item "${existing.nome}".` });
+                }
+            }
             const newItem = await catalogRepo.create(validData);
             await syncCatalogItemToRAG(newItem);
             res.status(201).json(newItem);
@@ -787,6 +793,12 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.put('/catalog/:id', authMiddleware, async (req, res) => {
         try {
             const validData = catalogItemSchema.parse(req.body);
+            if (validData.cod_pdv) {
+                const existing = await catalogRepo.findByPdv(validData.cod_pdv);
+                if (existing && existing.id !== parseInt(req.params.id, 10)) {
+                    return res.status(409).json({ error: `Código PDV "${validData.cod_pdv}" já cadastrado para outro item ("${existing.nome}").` });
+                }
+            }
             const updatedItem = await catalogRepo.update(req.params.id, validData);
             if (!updatedItem) return res.status(404).json({ error: "Item não encontrado" });
             await syncCatalogItemToRAG(updatedItem);

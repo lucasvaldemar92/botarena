@@ -1535,6 +1535,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!name) continue; // Pula linha vazia
                         
                         const pdv = row[1] ? String(row[1]).trim() : '';
+                        if (!pdv) {
+                            console.log(`⚠️ [Importação] Pulando item "${name}" porque o código PDV está vazio na planilha.`);
+                            continue; // Ignora se o código PDV for nulo/vazio para evitar duplicação
+                        }
+                        
                         const category = row[2] ? String(row[2]).trim() : '';
                         const priceStr = row[3] ? String(row[3]).trim() : '0';
                         const desc = row[4] ? String(row[4]).trim() : '';
@@ -1542,21 +1547,48 @@ document.addEventListener('DOMContentLoaded', () => {
                         const priceMatches = priceStr.match(/\d+([.,]\d+)?/);
                         const price = priceMatches ? parseFloat(priceMatches[0].replace(',', '.')) : 0;
 
-                        // API Create Request
-                        const payload = {
-                            nome: name,
-                            cod_pdv: pdv || null,
-                            categoria: category || 'Geral', // Fallback se vazia
-                            preco: price,
-                            descricao: desc || null,
-                            is_adicional: false,
-                            disponivel: true
-                        };
+                        // Verifica se já existe um item com esse código PDV
+                        const existingItem = catalogItems.find(item => item.cod_pdv && String(item.cod_pdv).trim() === pdv);
 
-                        await window.utils.apiFetch('/catalog', {
-                            method: 'POST',
-                            body: JSON.stringify(payload)
-                        });
+                        if (existingItem) {
+                            // Atualiza mantendo metadados de adicionais vinculados se houver
+                            let finalDesc = desc;
+                            const parts = (existingItem.descricao || '').split(' ||| ');
+                            if (parts[1]) {
+                                finalDesc = desc ? `${desc} ||| ${parts[1]}` : ` ||| ${parts[1]}`;
+                            }
+
+                            const payload = {
+                                nome: name,
+                                cod_pdv: pdv,
+                                categoria: category || existingItem.categoria || 'Geral',
+                                preco: price,
+                                descricao: finalDesc || null,
+                                is_adicional: existingItem.is_adicional === 1 || existingItem.is_adicional === true,
+                                disponivel: existingItem.disponivel === 1 || existingItem.disponivel === true
+                            };
+
+                            await window.utils.apiFetch(`/catalog/${existingItem.id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify(payload)
+                            });
+                        } else {
+                            // Cria um novo item se não existir
+                            const payload = {
+                                nome: name,
+                                cod_pdv: pdv,
+                                categoria: category || 'Geral',
+                                preco: price,
+                                descricao: desc || null,
+                                is_adicional: false,
+                                disponivel: true
+                            };
+
+                            await window.utils.apiFetch('/catalog', {
+                                method: 'POST',
+                                body: JSON.stringify(payload)
+                            });
+                        }
                         importCount++;
                     }
 

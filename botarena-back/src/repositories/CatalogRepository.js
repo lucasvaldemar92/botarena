@@ -25,6 +25,11 @@ class CatalogRepository extends BaseRepository {
         return await this.db.get(sql, [this.companyId, id]);
     }
 
+    async findByPdv(cod_pdv) {
+        const sql = `SELECT * FROM catalog_items WHERE company_id = ? AND cod_pdv = ?`;
+        return await this.db.get(sql, [this.companyId, cod_pdv]);
+    }
+
     async create(data) {
         const sql = `
             INSERT INTO catalog_items (company_id, cod_pdv, nome, descricao, preco, categoria, is_adicional, disponivel)
