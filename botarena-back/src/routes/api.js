@@ -15,6 +15,7 @@ const catalogItemSchema = z.object({
     descricao: z.string().nullable().optional(),
     preco: z.number().nonnegative("Preço não pode ser negativo").default(0),
     categoria: z.string().min(1, "Categoria é obrigatória"),
+    categoria_id: z.number().int().nullable().optional(),
     is_adicional: z.boolean().default(false),
     disponivel: z.boolean().default(true)
 });
@@ -749,12 +750,30 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    // GET: Listar categorias únicas para os chips de filtros
+    // GET: Listar todas as categorias cadastradas no banco
     router.get('/catalog/categories', async (req, res) => {
         try {
-            const items = await catalogRepo.findAll();
-            const normalCategories = [...new Set(items.filter(i => i.is_adicional === 0).map(i => i.categoria))];
-            res.json(normalCategories);
+            const categories = await catalogRepo.findAllCategories();
+            res.json(categories);
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
+    // POST: Criar nova categoria no catálogo (Protegido)
+    router.post('/catalog/categories', authMiddleware, async (req, res) => {
+        try {
+            const { nome } = req.body;
+            if (!nome || !nome.trim()) {
+                return res.status(400).json({ error: "Nome da categoria é obrigatório." });
+            }
+            const trimmed = nome.trim();
+            const existing = await catalogRepo.findCategoryByName(trimmed);
+            if (existing) {
+                return res.status(409).json({ error: `A categoria "${trimmed}" já existe.` });
+            }
+            const newCat = await catalogRepo.createCategory(trimmed);
+            res.status(201).json(newCat);
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
@@ -774,6 +793,23 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.post('/catalog', authMiddleware, async (req, res) => {
         try {
             const validData = catalogItemSchema.parse(req.body);
+            
+            // Resolução de categoria de banco e compatibilidade com nome string
+            if (validData.categoria_id) {
+                const category = await catalogRepo.findCategoryById(validData.categoria_id);
+                if (category) {
+                    validData.categoria = category.nome;
+                }
+            } else if (validData.categoria) {
+                const trimmed = validData.categoria.trim();
+                let category = await catalogRepo.findCategoryByName(trimmed);
+                if (!category) {
+                    category = await catalogRepo.createCategory(trimmed);
+                }
+                validData.categoria_id = category.id;
+                validData.categoria = category.nome;
+            }
+
             if (validData.cod_pdv) {
                 const existing = await catalogRepo.findByPdv(validData.cod_pdv);
                 if (existing) {
@@ -793,6 +829,23 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     router.put('/catalog/:id', authMiddleware, async (req, res) => {
         try {
             const validData = catalogItemSchema.parse(req.body);
+            
+            // Resolução de categoria de banco e compatibilidade com nome string
+            if (validData.categoria_id) {
+                const category = await catalogRepo.findCategoryById(validData.categoria_id);
+                if (category) {
+                    validData.categoria = category.nome;
+                }
+            } else if (validData.categoria) {
+                const trimmed = validData.categoria.trim();
+                let category = await catalogRepo.findCategoryByName(trimmed);
+                if (!category) {
+                    category = await catalogRepo.createCategory(trimmed);
+                }
+                validData.categoria_id = category.id;
+                validData.categoria = category.nome;
+            }
+
             if (validData.cod_pdv) {
                 const existing = await catalogRepo.findByPdv(validData.cod_pdv);
                 if (existing && existing.id !== parseInt(req.params.id, 10)) {

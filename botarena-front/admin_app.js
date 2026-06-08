@@ -624,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     
     let catalogItems = [];
+    let catalogCategories = [];
     let currentCategoryFilter = 'all';
     let catalogCurrentPage = 1;
     let catalogItemsPerPage = 10;
@@ -657,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Combine items since the backend split them up depending on logic
             // Actually /catalog already returns all items (both normal and adicionais).
             catalogItems = itemsResponse;
+            catalogCategories = categoriesResponse;
             
             renderCategoryChips(categoriesResponse);
             applyFiltersAndRender();
@@ -676,14 +678,14 @@ document.addEventListener('DOMContentLoaded', () => {
         categories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = 'chip-btn dynamic-chip';
-            btn.dataset.filter = cat;
+            btn.dataset.filter = cat.nome;
             btn.style.cssText = 'padding: 0.4rem 1rem; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;';
             
             const countSpan = document.createElement('span');
             countSpan.className = 'counter';
             countSpan.style.cssText = 'background: var(--bg-main); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.8rem;';
             
-            btn.textContent = cat + ' ';
+            btn.textContent = cat.nome + ' ';
             btn.appendChild(countSpan);
             
             categoryChipsContainer.appendChild(btn);
@@ -1048,12 +1050,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (productCatSelect) {
             productCatSelect.innerHTML = '<option value="" disabled selected>Selecione uma categoria...</option>' + 
-                categories.map(cat => `<option value="${cat}">${cat}</option>`).join('') +
-                '<option value="Geral">Geral</option>';
+                categories.map(cat => `<option value="${cat.id}">${cat.nome}</option>`).join('') +
+                '<option value="__NEW_CATEGORY__" style="font-weight: 600; color: #4f46e5;">+ Nova categoria...</option>';
         }
         
         if (adicionalCatSelect) {
-            adicionalCatSelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            adicionalCatSelect.innerHTML = categories.map(cat => `<option value="${cat.nome}">${cat.nome}</option>`).join('');
         }
     }
 
@@ -1065,9 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         currentProductId = item ? item.id : null;
         
-        // Obter categorias únicas existentes na memória
-        const categories = [...new Set(catalogItems.filter(i => i.is_adicional === 0).map(i => i.categoria))];
-        populateCategoriesDropdowns(categories);
+        populateCategoriesDropdowns(catalogCategories);
 
         const doOpen = () => {
             if (modal) modal.style.display = 'flex';
@@ -1076,7 +1076,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('product-cod-pdv').value = item.cod_pdv || '';
                 document.getElementById('product-nome').value = item.nome || '';
                 document.getElementById('product-preco').value = item.preco || 0;
-                document.getElementById('product-categoria').value = item.categoria || '';
+                
+                const itemCat = catalogCategories.find(c => c.id === item.categoria_id || c.nome === item.categoria);
+                document.getElementById('product-categoria').value = itemCat ? itemCat.id : '';
                 
                 const parts = (item.descricao || '').split(' ||| ');
                 document.getElementById('product-descricao').value = parts[0] || '';
@@ -1130,8 +1132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         currentAdicionalId = item ? item.id : null;
         
-        const categories = [...new Set(catalogItems.filter(i => i.is_adicional === 0).map(i => i.categoria))];
-        populateCategoriesDropdowns(categories);
+        populateCategoriesDropdowns(catalogCategories);
 
         const doOpen = () => {
             if (modal) modal.style.display = 'flex';
@@ -1313,7 +1314,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const codPdv = document.getElementById('product-cod-pdv').value;
             const nome = document.getElementById('product-nome').value;
             const preco = parseFloat(document.getElementById('product-preco').value) || 0;
-            const categoria = document.getElementById('product-categoria').value;
+            const categoriaVal = document.getElementById('product-categoria').value;
+            const categoriaId = parseInt(categoriaVal, 10);
+            const selectedCat = catalogCategories.find(c => c.id === categoriaId);
+            const categoriaName = selectedCat ? selectedCat.nome : 'Geral';
             const descInput = document.getElementById('product-descricao').value;
             
             // Serializar adicionais vinculados na descrição
@@ -1325,7 +1329,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cod_pdv: codPdv || null,
                 nome,
                 preco,
-                categoria,
+                categoria_id: isNaN(categoriaId) ? null : categoriaId,
+                categoria: categoriaName,
                 descricao: finalDesc,
                 is_adicional: false,
                 disponivel: true
@@ -1450,26 +1455,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const excelUploadInput = document.getElementById('excel-upload');
 
     if (btnAddCategory) {
-        btnAddCategory.addEventListener('click', () => {
-            const newCat = prompt('Digite o nome da nova categoria:');
-            if (newCat && newCat.trim()) {
-                const trimmed = newCat.trim();
-                const productCatSelect = document.getElementById('product-categoria');
-                if (productCatSelect) {
-                    const opt = document.createElement('option');
-                    opt.value = trimmed;
-                    opt.textContent = trimmed;
-                    productCatSelect.appendChild(opt);
-                    opt.selected = true;
+        btnAddCategory.addEventListener('click', async () => {
+            const name = prompt('Digite o nome da nova categoria:');
+            if (name && name.trim()) {
+                const trimmed = name.trim();
+                try {
+                    await window.utils.apiFetch('/catalog/categories', {
+                        method: 'POST',
+                        body: JSON.stringify({ nome: trimmed })
+                    });
+                    
+                    await loadCatalog();
+                    showToast(`Categoria "${trimmed}" criada com sucesso!`);
+                } catch (err) {
+                    alert(err.message || 'Erro ao criar categoria.');
                 }
-                const adicionalCatSelect = document.getElementById('adicional-vinculo-categorias');
-                if (adicionalCatSelect) {
-                    const opt = document.createElement('option');
-                    opt.value = trimmed;
-                    opt.textContent = trimmed;
-                    adicionalCatSelect.appendChild(opt);
+            }
+        });
+    }
+
+    const productCatSelect = document.getElementById('product-categoria');
+    if (productCatSelect) {
+        productCatSelect.addEventListener('change', async (e) => {
+            if (e.target.value === '__NEW_CATEGORY__') {
+                e.target.value = ''; // Reseta valor provisório
+                const name = prompt('Digite o nome da nova categoria:');
+                if (name && name.trim()) {
+                    const trimmed = name.trim();
+                    try {
+                        const newCat = await window.utils.apiFetch('/catalog/categories', {
+                            method: 'POST',
+                            body: JSON.stringify({ nome: trimmed })
+                        });
+                        
+                        await loadCatalog();
+                        populateCategoriesDropdowns(catalogCategories);
+                        e.target.value = newCat.id;
+                        
+                        showToast(`Categoria "${trimmed}" criada com sucesso!`);
+                    } catch (err) {
+                        alert(err.message || 'Erro ao criar categoria.');
+                    }
                 }
-                alert(`Categoria "${trimmed}" adicionada com sucesso localmente! Selecione-a ao cadastrar ou salvar o item.`);
             }
         });
     }
