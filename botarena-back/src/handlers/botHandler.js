@@ -27,6 +27,34 @@ async function safeReply(msg, text, isClientReadyFn) {
 }
 
 /**
+ * isMenuSlotActiveAndInTime — Verifica se um slot de cardápio está ativo e dentro do horário.
+ * @param {Object} config - Configurações do banco (settings)
+ * @param {string} slot - Identificador do slot ('lunch', 'acai', 'events')
+ * @returns {boolean}
+ */
+function isMenuSlotActiveAndInTime(config, slot) {
+    const activeKey = `menu_${slot}_active`;
+    const startKey = `menu_${slot}_start`;
+    const endKey = `menu_${slot}_end`;
+
+    if (!config[activeKey]) {
+        return false;
+    }
+
+    const start = config[startKey] || '00:00';
+    const end = config[endKey] || '23:59';
+
+    const now = new Date();
+    const current = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+    if (start <= end) {
+        return current >= start && current <= end;
+    } else {
+        return current >= start || current <= end;
+    }
+}
+
+/**
  * setupBotHandler — Attaches the message_create listener to the WhatsApp client.
  * @param {Client} client - whatsapp-web.js client instance
  * @param {Server} io     - Socket.IO server instance
@@ -190,26 +218,47 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             // Cardápio trigger (Dynamic Asset Management)
             if (['cardapio', 'cardápio', 'menu', '!cardapio'].includes(text)) {
-                const dailyMenu = await menuRepo.getLatestAsset();
-                if (dailyMenu && dailyMenu.base64_data && dailyMenu.mimetype) {
-                    try {
-                        const { MessageMedia } = require('whatsapp-web.js');
-                        const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, 'cardapio');
-                        await client.sendMessage(contactId, media);
-                        return;
-                    } catch (mediaErr) {
-                        console.error('❌ [Bot] Error sending media menu:', mediaErr);
+                const activeSlots = [];
+                for (const slot of ['lunch', 'acai', 'events']) {
+                    if (isMenuSlotActiveAndInTime(config, slot)) {
+                        activeSlots.push(slot);
                     }
                 }
 
-                if (dailyMenu?.extracted_text) {
-                    await safeReply(msg, dailyMenu.extracted_text, isClientReadyFn);
-                } else if (config.cardapio_url) {
-                    await safeReply(msg, `📋 Confira nosso cardápio completo: ${config.cardapio_url}`, isClientReadyFn);
+                if (activeSlots.length > 0) {
+                    let sentSomething = false;
+                    for (const slot of activeSlots) {
+                        const dailyMenu = await menuRepo.getLatestAsset(slot);
+                        if (dailyMenu) {
+                            if (dailyMenu.base64_data && dailyMenu.mimetype) {
+                                try {
+                                    const { MessageMedia } = require('whatsapp-web.js');
+                                    const media = new MessageMedia(dailyMenu.mimetype, dailyMenu.base64_data, `cardapio_${slot}`);
+                                    await client.sendMessage(contactId, media);
+                                    sentSomething = true;
+                                } catch (mediaErr) {
+                                    console.error(`❌ [Bot] Error sending media menu for slot ${slot}:`, mediaErr);
+                                }
+                            }
+                            if (dailyMenu.extracted_text) {
+                                await safeReply(msg, dailyMenu.extracted_text, isClientReadyFn);
+                                sentSomething = true;
+                            }
+                        }
+                    }
+
+                    if (!sentSomething) {
+                        if (config.cardapio_url) {
+                            await safeReply(msg, `📋 Confira nosso cardápio completo: ${config.cardapio_url}`, isClientReadyFn);
+                        } else {
+                            await safeReply(msg, 'Nosso cardápio ainda não está disponível. Tente novamente mais tarde!', isClientReadyFn);
+                        }
+                    }
+                    return;
                 } else {
-                    await safeReply(msg, 'Nosso cardápio ainda não está disponível. Tente novamente mais tarde!', isClientReadyFn);
+                    await safeReply(msg, 'Desculpe, no momento não temos nenhum cardápio disponível para este horário. Tente novamente mais tarde!', isClientReadyFn);
+                    return;
                 }
-                return;
             }
 
             // Pix trigger
@@ -411,22 +460,31 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
             // RAG Semantic / Keyword Search Lookup
             if (ragRepo) {
                 try {
-                    const matches = await ragRepo.searchChunks(text, 1);
+                    const matches = await ragRepo.searchChunks(text, 3);
                     if (matches && matches.length > 0) {
-                        const match = matches[0];
-                        let replyText = '';
-                        if (match.source_type === 'menu_slot') {
-                            const slotNames = { lunch: 'Almoço', dinner: 'Jantar', dessert: 'Sobremesa' };
-                            const slotLabel = slotNames[match.source_id] || match.source_id;
-                            replyText = `🍽️ *Encontrei a seguinte informação no Cardápio de ${slotLabel}:*\n\n${match.content}`;
-                        } else if (match.source_type === 'faq') {
-                            replyText = `💡 *Encontrei isto na nossa Central de Ajuda:*\n\n${match.content}`;
-                        } else {
-                            replyText = `${match.content}`;
+                        for (const match of matches) {
+                            if (match.source_type === 'menu_slot') {
+                                const slot = match.source_id;
+                                if (!isMenuSlotActiveAndInTime(config, slot)) {
+                                    continue;
+                                }
+
+                                const slotNames = { lunch: 'Almoço', acai: 'Cardápio Arena', events: 'Sobremesa' };
+                                const slotLabel = slotNames[slot] || slot;
+                                const replyText = `🍽️ *Encontrei a seguinte informação no Cardápio de ${slotLabel}:*\n\n${match.content}`;
+                                await safeReply(msg, replyText, isClientReadyFn);
+                                return;
+                            } else {
+                                let replyText = '';
+                                if (match.source_type === 'faq') {
+                                    replyText = `💡 *Encontrei isto na nossa Central de Ajuda:*\n\n${match.content}`;
+                                } else {
+                                    replyText = `${match.content}`;
+                                }
+                                await safeReply(msg, replyText, isClientReadyFn);
+                                return;
+                            }
                         }
-                        
-                        await safeReply(msg, replyText, isClientReadyFn);
-                        return;
                     }
                 } catch (ragErr) {
                     console.error('❌ [Bot] RAG Search failed:', ragErr);

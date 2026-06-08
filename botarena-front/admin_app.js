@@ -3,6 +3,16 @@
 // ==========================================
 const socket = window.io ? io(window.BASE_URL) : null;
 
+// Helper function to debounce input changes and avoid rate limiting
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+}
+
 // The badge is now a button, we don't store it statically since we use event delegation, 
 // but we keep a reference for direct updates.
 const botStatusBadge = document.getElementById('bot-status-badge');
@@ -134,6 +144,71 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBotStatus(config.bot_active);
             loadRagStats();
             loadDeliveryFees();
+            
+            // Inicializa controles de ativação e horários dos cardápios
+            const slots = ['lunch', 'acai', 'events'];
+            slots.forEach(slot => {
+                const activeCheckbox = document.getElementById(`menu-${slot}-active`);
+                const startTimeInput = document.getElementById(`menu-${slot}-start`);
+                const endTimeInput = document.getElementById(`menu-${slot}-end`);
+                const statusTextSpan = document.getElementById(`status-text-menu-${slot}`);
+
+                if (activeCheckbox && config[`menu_${slot}_active`] !== undefined) {
+                    activeCheckbox.checked = Boolean(config[`menu_${slot}_active`]);
+                    if (statusTextSpan) {
+                        statusTextSpan.textContent = activeCheckbox.checked ? 'Ativo' : 'Inativo';
+                    }
+                }
+                if (startTimeInput && config[`menu_${slot}_start`]) {
+                    startTimeInput.value = config[`menu_${slot}_start`].substring(0, 5);
+                }
+                if (endTimeInput && config[`menu_${slot}_end`]) {
+                    endTimeInput.value = config[`menu_${slot}_end`].substring(0, 5);
+                }
+            });
+
+            // Configura listeners para auto-salvamento dos cardápios
+            slots.forEach(slot => {
+                const activeCheckbox = document.getElementById(`menu-${slot}-active`);
+                const startTimeInput = document.getElementById(`menu-${slot}-start`);
+                const endTimeInput = document.getElementById(`menu-${slot}-end`);
+                const statusTextSpan = document.getElementById(`status-text-menu-${slot}`);
+
+                const saveChange = async () => {
+                    const payload = {};
+                    if (activeCheckbox) {
+                        payload[`menu_${slot}_active`] = activeCheckbox.checked;
+                    }
+                    if (startTimeInput) payload[`menu_${slot}_start`] = startTimeInput.value;
+                    if (endTimeInput) payload[`menu_${slot}_end`] = endTimeInput.value;
+
+                    try {
+                        const res = await window.utils.apiFetch('/config', {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        if (res) {
+                            showToast('Configuração salva!');
+                        }
+                    } catch (err) {
+                        console.error(`Erro ao salvar config para o slot ${slot}:`, err);
+                        showToast('Erro ao salvar configuração');
+                    }
+                };
+
+                const saveChangeDebounced = debounce(saveChange, 800);
+
+                if (activeCheckbox) {
+                    activeCheckbox.addEventListener('change', () => {
+                        if (statusTextSpan) {
+                            statusTextSpan.textContent = activeCheckbox.checked ? 'Ativo' : 'Inativo';
+                        }
+                        saveChangeDebounced();
+                    });
+                }
+                if (startTimeInput) startTimeInput.addEventListener('change', saveChangeDebounced);
+                if (endTimeInput) endTimeInput.addEventListener('change', saveChangeDebounced);
+            });
         })
         .catch(err => console.error('Erro ao carregar inicial:', err));
 
@@ -189,6 +264,28 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('configLoaded', (e) => {
         const config = e.detail;
         updateBotStatus(config.bot_active);
+
+        // Sincroniza controles de ativação e horários dos cardápios
+        const slots = ['lunch', 'acai', 'events'];
+        slots.forEach(slot => {
+            const activeCheckbox = document.getElementById(`menu-${slot}-active`);
+            const startTimeInput = document.getElementById(`menu-${slot}-start`);
+            const endTimeInput = document.getElementById(`menu-${slot}-end`);
+            const statusTextSpan = document.getElementById(`status-text-menu-${slot}`);
+
+            if (activeCheckbox && config[`menu_${slot}_active`] !== undefined) {
+                activeCheckbox.checked = Boolean(config[`menu_${slot}_active`]);
+                if (statusTextSpan) {
+                    statusTextSpan.textContent = activeCheckbox.checked ? 'Ativo' : 'Inativo';
+                }
+            }
+            if (startTimeInput && config[`menu_${slot}_start`]) {
+                startTimeInput.value = config[`menu_${slot}_start`].substring(0, 5);
+            }
+            if (endTimeInput && config[`menu_${slot}_end`]) {
+                endTimeInput.value = config[`menu_${slot}_end`].substring(0, 5);
+            }
+        });
     });
 
     const qrRetryBtn = document.getElementById('qr-retry-btn');

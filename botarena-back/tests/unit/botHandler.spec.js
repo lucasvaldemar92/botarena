@@ -38,12 +38,20 @@ describe('botHandler Unit Tests', () => {
                     operation_days: '0,1,2,3,4,5,6',
                     operation_start: '00:00',
                     operation_end: '23:59',
-                    mensagem_ausencia: 'No momento estamos fora do horário de atendimento.'
+                    mensagem_ausencia: 'No momento estamos fora do horário de atendimento.',
+                    menu_lunch_active: true,
+                    menu_lunch_start: '00:00',
+                    menu_lunch_end: '23:59',
+                    menu_acai_active: true,
+                    menu_acai_start: '00:00',
+                    menu_acai_end: '23:59',
+                    menu_events_active: true,
+                    menu_events_start: '00:00',
+                    menu_events_end: '23:59'
                 })
             },
             knowledgeRepo: { findByKeyword: jest.fn().mockResolvedValue(null) },
-            menuRepo: { getActive: jest.fn().mockResolvedValue(null) },
-            menuRepo: { getLatestAsset: jest.fn().mockResolvedValue(null) }, // Updated mock for new DB schema
+            menuRepo: { getLatestAsset: jest.fn().mockResolvedValue(null) },
             ragRepo: { searchChunks: jest.fn().mockResolvedValue([]) }
         };
     });
@@ -142,7 +150,154 @@ describe('botHandler Unit Tests', () => {
         setupBotHandler(mockClient, mockIo, mockIsClientReady, mockRepos);
         await messageCallback(mockMsg);
         
-        expect(mockRepos.ragRepo.searchChunks).toHaveBeenCalledWith('quero saber sobre o almoço', 1);
+        expect(mockRepos.ragRepo.searchChunks).toHaveBeenCalledWith('quero saber sobre o almoço', 3);
         expect(mockMsg.reply).toHaveBeenCalledWith('🍽️ *Encontrei a seguinte informação no Cardápio de Almoço:*\n\nTemos lasanha aos domingos');
+    });
+
+    // ==========================================
+    // Caso 7: Gatilho cardápio com slot ativo
+    // ==========================================
+    test('should send text/media for active menus and skip inactive menus', async () => {
+        mockMsg.body = 'cardapio';
+        mockMsg.from = 'unique_menu_active_test@c.us';
+        
+        mockRepos.settingsRepo.get.mockResolvedValue({
+            bot_active: true,
+            operation_days: '0,1,2,3,4,5,6',
+            operation_start: '00:00',
+            operation_end: '23:59',
+            menu_lunch_active: true,
+            menu_lunch_start: '00:00',
+            menu_lunch_end: '23:59',
+            menu_acai_active: false,
+            menu_acai_start: '00:00',
+            menu_acai_end: '23:59',
+            menu_events_active: true,
+            menu_events_start: '00:00',
+            menu_events_end: '23:59'
+        });
+
+        mockRepos.menuRepo.getLatestAsset.mockImplementation((slot) => {
+            if (slot === 'lunch') return Promise.resolve({ extracted_text: 'Menu Almoço' });
+            if (slot === 'acai') return Promise.resolve({ extracted_text: 'Menu Açaí' });
+            if (slot === 'events') return Promise.resolve({ extracted_text: 'Menu Sobremesas' });
+            return Promise.resolve(null);
+        });
+
+        setupBotHandler(mockClient, mockIo, mockIsClientReady, mockRepos);
+        await messageCallback(mockMsg);
+
+        expect(mockMsg.reply).toHaveBeenCalledWith('Menu Almoço');
+        expect(mockMsg.reply).toHaveBeenCalledWith('Menu Sobremesas');
+        expect(mockMsg.reply).not.toHaveBeenCalledWith('Menu Açaí');
+    });
+
+    // ==========================================
+    // Caso 8: Gatilho cardápio sem nenhum slot ativo
+    // ==========================================
+    test('should reply with unavailability message when no menu slots are active or in time', async () => {
+        mockMsg.body = 'cardapio';
+        mockMsg.from = 'unique_menu_unavailable_test@c.us';
+        
+        mockRepos.settingsRepo.get.mockResolvedValue({
+            bot_active: true,
+            operation_days: '0,1,2,3,4,5,6',
+            operation_start: '00:00',
+            operation_end: '23:59',
+            menu_lunch_active: false,
+            menu_acai_active: false,
+            menu_events_active: false
+        });
+
+        setupBotHandler(mockClient, mockIo, mockIsClientReady, mockRepos);
+        await messageCallback(mockMsg);
+
+        expect(mockMsg.reply).toHaveBeenCalledWith('Desculpe, no momento não temos nenhum cardápio disponível para este horário. Tente novamente mais tarde!');
+    });
+
+    // ==========================================
+    // Caso 9: RAG match com slot inativo/fora do horário
+    // ==========================================
+    test('should skip RAG match if the menu slot is inactive', async () => {
+        mockMsg.body = 'quero saber sobre o açaí';
+        mockMsg.from = 'unique_rag_inactive_test@c.us';
+        
+        mockRepos.settingsRepo.get.mockResolvedValue({
+            bot_active: true,
+            operation_days: '0,1,2,3,4,5,6',
+            operation_start: '00:00',
+            operation_end: '23:59',
+            menu_acai_active: false,
+            menu_acai_start: '00:00',
+            menu_acai_end: '23:59'
+        });
+
+        mockRepos.ragRepo.searchChunks.mockResolvedValue([
+            {
+                source_type: 'menu_slot',
+                source_id: 'acai',
+                content: 'Temos açaí com granola'
+            },
+            {
+                source_type: 'faq',
+                source_id: 'faq1',
+                content: 'Nosso endereço é Rua Principal'
+            }
+        ]);
+
+        setupBotHandler(mockClient, mockIo, mockIsClientReady, mockRepos);
+        await messageCallback(mockMsg);
+
+        expect(mockMsg.reply).not.toHaveBeenCalledWith(expect.stringContaining('Cardápio de Cardápio Arena'));
+        expect(mockMsg.reply).toHaveBeenCalledWith('💡 *Encontrei isto na nossa Central de Ajuda:*\n\nNosso endereço é Rua Principal');
+    });
+
+    // ==========================================
+    // Caso 10: Cruzamento de Meia-Noite
+    // ==========================================
+    test('should correctly evaluate schedule crossing midnight', async () => {
+        mockMsg.body = 'cardapio';
+        mockMsg.from = 'unique_midnight_test@c.us';
+
+        const originalDate = global.Date;
+        const mockDate = class extends originalDate {
+            constructor() {
+                super();
+            }
+            getHours() { return 23; }
+            getMinutes() { return 30; }
+            getDay() { return 1; }
+        };
+        global.Date = mockDate;
+
+        try {
+            mockRepos.settingsRepo.get.mockResolvedValue({
+                bot_active: true,
+                operation_days: '0,1,2,3,4,5,6',
+                operation_start: '00:00',
+                operation_end: '23:59',
+                menu_lunch_active: true,
+                menu_lunch_start: '10:00',
+                menu_lunch_end: '14:00',
+                menu_acai_active: true,
+                menu_acai_start: '22:00',
+                menu_acai_end: '02:00',
+                menu_events_active: false
+            });
+
+            mockRepos.menuRepo.getLatestAsset.mockImplementation((slot) => {
+                if (slot === 'lunch') return Promise.resolve({ extracted_text: 'Menu Almoço' });
+                if (slot === 'acai') return Promise.resolve({ extracted_text: 'Menu Açaí' });
+                return Promise.resolve(null);
+            });
+
+            setupBotHandler(mockClient, mockIo, mockIsClientReady, mockRepos);
+            await messageCallback(mockMsg);
+
+            expect(mockMsg.reply).toHaveBeenCalledWith('Menu Açaí');
+            expect(mockMsg.reply).not.toHaveBeenCalledWith('Menu Almoço');
+        } finally {
+            global.Date = originalDate;
+        }
     });
 });

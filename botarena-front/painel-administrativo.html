@@ -1261,6 +1261,44 @@
             min-width: 32px;
             height: 32px;
         }
+        /* ── SWITCH TOGGLE E INPUTS DE HORÁRIO DO CARDÁPIO ── */
+        .switch-toggle input:checked + .slider-toggle {
+            background-color: var(--accent-green) !important; /* Verde padrão do sistema */
+        }
+        .slider-toggle {
+            background-color: #cbd5e1;
+            border-radius: 34px;
+            transition: .3s;
+        }
+        .slider-toggle:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        .switch-toggle input:checked + .slider-toggle:before {
+            transform: translateX(18px);
+        }
+        .time-input {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.85rem;
+            font-family: inherit;
+            color: var(--text-main);
+            background: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .time-input:focus {
+            border-color: var(--accent-green) !important;
+            box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.15);
+        }
 
     </style>
 </head>
@@ -1466,9 +1504,26 @@
                     <article class="card" id="card-anexos" style="padding: 2rem; display: flex; flex-direction: column; gap: 2rem;">
                         <!-- Slot 1: Almoço -->
                         <div class="menu-slot-row" style="display: flex; justify-content: space-between; align-items: center; gap: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);" data-testid="menu-slot-1">
-                            <div style="flex: 1;">
-                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">🍽️ Almoço</h3>
-                                <p style="font-size: 0.85rem; color: var(--text-muted);">Cardápio para sugestões e pedidos do almoço.</p>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div>
+                                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">🍽️ Almoço</h3>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted);">Cardápio para sugestões e pedidos do almoço.</p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 22px;">
+                                            <input type="checkbox" id="menu-lunch-active" checked style="opacity: 0; width: 0; height: 0;">
+                                            <span class="slider-toggle" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px;"></span>
+                                        </label>
+                                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);" id="status-text-menu-lunch">Ativo</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> Horário:</span>
+                                        <input type="time" id="menu-lunch-start" value="10:00" class="time-input">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted);">às</span>
+                                        <input type="time" id="menu-lunch-end" value="14:00" class="time-input">
+                                    </div>
+                                </div>
                             </div>
                             <div style="width: 250px; flex-shrink: 0;">
                                 <input type="file" id="upload-menu-lunch" accept="application/pdf,image/*" style="display:none;" data-slot="lunch">
@@ -1484,9 +1539,26 @@
 
                         <!-- Slot 2: Cardápio Arena -->
                         <div class="menu-slot-row" style="display: flex; justify-content: space-between; align-items: center; gap: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);" data-testid="menu-slot-2">
-                            <div style="flex: 1;">
-                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">🏟️ Cardápio Arena</h3>
-                                <p style="font-size: 0.85rem; color: var(--text-muted);">Cardápio para açaí, petiscos e bebidas na arena.</p>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div>
+                                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">🏟️ Cardápio Arena</h3>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted);">Cardápio para açaí, petiscos e bebidas na arena.</p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 22px;">
+                                            <input type="checkbox" id="menu-acai-active" checked style="opacity: 0; width: 0; height: 0;">
+                                            <span class="slider-toggle" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px;"></span>
+                                        </label>
+                                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);" id="status-text-menu-acai">Ativo</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> Horário:</span>
+                                        <input type="time" id="menu-acai-start" value="14:00" class="time-input">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted);">às</span>
+                                        <input type="time" id="menu-acai-end" value="22:00" class="time-input">
+                                    </div>
+                                </div>
                             </div>
                             <div style="width: 250px; flex-shrink: 0;">
                                 <input type="file" id="upload-menu-acai" accept="application/pdf,image/*" style="display:none;" data-slot="acai">
@@ -1502,9 +1574,26 @@
 
                         <!-- Slot 3: Sobremesas -->
                         <div class="menu-slot-row" style="display: flex; justify-content: space-between; align-items: center; gap: 2rem;" data-testid="menu-slot-3">
-                            <div style="flex: 1;">
-                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">🍨 Sobremesas</h3>
-                                <p style="font-size: 0.85rem; color: var(--text-muted);">Cardápio de doces, sobremesas e eventos especiais.</p>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div>
+                                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">🍨 Sobremesas</h3>
+                                    <p style="font-size: 0.85rem; color: var(--text-muted);">Cardápio de doces, sobremesas e eventos especiais.</p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <label class="switch-toggle" style="position: relative; display: inline-block; width: 40px; height: 22px;">
+                                            <input type="checkbox" id="menu-events-active" checked style="opacity: 0; width: 0; height: 0;">
+                                            <span class="slider-toggle" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px;"></span>
+                                        </label>
+                                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);" id="status-text-menu-events">Ativo</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> Horário:</span>
+                                        <input type="time" id="menu-events-start" value="08:00" class="time-input">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted);">às</span>
+                                        <input type="time" id="menu-events-end" value="22:00" class="time-input">
+                                    </div>
+                                </div>
                             </div>
                             <div style="width: 250px; flex-shrink: 0;">
                                 <input type="file" id="upload-menu-events" accept="application/pdf,image/*" style="display:none;" data-slot="events">
