@@ -40,7 +40,24 @@ describe('DeliveryFeeRepository Unit Tests', () => {
         );
     });
 
-    test('add() should insert record with company_id and correct parsed fee', async () => {
+    test('add() should insert record with company_id, correct parsed fee and distance_km', async () => {
+        mockDb.run.mockResolvedValue({ lastID: 3 });
+
+        const result = await deliveryFeeRepo.add({
+            neighborhood: 'Vila Nova',
+            zipCode: '12345-000',
+            fee: '10.50',
+            distanceKm: 4.5
+        });
+
+        expect(result.id).toBe(3);
+        expect(mockDb.run).toHaveBeenCalledWith(
+            expect.stringContaining('INSERT INTO delivery_fees'),
+            [1, 'Vila Nova', '12345-000', 10.50, 4.5]
+        );
+    });
+
+    test('add() should default distance_km to 0.0 if not provided', async () => {
         mockDb.run.mockResolvedValue({ lastID: 3 });
 
         const result = await deliveryFeeRepo.add({
@@ -52,11 +69,28 @@ describe('DeliveryFeeRepository Unit Tests', () => {
         expect(result.id).toBe(3);
         expect(mockDb.run).toHaveBeenCalledWith(
             expect.stringContaining('INSERT INTO delivery_fees'),
-            [1, 'Vila Nova', '12345-000', 10.50]
+            [1, 'Vila Nova', '12345-000', 10.50, 0.0]
         );
     });
 
-    test('edit() should update record correctly', async () => {
+    test('edit() should update record correctly including distance_km', async () => {
+        mockDb.run.mockResolvedValue({ changes: 1 });
+
+        const changes = await deliveryFeeRepo.edit(3, {
+            neighborhood: 'Vila Nova Alterada',
+            zipCode: '12345-000',
+            fee: 15.00,
+            distanceKm: 5.2
+        });
+
+        expect(changes).toBe(1);
+        expect(mockDb.run).toHaveBeenCalledWith(
+            expect.stringContaining('UPDATE delivery_fees SET'),
+            ['Vila Nova Alterada', '12345-000', 15.00, 5.2, 1, 3]
+        );
+    });
+
+    test('edit() should update record with default distance_km if not provided', async () => {
         mockDb.run.mockResolvedValue({ changes: 1 });
 
         const changes = await deliveryFeeRepo.edit(3, {
@@ -68,7 +102,7 @@ describe('DeliveryFeeRepository Unit Tests', () => {
         expect(changes).toBe(1);
         expect(mockDb.run).toHaveBeenCalledWith(
             expect.stringContaining('UPDATE delivery_fees SET'),
-            ['Vila Nova Alterada', '12345-000', 15.00, 1, 3]
+            ['Vila Nova Alterada', '12345-000', 15.00, 0.0, 1, 3]
         );
     });
 

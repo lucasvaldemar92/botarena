@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro ao buscar taxas de entrega:', err);
             deliveryElements.tableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" style="padding: 2rem; text-align: center; color: #ef4444;">
+                    <td colspan="5" style="padding: 2rem; text-align: center; color: #ef4444;">
                         Erro ao carregar taxas de entrega.
                     </td>
                 </tr>
@@ -569,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fees.length === 0) {
             deliveryElements.tableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
                         Nenhuma taxa de entrega cadastrada.
                     </td>
                 </tr>
@@ -579,10 +579,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         deliveryElements.tableBody.innerHTML = fees.map(item => {
             const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.fee);
+            const formattedDistance = typeof item.distance_km === 'number' ? `${item.distance_km.toFixed(1)} km` : '---';
             return `
                 <tr style="border-bottom: 1px solid var(--border-color);" data-id="${item.id}">
                     <td style="padding: 0.75rem 1rem; font-weight: 500;">${item.neighborhood || '---'}</td>
                     <td style="padding: 0.75rem 1rem; color: var(--text-muted);">${item.zip_code || '---'}</td>
+                    <td style="padding: 0.75rem 1rem; color: var(--text-muted);">${formattedDistance}</td>
                     <td style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600;">${formattedFee}</td>
                     <td style="padding: 0.75rem 1rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                         <button style="background:none; border:none; color:#3b82f6; cursor:pointer; padding:0.25rem;"

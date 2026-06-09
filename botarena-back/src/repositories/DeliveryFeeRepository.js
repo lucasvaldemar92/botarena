@@ -39,7 +39,8 @@ class DeliveryFeeRepository extends BaseRepository {
         return this.create({
             neighborhood: data.neighborhood || 'Desconhecido',
             zip_code: data.zipCode || data.zip_code || null,
-            fee: data.fee !== undefined ? parseFloat(data.fee) : 0.00
+            fee: data.fee !== undefined ? parseFloat(data.fee) : 0.00,
+            distance_km: data.distanceKm !== undefined ? parseFloat(data.distanceKm) : (data.distance_km !== undefined ? parseFloat(data.distance_km) : 0.0)
         });
     }
 
@@ -53,7 +54,8 @@ class DeliveryFeeRepository extends BaseRepository {
         return this.update(id, {
             neighborhood: data.neighborhood || 'Desconhecido',
             zip_code: data.zipCode || data.zip_code || null,
-            fee: data.fee !== undefined ? parseFloat(data.fee) : 0.00
+            fee: data.fee !== undefined ? parseFloat(data.fee) : 0.00,
+            distance_km: data.distanceKm !== undefined ? parseFloat(data.distanceKm) : (data.distance_km !== undefined ? parseFloat(data.distance_km) : 0.0)
         });
     }
 
