@@ -38,6 +38,7 @@ class DeliveryFeeRepository extends BaseRepository {
     async add(data) {
         return this.create({
             neighborhood: data.neighborhood || 'Desconhecido',
+            address: data.address || null,
             zip_code: data.zipCode || data.zip_code || null,
             fee: data.fee !== undefined ? parseFloat(data.fee) : 0.00,
             distance_km: data.distanceKm !== undefined ? parseFloat(data.distanceKm) : (data.distance_km !== undefined ? parseFloat(data.distance_km) : 0.0)
@@ -51,12 +52,17 @@ class DeliveryFeeRepository extends BaseRepository {
      * @returns {Promise<number>} rows changed
      */
     async edit(id, data) {
-        return this.update(id, {
-            neighborhood: data.neighborhood || 'Desconhecido',
-            zip_code: data.zipCode || data.zip_code || null,
-            fee: data.fee !== undefined ? parseFloat(data.fee) : 0.00,
-            distance_km: data.distanceKm !== undefined ? parseFloat(data.distanceKm) : (data.distance_km !== undefined ? parseFloat(data.distance_km) : 0.0)
-        });
+        const updateData = {};
+        if (data.neighborhood !== undefined) updateData.neighborhood = data.neighborhood;
+        if (data.address !== undefined) updateData.address = data.address;
+        if (data.zipCode !== undefined || data.zip_code !== undefined) {
+            updateData.zip_code = data.zipCode || data.zip_code;
+        }
+        if (data.fee !== undefined) updateData.fee = parseFloat(data.fee);
+        if (data.distanceKm !== undefined || data.distance_km !== undefined) {
+            updateData.distance_km = data.distanceKm !== undefined ? parseFloat(data.distanceKm) : parseFloat(data.distance_km);
+        }
+        return this.update(id, updateData);
     }
 
     /**

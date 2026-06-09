@@ -488,10 +488,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
 
     router.post('/delivery-fees', sensitiveLimiter, authMiddleware, async (req, res) => {
         try {
-            const { zipCode, neighborhood } = req.body;
-            if (!neighborhood || neighborhood.trim().length < 3) {
-                return res.status(400).json({ error: 'Nome de rua/bairro deve ter pelo menos 3 caracteres.' });
-            }
+            const { zipCode } = req.body;
             if (!zipCode) {
                 return res.status(400).json({ error: 'CEP é obrigatório.' });
             }
@@ -507,6 +504,13 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                 return res.status(409).json({ error: 'CEP já cadastrado para outra região.' });
             }
 
+            const neighborhood = req.body.neighborhood || 'Desconhecido';
+            const address = req.body.address || null;
+
+            if (neighborhood.trim().length < 3) {
+                return res.status(400).json({ error: 'Nome de rua/bairro deve ter pelo menos 3 caracteres.' });
+            }
+
             // --- CÁLCULO DE DISTÂNCIA DA ARENA AO CLIENTE ---
             let distanceKm = 0.0;
             try {
@@ -518,22 +522,27 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                     originCoors = await geocodeAddress(settings.company_street, settings.company_number, settings.company_neighborhood, settings.base_cep);
                 }
 
-                const destCoors = await geocodeAddress(neighborhood, null, null, formatted);
+                let destCoors = await geocodeAddress(address, null, neighborhood, formatted);
+                if (!destCoors) {
+                    destCoors = await geocodeAddress(neighborhood, null, null, formatted);
+                }
 
                 if (originCoors && destCoors) {
                     distanceKm = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
                 } else {
-                    distanceKm = getFallbackDistance(neighborhood, formatted);
+                    distanceKm = getFallbackDistance(address || neighborhood, formatted);
                 }
             } catch (err) {
                 console.error('❌ [Distance] Erro no cálculo:', err.message);
-                distanceKm = getFallbackDistance(neighborhood, formatted);
+                distanceKm = getFallbackDistance(address || neighborhood, formatted);
             }
             // ------------------------------------------------
             
             const item = await deliveryFeeRepo.add({
                 ...req.body,
                 zipCode: formatted,
+                neighborhood,
+                address,
                 distanceKm
             });
             res.json({ success: true, deliveryFee: item });
@@ -548,9 +557,9 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
 
     router.put('/delivery-fees/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
         try {
-            const { zipCode, neighborhood } = req.body;
+            const { zipCode, neighborhood, address, distanceKm, distance_km } = req.body;
             if (neighborhood && neighborhood.trim().length < 3) {
-                return res.status(400).json({ error: 'Nome de rua/bairro deve ter pelo menos 3 caracteres.' });
+                return res.status(400).json({ error: 'Nome de bairro deve ter pelo menos 3 caracteres.' });
             }
 
             const originalFee = await deliveryFeeRepo.findById(req.params.id);
@@ -573,10 +582,14 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                 req.body.zipCode = formatted;
             }
 
-            // Recalcula a distância se mudou o endereço ou CEP
+            // Recalcula a distância se mudou o endereço ou CEP, contanto que não tenha sido enviada manualmente
             const newNeigh = neighborhood || originalFee.neighborhood;
-            if (neighborhood !== undefined || zipCode !== undefined) {
-                let distanceKm = 0.0;
+            const newAddress = address !== undefined ? address : originalFee.address;
+
+            if (distanceKm !== undefined || distance_km !== undefined) {
+                req.body.distanceKm = distanceKm !== undefined ? parseFloat(distanceKm) : parseFloat(distance_km);
+            } else if (neighborhood !== undefined || zipCode !== undefined || address !== undefined) {
+                let calculatedDist = 0.0;
                 try {
                     const settings = await settingsRepo.get();
                     let originCoors = null;
@@ -586,18 +599,21 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                         originCoors = await geocodeAddress(settings.company_street, settings.company_number, settings.company_neighborhood, settings.base_cep);
                     }
 
-                    const destCoors = await geocodeAddress(newNeigh, null, null, formatted);
+                    let destCoors = await geocodeAddress(newAddress, null, newNeigh, formatted);
+                    if (!destCoors && newNeigh) {
+                        destCoors = await geocodeAddress(newNeigh, null, null, formatted);
+                    }
 
                     if (originCoors && destCoors) {
-                        distanceKm = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
+                        calculatedDist = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
                     } else {
-                        distanceKm = getFallbackDistance(newNeigh, formatted);
+                        calculatedDist = getFallbackDistance(newAddress || newNeigh, formatted);
                     }
                 } catch (err) {
                     console.error('❌ [Distance] Erro no recálculo:', err.message);
-                    distanceKm = getFallbackDistance(newNeigh, formatted);
+                    calculatedDist = getFallbackDistance(newAddress || newNeigh, formatted);
                 }
-                req.body.distanceKm = distanceKm;
+                req.body.distanceKm = calculatedDist;
             }
 
             const changes = await deliveryFeeRepo.edit(parseInt(req.params.id), req.body);

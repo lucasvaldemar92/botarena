@@ -533,6 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitle:    document.getElementById('delivery-fee-modal-title'),
         form:          document.getElementById('form-delivery-fee'),
         inputNeigh:    document.getElementById('delivery-neighborhood'),
+        inputAddr:     document.getElementById('delivery-address'),
         inputZip:      document.getElementById('delivery-zip-code'),
         inputFee:      document.getElementById('delivery-fee-value'),
         btnClose:      document.getElementById('btn-close-delivery-modal'),
@@ -554,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erro ao buscar taxas de entrega:', err);
             deliveryElements.tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="padding: 2rem; text-align: center; color: #ef4444;">
+                    <td colspan="6" style="padding: 2rem; text-align: center; color: #ef4444;">
                         Erro ao carregar taxas de entrega.
                     </td>
                 </tr>
@@ -569,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fees.length === 0) {
             deliveryElements.tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                    <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">
                         Nenhuma taxa de entrega cadastrada.
                     </td>
                 </tr>
@@ -583,9 +584,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return `
                 <tr style="border-bottom: 1px solid var(--border-color);" data-id="${item.id}">
                     <td style="padding: 0.75rem 1rem; font-weight: 500;">${item.neighborhood || '---'}</td>
-                    <td style="padding: 0.75rem 1rem; color: var(--text-muted);">${item.zip_code || '---'}</td>
-                    <td style="padding: 0.75rem 1rem; color: var(--text-muted);">${formattedDistance}</td>
-                    <td style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600;">${formattedFee}</td>
+                    <td class="editable-cell" data-field="address" style="padding: 0.75rem 1rem; color: var(--text-muted); cursor: pointer;">${item.address || '---'}</td>
+                    <td class="editable-cell" data-field="zip_code" style="padding: 0.75rem 1rem; color: var(--text-muted); cursor: pointer;">${item.zip_code || '---'}</td>
+                    <td class="editable-cell" data-field="distance_km" style="padding: 0.75rem 1rem; color: var(--text-muted); cursor: pointer;">${formattedDistance}</td>
+                    <td class="editable-cell" data-field="fee" style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600; cursor: pointer;">${formattedFee}</td>
                     <td style="padding: 0.75rem 1rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                         <button style="background:none; border:none; color:#3b82f6; cursor:pointer; padding:0.25rem;"
                             data-action="edit-fee" data-id="${item.id}" title="Editar">
@@ -611,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item) {
                 deliveryElements.modalTitle.textContent = 'Editar Taxa de Entrega';
                 deliveryElements.inputNeigh.value = item.neighborhood || '';
+                deliveryElements.inputAddr.value = item.address || '';
                 deliveryElements.inputZip.value = window.utils.masks.cep(item.zip_code || '');
                 deliveryElements.inputFee.value = item.fee;
             } else {
@@ -659,11 +662,97 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Auto-preenchimento bidirecional de CEP e Endereço
+    let cachedCompanyCityState = null;
+    
+    async function getCompanyCityState() {
+        if (cachedCompanyCityState) return cachedCompanyCityState;
+        
+        const baseCepInput = document.getElementById('base-cep') || document.getElementById('company-base-cep');
+        const rawCep = baseCepInput ? baseCepInput.value : '';
+        const cleanCep = rawCep.replace(/\D/g, '');
+        
+        if (cleanCep && cleanCep.length === 8) {
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && !data.erro) {
+                        cachedCompanyCityState = {
+                            city: data.localidade,
+                            uf: data.uf
+                        };
+                        return cachedCompanyCityState;
+                    }
+                }
+            } catch (e) {
+                console.error('Erro ao buscar Cidade/UF da empresa pelo CEP:', e);
+            }
+        }
+        return { city: 'Joinville', uf: 'SC' }; // Fallback
+    }
+
+    if (deliveryElements.inputZip) {
+        deliveryElements.inputZip.addEventListener('input', async (e) => {
+            const cep = e.target.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                try {
+                    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && !data.erro) {
+                            if (deliveryElements.inputNeigh && data.bairro) {
+                                deliveryElements.inputNeigh.value = data.bairro;
+                            }
+                            if (deliveryElements.inputAddr && data.logradouro) {
+                                deliveryElements.inputAddr.value = data.logradouro;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Erro ao autocompletar CEP:', err);
+                }
+            }
+        });
+    }
+
+    if (deliveryElements.inputAddr) {
+        deliveryElements.inputAddr.addEventListener('blur', async (e) => {
+            const street = e.target.value.trim();
+            const currentCep = deliveryElements.inputZip.value.replace(/\D/g, '');
+            
+            if (street.length >= 3 && currentCep.length < 8) {
+                try {
+                    const loc = await getCompanyCityState();
+                    const cleanStreet = street.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    const url = `https://viacep.com.br/ws/${loc.uf}/${encodeURIComponent(loc.city)}/${encodeURIComponent(cleanStreet)}/json/`;
+                    
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            const first = data[0];
+                            if (deliveryElements.inputZip) {
+                                deliveryElements.inputZip.value = window.utils.masks.cep(first.cep);
+                            }
+                            if (deliveryElements.inputNeigh && !deliveryElements.inputNeigh.value) {
+                                deliveryElements.inputNeigh.value = first.bairro || '';
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Erro ao buscar CEP por rua:', err);
+                }
+            }
+        });
+    }
+
     if (deliveryElements.form) {
         deliveryElements.form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
                 neighborhood: deliveryElements.inputNeigh.value,
+                address:      deliveryElements.inputAddr.value,
                 zipCode:      deliveryElements.inputZip.value,
                 fee:          parseFloat(deliveryElements.inputFee.value) || 0
             };
@@ -717,6 +806,142 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // Edição inline por duplo clique
+    if (deliveryElements.tableBody) {
+        deliveryElements.tableBody.addEventListener('dblclick', (e) => {
+            const cell = e.target.closest('td.editable-cell');
+            if (!cell) return;
+            
+            const tr = cell.closest('tr');
+            const id = tr.dataset.id;
+            const field = cell.dataset.field;
+            
+            if (cell.querySelector('input')) return;
+            
+            const item = deliveryFeesState.fees.find(x => x.id === parseInt(id));
+            if (!item) return;
+            
+            let originalValue = '';
+            let inputType = 'text';
+            let inputStep = '';
+            
+            if (field === 'zip_code') {
+                originalValue = item.zip_code || '';
+            } else if (field === 'address') {
+                originalValue = item.address || '';
+            } else if (field === 'fee') {
+                originalValue = item.fee;
+                inputType = 'number';
+                inputStep = '0.01';
+            } else if (field === 'distance_km') {
+                originalValue = item.distance_km;
+                inputType = 'number';
+                inputStep = '0.1';
+            }
+            
+            const input = document.createElement('input');
+            input.type = inputType;
+            if (inputStep) input.step = inputStep;
+            input.value = originalValue;
+            input.style.width = '100%';
+            input.style.padding = '0.25rem 0.5rem';
+            input.style.fontSize = 'inherit';
+            input.style.fontFamily = 'inherit';
+            input.style.border = '1px solid var(--accent-dark)';
+            input.style.borderRadius = 'var(--radius-sm)';
+            input.style.background = 'white';
+            input.style.color = 'var(--text-main)';
+            input.style.outline = 'none';
+            input.style.boxSizing = 'border-box';
+            
+            if (field === 'zip_code') {
+                input.addEventListener('input', (event) => {
+                    event.target.value = window.utils.masks.cep(event.target.value);
+                });
+            }
+            
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+            
+            let isSaving = false;
+            
+            const saveValue = async () => {
+                if (isSaving) return;
+                isSaving = true;
+                
+                const newValue = input.value.trim();
+                
+                if (newValue == originalValue || (field === 'fee' && parseFloat(newValue) === originalValue) || (field === 'distance_km' && parseFloat(newValue) === originalValue)) {
+                    renderCellOriginal(cell, field, originalValue);
+                    return;
+                }
+                
+                cell.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></span>';
+                
+                try {
+                    const payload = {
+                        neighborhood: item.neighborhood,
+                        address: item.address,
+                        zipCode: item.zip_code,
+                        fee: item.fee,
+                        distanceKm: item.distance_km
+                    };
+                    
+                    if (field === 'zip_code') {
+                        const clean = newValue.replace(/\D/g, '');
+                        if (clean.length !== 8) throw new Error('CEP deve possuir 8 dígitos');
+                        payload.zipCode = `${clean.substring(0, 5)}-${clean.substring(5)}`;
+                    } else if (field === 'address') {
+                        if (newValue.length < 3) throw new Error('Endereço deve ter pelo menos 3 caracteres');
+                        payload.address = newValue;
+                    } else if (field === 'fee') {
+                        payload.fee = parseFloat(newValue) || 0;
+                    } else if (field === 'distance_km') {
+                        payload.distanceKm = parseFloat(newValue) || 0;
+                    }
+                    
+                    const response = await window.utils.apiFetch(`/delivery-fees/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.success) {
+                        await loadDeliveryFees();
+                    } else {
+                        throw new Error(response.error || 'Erro ao atualizar');
+                    }
+                } catch (err) {
+                    console.error('Erro ao atualizar campo inline:', err);
+                    alert(err.message || 'Erro ao atualizar campo.');
+                    renderCellOriginal(cell, field, originalValue);
+                }
+            };
+            
+            input.addEventListener('blur', saveValue);
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    input.blur();
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    isSaving = true;
+                    renderCellOriginal(cell, field, originalValue);
+                }
+            });
+        });
+    }
+    
+    function renderCellOriginal(cell, field, value) {
+        if (field === 'fee') {
+            cell.innerHTML = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        } else if (field === 'distance_km') {
+            cell.innerHTML = typeof value === 'number' ? `${value.toFixed(1)} km` : '---';
+        } else {
+            cell.innerHTML = value || '---';
+        }
+    }
 
     // ==========================================
     // 🍴 MENU CATALOG (V2) LOGIC
