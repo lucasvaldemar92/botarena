@@ -486,6 +486,52 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
+    router.post('/delivery-fees/calculate-distance', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const { zipCode, neighborhood, address } = req.body;
+            let formatted = null;
+            if (zipCode) {
+                const clean = zipCode.replace(/[^\d]/g, '');
+                if (clean.length === 8) {
+                    formatted = `${clean.substring(0, 5)}-${clean.substring(5)}`;
+                }
+            }
+
+            const cleanNeigh = neighborhood || 'Desconhecido';
+            const cleanAddr = address || null;
+
+            let distanceKm = 0.0;
+            try {
+                const settings = await settingsRepo.get();
+                let originCoors = null;
+                if (settings.latitude !== undefined && settings.longitude !== undefined && settings.latitude !== null && settings.longitude !== null) {
+                    originCoors = { latitude: parseFloat(settings.latitude), longitude: parseFloat(settings.longitude) };
+                } else {
+                    originCoors = await geocodeAddress(settings.company_street, settings.company_number, settings.company_neighborhood, settings.base_cep);
+                }
+
+                let destCoors = await geocodeAddress(cleanAddr, null, cleanNeigh, formatted);
+                if (!destCoors && cleanNeigh !== 'Desconhecido') {
+                    destCoors = await geocodeAddress(cleanNeigh, null, null, formatted);
+                }
+
+                if (originCoors && destCoors) {
+                    distanceKm = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
+                } else {
+                    distanceKm = getFallbackDistance(cleanAddr || cleanNeigh, formatted || '00000-000');
+                }
+            } catch (err) {
+                console.error('❌ [Distance Calc] Erro no cálculo:', err.message);
+                distanceKm = getFallbackDistance(cleanAddr || cleanNeigh, formatted || '00000-000');
+            }
+
+            res.json({ success: true, distanceKm: parseFloat(distanceKm.toFixed(1)) });
+        } catch (e) {
+            console.error('❌ [API] Erro ao calcular distância prévia:', e);
+            res.status(500).json({ error: 'Erro ao calcular distância' });
+        }
+    });
+
     router.post('/delivery-fees', sensitiveLimiter, authMiddleware, async (req, res) => {
         try {
             const { zipCode } = req.body;

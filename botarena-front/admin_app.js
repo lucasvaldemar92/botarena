@@ -535,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inputNeigh:    document.getElementById('delivery-neighborhood'),
         inputAddr:     document.getElementById('delivery-address'),
         inputZip:      document.getElementById('delivery-zip-code'),
+        inputDist:     document.getElementById('delivery-distance'),
         inputFee:      document.getElementById('delivery-fee-value'),
         btnClose:      document.getElementById('btn-close-delivery-modal'),
         btnCancel:     document.getElementById('btn-cancel-delivery-modal'),
@@ -615,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deliveryElements.inputNeigh.value = item.neighborhood || '';
                 deliveryElements.inputAddr.value = item.address || '';
                 deliveryElements.inputZip.value = window.utils.masks.cep(item.zip_code || '');
+                deliveryElements.inputDist.value = item.distance_km !== undefined ? item.distance_km : '';
                 deliveryElements.inputFee.value = item.fee;
             } else {
                 deliveryElements.modalTitle.textContent = 'Nova Taxa de Entrega';
@@ -692,6 +694,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return { city: 'Joinville', uf: 'SC' }; // Fallback
     }
 
+    async function calculateDistanceForModal() {
+        const zipCode = deliveryElements.inputZip.value;
+        const neighborhood = deliveryElements.inputNeigh.value || 'Desconhecido';
+        const address = deliveryElements.inputAddr.value;
+        
+        if (!zipCode || !address) return;
+        
+        try {
+            const res = await window.utils.apiFetch('/delivery-fees/calculate-distance', {
+                method: 'POST',
+                body: JSON.stringify({ zipCode, neighborhood, address })
+            });
+            if (res && res.success && typeof res.distanceKm === 'number') {
+                deliveryElements.inputDist.value = res.distanceKm;
+            }
+        } catch (e) {
+            console.error('Erro ao calcular distância para o modal:', e);
+        }
+    }
+
     if (deliveryElements.inputZip) {
         deliveryElements.inputZip.addEventListener('input', async (e) => {
             const cep = e.target.value.replace(/\D/g, '');
@@ -707,6 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (deliveryElements.inputAddr && data.logradouro) {
                                 deliveryElements.inputAddr.value = data.logradouro;
                             }
+                            await calculateDistanceForModal();
                         }
                     }
                 } catch (err) {
@@ -714,6 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+        deliveryElements.inputZip.addEventListener('blur', calculateDistanceForModal);
     }
 
     if (deliveryElements.inputAddr) {
@@ -738,11 +762,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (deliveryElements.inputNeigh && !deliveryElements.inputNeigh.value) {
                                 deliveryElements.inputNeigh.value = first.bairro || '';
                             }
+                            await calculateDistanceForModal();
                         }
                     }
                 } catch (err) {
                     console.error('Erro ao buscar CEP por rua:', err);
                 }
+            } else {
+                await calculateDistanceForModal();
             }
         });
     }
@@ -751,9 +778,10 @@ document.addEventListener('DOMContentLoaded', () => {
         deliveryElements.form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
-                neighborhood: deliveryElements.inputNeigh.value,
+                neighborhood: deliveryElements.inputNeigh.value || 'Desconhecido',
                 address:      deliveryElements.inputAddr.value,
                 zipCode:      deliveryElements.inputZip.value,
+                distanceKm:   parseFloat(deliveryElements.inputDist.value) || 0,
                 fee:          parseFloat(deliveryElements.inputFee.value) || 0
             };
 
