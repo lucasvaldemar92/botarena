@@ -48,6 +48,9 @@ function getFallbackDistance(address, zipCode) {
 
 // Geocode address using Nominatim (OpenStreetMap)
 async function geocodeAddress(street, number, neighborhood, zipCode) {
+    if (!street && !number && !neighborhood && !zipCode) {
+        return null;
+    }
     try {
         const queryParts = [];
         if (street) queryParts.push(street);
@@ -94,7 +97,7 @@ async function geocodeAddress(street, number, neighborhood, zipCode) {
  * @param {Object}   deps.orderRepo       - OrderRepo instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, ragRepo, ragService, orderRepo, catalogRepo }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo }) {
     const router = express.Router();
 
     // Helper to synchronize Catalog Items into RAG Semantic Database
@@ -584,12 +587,30 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             }
             // ------------------------------------------------
             
+            // Força/valida taxa a partir das faixas de KM se houver faixa ativa correspondente
+            let autoFee = req.body.fee;
+            if (deliveryRangeRepo && distanceKm > 0) {
+                try {
+                    const range = await deliveryRangeRepo.findActiveRangeByDistance(distanceKm);
+                    if (range) {
+                        // Se o operador tentou mandar uma taxa customizada diferente da faixa ativa, rejeita com erro!
+                        if (req.body.fee !== undefined && req.body.fee !== null && req.body.fee !== '' && parseFloat(req.body.fee) !== range.fee) {
+                            return res.status(400).json({ error: `Esta taxa é controlada automaticamente pela faixa de KM ativa (${range.min_km}km - ${range.max_km}km). O valor esperado é R$ ${range.fee.toFixed(2)}.` });
+                        }
+                        autoFee = range.fee;
+                    }
+                } catch (err) {
+                    console.error('❌ [API] Erro ao buscar faixa de KM para auto-preencher taxa:', err.message);
+                }
+            }
+
             const item = await deliveryFeeRepo.add({
                 ...req.body,
                 zipCode: formatted,
                 neighborhood,
                 address,
-                distanceKm
+                distanceKm,
+                fee: autoFee !== undefined && autoFee !== null && autoFee !== '' ? parseFloat(autoFee) : 0
             });
             res.json({ success: true, deliveryFee: item });
         } catch (e) {
@@ -662,6 +683,23 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                 req.body.distanceKm = calculatedDist;
             }
 
+            // Força/valida a taxa a partir das faixas de KM se houver faixa ativa correspondente
+            const finalDistance = req.body.distanceKm !== undefined ? parseFloat(req.body.distanceKm) : (originalFee.distance_km || 0);
+            if (deliveryRangeRepo && finalDistance > 0) {
+                try {
+                    const range = await deliveryRangeRepo.findActiveRangeByDistance(finalDistance);
+                    if (range) {
+                        // Se o operador tentou mandar uma taxa customizada diferente da faixa ativa, rejeita com erro!
+                        if (req.body.fee !== undefined && req.body.fee !== null && req.body.fee !== '' && parseFloat(req.body.fee) !== range.fee) {
+                            return res.status(400).json({ error: `Esta taxa é controlada automaticamente pela faixa de KM ativa (${range.min_km}km - ${range.max_km}km). O valor esperado é R$ ${range.fee.toFixed(2)}.` });
+                        }
+                        req.body.fee = range.fee;
+                    }
+                } catch (err) {
+                    console.error('❌ [API] Erro ao buscar faixa de KM para forçar taxa:', err.message);
+                }
+            }
+
             const changes = await deliveryFeeRepo.edit(parseInt(req.params.id), req.body);
             res.json({ success: true, changes });
         } catch (e) {
@@ -679,6 +717,123 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             res.json({ success: true, deleted: changes });
         } catch (e) {
             console.error('❌ [API] Error deleting delivery fee:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    // ==========================================
+    // 📏 DELIVERY RANGES ROUTES (🔒 Protected)
+    // ==========================================
+
+    router.get('/delivery-ranges', authMiddleware, async (req, res) => {
+        try {
+            res.json(await deliveryRangeRepo.getAll());
+        } catch (e) {
+            console.error('❌ [API] Error fetching delivery ranges:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    router.post('/delivery-ranges', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const { minKm, maxKm, fee } = req.body;
+            const min = parseFloat(minKm);
+            const max = parseFloat(maxKm);
+
+            if (isNaN(min) || isNaN(max) || min < 0 || max <= 0) {
+                return res.status(400).json({ error: 'KM Mínimo e KM Máximo devem ser valores numéricos válidos.' });
+            }
+            if (min >= max) {
+                return res.status(400).json({ error: 'KM Mínimo deve ser menor que KM Máximo.' });
+            }
+
+            // Validate overlap
+            const overlap = await deliveryRangeRepo.findOverlap(min, max);
+            if (overlap) {
+                return res.status(409).json({
+                    error: `Faixa sobreposta: já existe uma faixa de ${overlap.min_km} a ${overlap.max_km} km.`,
+                    conflicting: overlap
+                });
+            }
+
+            const item = await deliveryRangeRepo.add({
+                minKm: min,
+                maxKm: max,
+                fee: parseFloat(fee) || 0,
+                isActive: true
+            });
+            // Cascata: Recalcula taxas de bairros baseadas nas novas faixas de KM
+            await deliveryFeeRepo.recalculateAllFees(deliveryRangeRepo).catch(e => console.error('Erro no cascateamento:', e));
+            res.json({ success: true, deliveryRange: item });
+        } catch (e) {
+            console.error('❌ [API] Error creating delivery range:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    router.put('/delivery-ranges/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+            const { minKm, maxKm, fee } = req.body;
+
+            if (minKm !== undefined && maxKm !== undefined) {
+                const min = parseFloat(minKm);
+                const max = parseFloat(maxKm);
+
+                if (isNaN(min) || isNaN(max) || min < 0 || max <= 0) {
+                    return res.status(400).json({ error: 'KM Mínimo e KM Máximo devem ser valores numéricos válidos.' });
+                }
+                if (min >= max) {
+                    return res.status(400).json({ error: 'KM Mínimo deve ser menor que KM Máximo.' });
+                }
+
+                // Validate overlap excluding current record
+                const overlap = await deliveryRangeRepo.findOverlap(min, max, id);
+                if (overlap) {
+                    return res.status(409).json({
+                        error: `Faixa sobreposta: já existe uma faixa de ${overlap.min_km} a ${overlap.max_km} km.`,
+                        conflicting: overlap
+                    });
+                }
+            }
+
+            const changes = await deliveryRangeRepo.edit(id, req.body);
+            // Cascata: Recalcula taxas de bairros baseadas nas novas faixas de KM
+            await deliveryFeeRepo.recalculateAllFees(deliveryRangeRepo).catch(e => console.error('Erro no cascateamento:', e));
+            res.json({ success: true, changes });
+        } catch (e) {
+            console.error('❌ [API] Error updating delivery range:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    router.patch('/delivery-ranges/:id/toggle', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+            const { isActive } = req.body;
+
+            if (isActive === undefined) {
+                return res.status(400).json({ error: 'Campo isActive é obrigatório.' });
+            }
+
+            const changes = await deliveryRangeRepo.toggleActive(id, isActive);
+            // Cascata: Recalcula taxas de bairros baseadas nas novas faixas de KM
+            await deliveryFeeRepo.recalculateAllFees(deliveryRangeRepo).catch(e => console.error('Erro no cascateamento:', e));
+            res.json({ success: true, changes });
+        } catch (e) {
+            console.error('❌ [API] Error toggling delivery range:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    router.delete('/delivery-ranges/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+        try {
+            const changes = await deliveryRangeRepo.remove(req.params.id);
+            // Cascata: Recalcula taxas de bairros baseadas nas novas faixas de KM
+            await deliveryFeeRepo.recalculateAllFees(deliveryRangeRepo).catch(e => console.error('Erro no cascateamento:', e));
+            res.json({ success: true, deleted: changes });
+        } catch (e) {
+            console.error('❌ [API] Error deleting delivery range:', e);
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });

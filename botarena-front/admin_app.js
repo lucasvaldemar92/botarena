@@ -144,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBotStatus(config.bot_active);
             loadRagStats();
             loadDeliveryFees();
+            loadDeliveryRanges();
             
             // Inicializa controles de ativação e horários dos cardápios
             const slots = ['lunch', 'acai', 'events'];
@@ -564,6 +565,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Consulta localmente as faixas de KM carregadas e retorna a taxa correspondente à distância.
+     * @param {number} distanceKm
+     * @returns {number|null} fee ou null se nenhuma faixa ativa contém a distância
+     */
+    function getFeeFromRanges(distanceKm) {
+        if (!deliveryRangesState || !deliveryRangesState.ranges) return null;
+        const activeRanges = deliveryRangesState.ranges.filter(r => r.is_active === 1);
+        const match = activeRanges.find(r => distanceKm >= r.min_km && distanceKm <= r.max_km);
+        return match ? match.fee : null;
+    }
+
+    function getMatchingRange(distanceKm) {
+        if (!deliveryRangesState || !deliveryRangesState.ranges || typeof distanceKm !== 'number') return null;
+        const activeRanges = deliveryRangesState.ranges.filter(r => r.is_active === 1);
+        return activeRanges.find(r => distanceKm >= r.min_km && distanceKm <= r.max_km);
+    }
+
+    function updateModalFeeLock() {
+        const dist = parseFloat(deliveryElements.inputDist.value);
+        if (!isNaN(dist) && dist >= 0) {
+            const range = getMatchingRange(dist);
+            if (range) {
+                deliveryElements.inputFee.value = range.fee.toFixed(2);
+                deliveryElements.inputFee.disabled = true;
+                deliveryElements.inputFee.style.background = '#f1f5f9';
+                deliveryElements.inputFee.style.cursor = 'not-allowed';
+                deliveryElements.inputFee.classList.add('input-locked-by-range');
+                deliveryElements.inputFee.setAttribute('title', 'Taxa gerenciada automaticamente pelas faixas de KM globais.');
+                return;
+            }
+        }
+        deliveryElements.inputFee.disabled = false;
+        deliveryElements.inputFee.style.background = '';
+        deliveryElements.inputFee.style.cursor = '';
+        deliveryElements.inputFee.classList.remove('input-locked-by-range');
+        deliveryElements.inputFee.removeAttribute('title');
+    }
+
+
     function renderDeliveryFeesTable() {
         if (!deliveryElements.tableBody) return;
         const fees = deliveryFeesState.fees;
@@ -580,15 +621,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         deliveryElements.tableBody.innerHTML = fees.map(item => {
-            const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.fee);
+            const range = getMatchingRange(item.distance_km);
+            const feeVal = range ? range.fee : item.fee;
+            const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(feeVal);
             const formattedDistance = typeof item.distance_km === 'number' ? `${item.distance_km.toFixed(1)} km` : '---';
+            
+            let badgeHtml = '';
+            let lockClass = '';
+            if (range) {
+                badgeHtml = `<span class="badge badge-locked" style="font-size: 0.7rem; padding: 0.15rem 0.35rem; border-radius: var(--radius-sm); background: #fee2e2; color: #ef4444; margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;" title="Bloqueado por faixa de KM"><i class="fa-solid fa-lock" style="font-size: 0.65rem;"></i> Auto</span>`;
+                lockClass = ' locked-cell';
+            }
+
             return `
                 <tr style="border-bottom: 1px solid var(--border-color);" data-id="${item.id}">
                     <td style="padding: 0.75rem 1rem; font-weight: 500;">${item.neighborhood || '---'}</td>
                     <td class="editable-cell" data-field="address" style="padding: 0.75rem 1rem; color: var(--text-muted); cursor: pointer;">${item.address || '---'}</td>
                     <td class="editable-cell" data-field="zip_code" style="padding: 0.75rem 1rem; color: var(--text-muted); cursor: pointer;">${item.zip_code || '---'}</td>
                     <td class="editable-cell" data-field="distance_km" style="padding: 0.75rem 1rem; color: var(--text-muted); cursor: pointer;">${formattedDistance}</td>
-                    <td class="editable-cell" data-field="fee" style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600; cursor: pointer;">${formattedFee}</td>
+                    <td class="editable-cell${lockClass}" data-field="fee" style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600; cursor: pointer;">${formattedFee}${badgeHtml}</td>
                     <td style="padding: 0.75rem 1rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
                         <button style="background:none; border:none; color:#3b82f6; cursor:pointer; padding:0.25rem;"
                             data-action="edit-fee" data-id="${item.id}" title="Editar">
@@ -618,9 +669,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 deliveryElements.inputZip.value = window.utils.masks.cep(item.zip_code || '');
                 deliveryElements.inputDist.value = item.distance_km !== undefined ? item.distance_km : '';
                 deliveryElements.inputFee.value = item.fee;
+                updateModalFeeLock();
             } else {
                 deliveryElements.modalTitle.textContent = 'Nova Taxa de Entrega';
                 deliveryElements.form.reset();
+                updateModalFeeLock();
             }
         };
 
@@ -708,6 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (res && res.success && typeof res.distanceKm === 'number') {
                 deliveryElements.inputDist.value = res.distanceKm;
+                updateModalFeeLock();
             }
         } catch (e) {
             console.error('Erro ao calcular distância para o modal:', e);
@@ -774,6 +828,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Auto-preencher taxa quando a distância mudar no modal
+    if (deliveryElements.inputDist) {
+        deliveryElements.inputDist.addEventListener('input', () => {
+            updateModalFeeLock();
+        });
+    }
+
     if (deliveryElements.form) {
         deliveryElements.form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -781,9 +842,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 neighborhood: deliveryElements.inputNeigh.value || 'Desconhecido',
                 address:      deliveryElements.inputAddr.value,
                 zipCode:      deliveryElements.inputZip.value,
-                distanceKm:   parseFloat(deliveryElements.inputDist.value) || 0,
-                fee:          parseFloat(deliveryElements.inputFee.value) || 0
+                distanceKm:   parseFloat(deliveryElements.inputDist.value) || 0
             };
+
+            // Só envia fee se o usuário preencheu manualmente (não-zero)
+            const manualFee = parseFloat(deliveryElements.inputFee.value);
+            if (manualFee > 0) {
+                payload.fee = manualFee;
+            }
+            // Se não informou fee, o backend auto-preenche a partir das faixas de KM
 
             try {
                 let response;
@@ -849,6 +916,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const item = deliveryFeesState.fees.find(x => x.id === parseInt(id));
             if (!item) return;
+            
+            // Se o campo for 'fee' e existir uma faixa de KM correspondente ativa, não permite edição inline!
+            if (field === 'fee') {
+                const range = getMatchingRange(item.distance_km);
+                if (range) {
+                    alert('Esta taxa é gerenciada automaticamente pelas faixas de KM globais e não pode ser editada manualmente.');
+                    return;
+                }
+            }
             
             let originalValue = '';
             let inputType = 'text';
@@ -921,13 +997,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         const clean = newValue.replace(/\D/g, '');
                         if (clean.length !== 8) throw new Error('CEP deve possuir 8 dígitos');
                         payload.zipCode = `${clean.substring(0, 5)}-${clean.substring(5)}`;
+                        // Remover fee do payload para que o backend auto-preencha ao recalcular distância
+                        delete payload.fee;
                     } else if (field === 'address') {
                         if (newValue.length < 3) throw new Error('Endereço deve ter pelo menos 3 caracteres');
                         payload.address = newValue;
+                        // Remover fee do payload para que o backend auto-preencha ao recalcular distância
+                        delete payload.fee;
                     } else if (field === 'fee') {
                         payload.fee = parseFloat(newValue) || 0;
                     } else if (field === 'distance_km') {
                         payload.distanceKm = parseFloat(newValue) || 0;
+                        // Remover fee do payload para que o backend auto-preencha com base nas faixas de KM
+                        delete payload.fee;
                     }
                     
                     const response = await window.utils.apiFetch(`/delivery-fees/${id}`, {
@@ -968,6 +1050,263 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.innerHTML = typeof value === 'number' ? `${value.toFixed(1)} km` : '---';
         } else {
             cell.innerHTML = value || '---';
+        }
+    }
+    // ==========================================
+    // 📏 GESTÃO DE FAIXAS DE KM (DELIVERY RANGES)
+    // ==========================================
+
+    const rangeElements = {
+        tableBody:  document.getElementById('delivery-ranges-table-body'),
+        inputMin:   document.getElementById('range-min-km'),
+        inputMax:   document.getElementById('range-max-km'),
+        inputFee:   document.getElementById('range-fee'),
+        btnAdd:     document.getElementById('btn-add-delivery-range'),
+    };
+
+    let deliveryRangesState = {
+        ranges: []
+    };
+
+    async function loadDeliveryRanges() {
+        if (!rangeElements.tableBody) return;
+        try {
+            const ranges = await window.utils.apiFetch('/delivery-ranges');
+            deliveryRangesState.ranges = ranges;
+            renderDeliveryRangesTable();
+        } catch (err) {
+            console.error('Erro ao buscar faixas de KM:', err);
+            rangeElements.tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 2rem; text-align: center; color: #ef4444;">
+                        Erro ao carregar faixas de KM.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    function renderDeliveryRangesTable() {
+        if (!rangeElements.tableBody) return;
+        const ranges = deliveryRangesState.ranges;
+
+        if (ranges.length === 0) {
+            rangeElements.tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        Nenhuma faixa de KM cadastrada. Adicione uma faixa acima.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        rangeElements.tableBody.innerHTML = ranges.map(item => {
+            const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.fee);
+            const isActive = item.is_active === 1;
+            const rowOpacity = isActive ? '1' : '0.5';
+            const statusColor = isActive ? '#16a34a' : '#ef4444';
+            const statusLabel = isActive ? 'Ativo' : 'Inativo';
+            const statusIcon = isActive ? 'fa-circle-check' : 'fa-circle-xmark';
+
+            return `
+                <tr style="border-bottom: 1px solid var(--border-color); opacity: ${rowOpacity}; transition: opacity 0.3s ease;" data-range-id="${item.id}">
+                    <td class="range-editable" data-field="min_km" style="padding: 0.75rem 1rem; font-weight: 500; cursor: pointer;">${item.min_km.toFixed(1)} km</td>
+                    <td class="range-editable" data-field="max_km" style="padding: 0.75rem 1rem; font-weight: 500; cursor: pointer;">${item.max_km.toFixed(1)} km</td>
+                    <td class="range-editable" data-field="fee" style="padding: 0.75rem 1rem; color: #16a34a; font-weight: 600; cursor: pointer;">${formattedFee}</td>
+                    <td style="padding: 0.75rem 1rem; text-align: center;">
+                        <button data-action="toggle-range" data-id="${item.id}" data-active="${isActive ? '1' : '0'}"
+                            style="background: none; border: none; cursor: pointer; font-size: 1.1rem; color: ${statusColor}; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); transition: all 0.2s ease;"
+                            title="${statusLabel}">
+                            <i class="fa-solid ${statusIcon}"></i>
+                            <span style="font-size: 0.75rem; font-weight: 600;">${statusLabel}</span>
+                        </button>
+                    </td>
+                    <td style="padding: 0.75rem 1rem; text-align: right;">
+                        <button style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0.25rem;"
+                            data-action="delete-range" data-id="${item.id}" title="Excluir">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Botão adicionar faixa
+    if (rangeElements.btnAdd) {
+        rangeElements.btnAdd.addEventListener('click', async () => {
+            const minKm = parseFloat(rangeElements.inputMin.value);
+            const maxKm = parseFloat(rangeElements.inputMax.value);
+            const fee = parseFloat(rangeElements.inputFee.value) || 0;
+
+            if (isNaN(minKm) || isNaN(maxKm)) {
+                alert('Preencha os campos KM Mín e KM Máx com valores numéricos.');
+                return;
+            }
+            if (minKm >= maxKm) {
+                alert('KM Mínimo deve ser menor que KM Máximo.');
+                return;
+            }
+
+            try {
+                const response = await window.utils.apiFetch('/delivery-ranges', {
+                    method: 'POST',
+                    body: JSON.stringify({ minKm, maxKm, fee })
+                });
+
+                if (response.success) {
+                    rangeElements.inputMin.value = '';
+                    rangeElements.inputMax.value = '';
+                    rangeElements.inputFee.value = '';
+                    await loadDeliveryRanges();
+                }
+            } catch (err) {
+                console.error('Erro ao adicionar faixa de KM:', err);
+                alert(err.message || 'Erro ao adicionar faixa de KM.');
+            }
+        });
+    }
+
+    // Delegated click actions for Toggle/Delete in ranges table
+    document.addEventListener('click', async (e) => {
+        const toggleBtn = e.target.closest('[data-action="toggle-range"]');
+        if (toggleBtn) {
+            const id = toggleBtn.dataset.id;
+            const currentActive = toggleBtn.dataset.active === '1';
+            try {
+                const response = await window.utils.apiFetch(`/delivery-ranges/${id}/toggle`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ isActive: !currentActive })
+                });
+                if (response.success) {
+                    await loadDeliveryRanges();
+                }
+            } catch (err) {
+                console.error('Erro ao alterar status da faixa:', err);
+                alert(err.message || 'Erro ao alterar status.');
+            }
+        }
+
+        const deleteRangeBtn = e.target.closest('[data-action="delete-range"]');
+        if (deleteRangeBtn) {
+            const id = deleteRangeBtn.dataset.id;
+            if (confirm('Tem certeza que deseja excluir esta faixa de KM?')) {
+                try {
+                    const response = await window.utils.apiFetch(`/delivery-ranges/${id}`, { method: 'DELETE' });
+                    if (response.success) {
+                        await loadDeliveryRanges();
+                    }
+                } catch (err) {
+                    console.error('Erro ao excluir faixa de KM:', err);
+                    alert(err.message || 'Erro ao excluir faixa de KM.');
+                }
+            }
+        }
+    });
+
+    // Edição inline por duplo clique nas faixas de KM
+    if (rangeElements.tableBody) {
+        rangeElements.tableBody.addEventListener('dblclick', (e) => {
+            const cell = e.target.closest('td.range-editable');
+            if (!cell) return;
+
+            const tr = cell.closest('tr');
+            const id = tr.dataset.rangeId;
+            const field = cell.dataset.field;
+
+            if (cell.querySelector('input')) return;
+
+            const item = deliveryRangesState.ranges.find(x => x.id === parseInt(id));
+            if (!item) return;
+
+            let originalValue = item[field];
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.step = field === 'fee' ? '0.01' : '0.1';
+            input.value = originalValue;
+            input.style.width = '100%';
+            input.style.padding = '0.25rem 0.5rem';
+            input.style.fontSize = 'inherit';
+            input.style.fontFamily = 'inherit';
+            input.style.border = '1px solid var(--accent-dark)';
+            input.style.borderRadius = 'var(--radius-sm)';
+            input.style.background = 'white';
+            input.style.color = 'var(--text-main)';
+            input.style.outline = 'none';
+            input.style.boxSizing = 'border-box';
+
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+            input.select();
+
+            let isSaving = false;
+
+            const saveRangeValue = async () => {
+                if (isSaving) return;
+                isSaving = true;
+
+                const newValue = parseFloat(input.value);
+
+                if (newValue === originalValue || isNaN(newValue)) {
+                    renderRangeCellOriginal(cell, field, originalValue);
+                    return;
+                }
+
+                cell.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></span>';
+
+                try {
+                    const payload = {
+                        minKm: item.min_km,
+                        maxKm: item.max_km,
+                        fee: item.fee
+                    };
+
+                    if (field === 'min_km') payload.minKm = newValue;
+                    else if (field === 'max_km') payload.maxKm = newValue;
+                    else if (field === 'fee') payload.fee = newValue;
+
+                    if (payload.minKm >= payload.maxKm) {
+                        throw new Error('KM Mínimo deve ser menor que KM Máximo.');
+                    }
+
+                    const response = await window.utils.apiFetch(`/delivery-ranges/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.success) {
+                        await loadDeliveryRanges();
+                    } else {
+                        throw new Error(response.error || 'Erro ao atualizar');
+                    }
+                } catch (err) {
+                    console.error('Erro ao atualizar faixa inline:', err);
+                    alert(err.message || 'Erro ao atualizar faixa.');
+                    renderRangeCellOriginal(cell, field, originalValue);
+                }
+            };
+
+            input.addEventListener('blur', saveRangeValue);
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    input.blur();
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    isSaving = true;
+                    renderRangeCellOriginal(cell, field, originalValue);
+                }
+            });
+        });
+    }
+
+    function renderRangeCellOriginal(cell, field, value) {
+        if (field === 'fee') {
+            cell.innerHTML = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        } else {
+            cell.innerHTML = typeof value === 'number' ? `${value.toFixed(1)} km` : '---';
         }
     }
 

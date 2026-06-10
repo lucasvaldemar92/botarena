@@ -73,6 +73,26 @@ class DeliveryFeeRepository extends BaseRepository {
     async remove(id) {
         return this.delete(id);
     }
+
+    /**
+     * Recalculate all delivery fees for this company based on active KM ranges.
+     * @param {Object} deliveryRangeRepo - Repository of delivery ranges
+     * @returns {Promise<void>}
+     */
+    async recalculateAllFees(deliveryRangeRepo) {
+        const fees = await this.getAll();
+        for (const feeItem of fees) {
+            const distance = feeItem.distance_km || 0;
+            if (distance > 0) {
+                const range = await deliveryRangeRepo.findActiveRangeByDistance(distance);
+                if (range) {
+                    if (feeItem.fee !== range.fee) {
+                        await this.edit(feeItem.id, { fee: range.fee });
+                    }
+                }
+            }
+        }
+    }
 }
 
 module.exports = DeliveryFeeRepository;

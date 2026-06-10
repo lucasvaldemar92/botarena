@@ -64,7 +64,7 @@ function isMenuSlotActiveAndInTime(config, slot) {
  * @param {Object} repos.knowledgeRepo
  * @param {Object} repos.menuRepo
  */
-function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo, orderRepo, catalogRepo }) {
+function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeRepo, menuRepo, ragRepo, orderRepo, catalogRepo, deliveryRangeRepo }) {
     const consumerService = require('../services/consumerService');
 
     client.removeAllListeners('message');
@@ -446,7 +446,20 @@ function setupBotHandler(client, io, isClientReadyFn, { settingsRepo, knowledgeR
 
             // Reconhecimento de fechamento de pedido se o usuário disser que é somente isso
             if (['somente isso', 'so isso', 'finalizar', 'fechar', 'fechar pedido', 'concluir'].some(kw => text.includes(kw))) {
-                await safeReply(msg, `🏁 *Perfeito!* Vamos fechar o seu pedido. Por favor, nos informe a forma de pagamento (PIX, Cartão ou Dinheiro) e o endereço de entrega completo. 🛵`, isClientReadyFn);
+                // Verificar se existe deliveryRangeRepo para checar faixa de KM
+                // (A verificação real de distância será feita quando o endereço for informado)
+                let rangeWarning = '';
+                if (deliveryRangeRepo) {
+                    try {
+                        const activeRanges = await deliveryRangeRepo.getActiveRanges();
+                        if (activeRanges.length === 0) {
+                            rangeWarning = '\n\n⚠️ _Nota: Atualmente não possuímos faixas de entrega ativas. O valor do frete será informado manualmente._';
+                        }
+                    } catch (err) {
+                        console.error('❌ [Bot] Error checking delivery ranges:', err);
+                    }
+                }
+                await safeReply(msg, `🏁 *Perfeito!* Vamos fechar o seu pedido. Por favor, nos informe a forma de pagamento (PIX, Cartão ou Dinheiro) e o endereço de entrega completo. 🛵${rangeWarning}`, isClientReadyFn);
                 return;
             }
 

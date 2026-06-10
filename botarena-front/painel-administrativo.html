@@ -1678,6 +1678,57 @@
                             </label>
                         </div>
 
+                        <!-- Faixas de KM para Cobrança -->
+                        <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                            <div style="margin-bottom: 1rem;">
+                                <h4 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.25rem;">📏 Faixas de KM para Cobrança</h4>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Defina intervalos de distância com valores de taxa. Faixas inativas enviam aviso automático ao cliente.</p>
+                            </div>
+
+                            <!-- Formulário inline para adicionar nova faixa -->
+                            <div id="delivery-range-add-form" style="display: flex; gap: 0.75rem; align-items: flex-end; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 100px;">
+                                    <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">KM Mín</label>
+                                    <input type="number" id="range-min-km" step="0.1" min="0" placeholder="0.0"
+                                        style="padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.875rem; background: var(--bg-main); color: var(--text-main);">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 100px;">
+                                    <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">KM Máx</label>
+                                    <input type="number" id="range-max-km" step="0.1" min="0" placeholder="5.0"
+                                        style="padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.875rem; background: var(--bg-main); color: var(--text-main);">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 120px;">
+                                    <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">Taxa (R$)</label>
+                                    <input type="number" id="range-fee" step="0.01" min="0" placeholder="5.00"
+                                        style="padding: 0.5rem 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.875rem; background: var(--bg-main); color: var(--text-main);">
+                                </div>
+                                <button id="btn-add-delivery-range" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; gap: 0.35rem; align-items: center; white-space: nowrap; height: fit-content;">
+                                    <i class="fa-solid fa-plus"></i> Adicionar Faixa
+                                </button>
+                            </div>
+
+                            <!-- Tabela de Faixas de KM -->
+                            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                                    <thead>
+                                        <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                            <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">KM Mín</th>
+                                            <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">KM Máx</th>
+                                            <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">Taxa (R$)</th>
+                                            <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); text-align: center;">Status</th>
+                                            <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="delivery-ranges-table-body">
+                                        <tr>
+                                            <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                                                Carregando faixas de KM...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
                         <!-- Tabela de Bairros -->
                         <div style="margin-top: 1rem;">
