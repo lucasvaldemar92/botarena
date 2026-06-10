@@ -11,6 +11,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "migrate": "node scripts/migrate_add_company_id.js",
+    "db:seed": "node scripts/load_seed.js",
     "qa": "node scripts/run_qa_full.js",
     "qa:full": "node scripts/run_qa_full.js --full",
     "report": "start ../qa-evidence/report_latest.html"
