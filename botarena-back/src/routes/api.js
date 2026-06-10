@@ -562,28 +562,34 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
 
             // --- CÁLCULO DE DISTÂNCIA DA ARENA AO CLIENTE ---
             let distanceKm = 0.0;
-            try {
-                const settings = await settingsRepo.get();
-                let originCoors = null;
-                if (settings.latitude !== undefined && settings.longitude !== undefined && settings.latitude !== null && settings.longitude !== null) {
-                    originCoors = { latitude: parseFloat(settings.latitude), longitude: parseFloat(settings.longitude) };
-                } else {
-                    originCoors = await geocodeAddress(settings.company_street, settings.company_number, settings.company_neighborhood, settings.base_cep);
-                }
+            if (req.body.distanceKm !== undefined && req.body.distanceKm !== null && parseFloat(req.body.distanceKm) > 0) {
+                distanceKm = parseFloat(req.body.distanceKm);
+            } else if (req.body.distance_km !== undefined && req.body.distance_km !== null && parseFloat(req.body.distance_km) > 0) {
+                distanceKm = parseFloat(req.body.distance_km);
+            } else {
+                try {
+                    const settings = await settingsRepo.get();
+                    let originCoors = null;
+                    if (settings.latitude !== undefined && settings.longitude !== undefined && settings.latitude !== null && settings.longitude !== null) {
+                        originCoors = { latitude: parseFloat(settings.latitude), longitude: parseFloat(settings.longitude) };
+                    } else {
+                        originCoors = await geocodeAddress(settings.company_street, settings.company_number, settings.company_neighborhood, settings.base_cep);
+                    }
 
-                let destCoors = await geocodeAddress(address, null, neighborhood, formatted);
-                if (!destCoors) {
-                    destCoors = await geocodeAddress(neighborhood, null, null, formatted);
-                }
+                    let destCoors = await geocodeAddress(address, null, neighborhood, formatted);
+                    if (!destCoors) {
+                        destCoors = await geocodeAddress(neighborhood, null, null, formatted);
+                    }
 
-                if (originCoors && destCoors) {
-                    distanceKm = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
-                } else {
+                    if (originCoors && destCoors) {
+                        distanceKm = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
+                    } else {
+                        distanceKm = getFallbackDistance(address || neighborhood, formatted);
+                    }
+                } catch (err) {
+                    console.error('❌ [Distance] Erro no cálculo:', err.message);
                     distanceKm = getFallbackDistance(address || neighborhood, formatted);
                 }
-            } catch (err) {
-                console.error('❌ [Distance] Erro no cálculo:', err.message);
-                distanceKm = getFallbackDistance(address || neighborhood, formatted);
             }
             // ------------------------------------------------
             
