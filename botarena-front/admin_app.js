@@ -550,9 +550,18 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCancel:     document.getElementById('btn-cancel-delivery-modal'),
     };
 
+    // Referências do DOM da Paginação de Taxas por Bairro
+    const feesPaginationControls = document.getElementById('fees-pagination-controls');
+    const feesPaginationInfo     = document.getElementById('fees-pagination-info');
+    const feesBtnPrevPage        = document.getElementById('fees-btn-prev-page');
+    const feesBtnNextPage        = document.getElementById('fees-btn-next-page');
+    const feesCurrentPageNum     = document.getElementById('fees-current-page-num');
+
     let deliveryFeesState = {
         editingId: null,
-        fees: []
+        fees: [],
+        currentPage: 1,
+        itemsPerPage: 10
     };
 
     async function loadDeliveryFees() {
@@ -616,8 +625,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderDeliveryFeesTable() {
         if (!deliveryElements.tableBody) return;
         const fees = deliveryFeesState.fees;
+        const totalItems = fees.length;
 
-        if (fees.length === 0) {
+        if (totalItems === 0) {
             deliveryElements.tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">
@@ -625,10 +635,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                 </tr>
             `;
+            if (feesPaginationControls) {
+                feesPaginationControls.style.display = 'none';
+            }
             return;
         }
 
-        deliveryElements.tableBody.innerHTML = fees.map(item => {
+        // Lógica de Paginação
+        const itemsPerPage = deliveryFeesState.itemsPerPage;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+        if (deliveryFeesState.currentPage > totalPages) {
+            deliveryFeesState.currentPage = totalPages;
+        }
+        if (deliveryFeesState.currentPage < 1) {
+            deliveryFeesState.currentPage = 1;
+        }
+
+        const start = (deliveryFeesState.currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedFees = fees.slice(start, end);
+
+        deliveryElements.tableBody.innerHTML = paginatedFees.map(item => {
             const range = getMatchingRange(item.distance_km);
             const feeVal = range ? range.fee : item.fee;
             const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(feeVal);
@@ -661,6 +689,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tr>
             `;
         }).join('');
+
+        // Atualiza a visualização dos controles de paginação
+        if (feesPaginationControls) {
+            if (totalItems <= itemsPerPage) {
+                feesPaginationControls.style.display = 'none';
+            } else {
+                feesPaginationControls.style.display = 'flex';
+                
+                const showFrom = start + 1;
+                const showTo = Math.min(end, totalItems);
+                if (feesPaginationInfo) {
+                    feesPaginationInfo.textContent = `Mostrando ${showFrom}-${showTo} de ${totalItems} bairros`;
+                }
+                if (feesCurrentPageNum) {
+                    feesCurrentPageNum.textContent = deliveryFeesState.currentPage;
+                }
+                if (feesBtnPrevPage) {
+                    feesBtnPrevPage.disabled = deliveryFeesState.currentPage === 1;
+                }
+                if (feesBtnNextPage) {
+                    feesBtnNextPage.disabled = deliveryFeesState.currentPage === totalPages;
+                }
+            }
+        }
     }
 
     function openDeliveryModal(item = null) {
@@ -716,6 +768,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (deliveryElements.btnCancel) {
         deliveryElements.btnCancel.addEventListener('click', closeDeliveryModal);
+    }
+
+    // Event listeners para a paginação de Taxas por Bairro
+    if (feesBtnPrevPage) {
+        feesBtnPrevPage.addEventListener('click', () => {
+            if (deliveryFeesState.currentPage > 1) {
+                deliveryFeesState.currentPage--;
+                renderDeliveryFeesTable();
+            }
+        });
+    }
+    if (feesBtnNextPage) {
+        feesBtnNextPage.addEventListener('click', () => {
+            const totalItems = deliveryFeesState.fees.length;
+            const totalPages = Math.ceil(totalItems / deliveryFeesState.itemsPerPage) || 1;
+            if (deliveryFeesState.currentPage < totalPages) {
+                deliveryFeesState.currentPage++;
+                renderDeliveryFeesTable();
+            }
+        });
     }
 
     // ==========================================
@@ -1461,8 +1533,17 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAdd:     document.getElementById('btn-add-delivery-range'),
     };
 
+    // Referências do DOM da Paginação de Faixas de KM
+    const rangesPaginationControls = document.getElementById('ranges-pagination-controls');
+    const rangesPaginationInfo     = document.getElementById('ranges-pagination-info');
+    const rangesBtnPrevPage        = document.getElementById('ranges-btn-prev-page');
+    const rangesBtnNextPage        = document.getElementById('ranges-btn-next-page');
+    const rangesCurrentPageNum     = document.getElementById('ranges-current-page-num');
+
     let deliveryRangesState = {
-        ranges: []
+        ranges: [],
+        currentPage: 1,
+        itemsPerPage: 10
     };
 
     async function loadDeliveryRanges() {
@@ -1486,8 +1567,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderDeliveryRangesTable() {
         if (!rangeElements.tableBody) return;
         const ranges = deliveryRangesState.ranges;
+        const totalItems = ranges.length;
 
-        if (ranges.length === 0) {
+        if (totalItems === 0) {
             rangeElements.tableBody.innerHTML = `
                 <tr>
                     <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
@@ -1495,10 +1577,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                 </tr>
             `;
+            if (rangesPaginationControls) {
+                rangesPaginationControls.style.display = 'none';
+            }
             return;
         }
 
-        rangeElements.tableBody.innerHTML = ranges.map(item => {
+        // Lógica de Paginação
+        const itemsPerPage = deliveryRangesState.itemsPerPage;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+        if (deliveryRangesState.currentPage > totalPages) {
+            deliveryRangesState.currentPage = totalPages;
+        }
+        if (deliveryRangesState.currentPage < 1) {
+            deliveryRangesState.currentPage = 1;
+        }
+
+        const start = (deliveryRangesState.currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedRanges = ranges.slice(start, end);
+
+        rangeElements.tableBody.innerHTML = paginatedRanges.map(item => {
             const formattedFee = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.fee);
             const isActive = item.is_active === 1;
             const rowOpacity = isActive ? '1' : '0.5';
@@ -1528,6 +1628,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tr>
             `;
         }).join('');
+
+        // Atualiza a visualização dos controles de paginação
+        if (rangesPaginationControls) {
+            if (totalItems <= itemsPerPage) {
+                rangesPaginationControls.style.display = 'none';
+            } else {
+                rangesPaginationControls.style.display = 'flex';
+                
+                const showFrom = start + 1;
+                const showTo = Math.min(end, totalItems);
+                if (rangesPaginationInfo) {
+                    rangesPaginationInfo.textContent = `Mostrando ${showFrom}-${showTo} de ${totalItems} faixas`;
+                }
+                if (rangesCurrentPageNum) {
+                    rangesCurrentPageNum.textContent = deliveryRangesState.currentPage;
+                }
+                if (rangesBtnPrevPage) {
+                    rangesBtnPrevPage.disabled = deliveryRangesState.currentPage === 1;
+                }
+                if (rangesBtnNextPage) {
+                    rangesBtnNextPage.disabled = deliveryRangesState.currentPage === totalPages;
+                }
+            }
+        }
     }
 
     // Botão adicionar faixa
@@ -1561,6 +1685,26 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error('Erro ao adicionar faixa de KM:', err);
                 alert(err.message || 'Erro ao adicionar faixa de KM.');
+            }
+        });
+    }
+
+    // Event listeners para a paginação de Faixas de KM
+    if (rangesBtnPrevPage) {
+        rangesBtnPrevPage.addEventListener('click', () => {
+            if (deliveryRangesState.currentPage > 1) {
+                deliveryRangesState.currentPage--;
+                renderDeliveryRangesTable();
+            }
+        });
+    }
+    if (rangesBtnNextPage) {
+        rangesBtnNextPage.addEventListener('click', () => {
+            const totalItems = deliveryRangesState.ranges.length;
+            const totalPages = Math.ceil(totalItems / deliveryRangesState.itemsPerPage) || 1;
+            if (deliveryRangesState.currentPage < totalPages) {
+                deliveryRangesState.currentPage++;
+                renderDeliveryRangesTable();
             }
         });
     }

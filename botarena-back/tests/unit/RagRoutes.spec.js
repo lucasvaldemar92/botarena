@@ -22,8 +22,12 @@ describe('RAG Routes Unit Tests', () => {
         mockRagRepo = {
             companyId: 1,
             db: {
-                all: jest.fn()
+                all: jest.fn(),
+                transaction: jest.fn(cb => cb()),
+                get: jest.fn(),
+                run: jest.fn()
             },
+            create: jest.fn(),
             saveChunks: jest.fn(),
             deleteChunksBySource: jest.fn()
         };
@@ -66,16 +70,15 @@ describe('RAG Routes Unit Tests', () => {
                 }
             };
 
-            mockRagRepo.saveChunks.mockResolvedValue(true);
+            mockRagRepo.db.all.mockResolvedValue([]);
+            mockRagRepo.db.get.mockResolvedValue({ max_idx: null });
+            mockRagRepo.create.mockResolvedValue({ id: 100 });
 
             await handler(req, mockRes);
 
-            expect(mockRagRepo.saveChunks).toHaveBeenCalledWith(
-                'address', 
-                'imported_sheet_test', 
-                req.body.chunks
-            );
-            expect(mockRes.json).toHaveBeenCalledWith({ success: true, count: 2 });
+            expect(mockRagRepo.db.all).toHaveBeenCalled();
+            expect(mockRagRepo.create).toHaveBeenCalledTimes(2);
+            expect(mockRes.json).toHaveBeenCalledWith({ success: true, inserted: 2, merged: 0, total: 2 });
         });
 
         test('should return 400 if validation fails', async () => {

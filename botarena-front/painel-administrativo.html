@@ -1730,15 +1730,22 @@
                                             <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); text-align: center;">Status</th>
                                             <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Ações</th>
                                         </tr>
-                                    </thead>
                                     <tbody id="delivery-ranges-table-body">
-                                        <tr>
-                                            <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                                                Carregando faixas de KM...
-                                            </td>
-                                        </tr>
                                     </tbody>
                                 </table>
+                                <!-- Controles de Paginação de Faixas de KM -->
+                                <div class="pagination" id="ranges-pagination-controls" style="display: none; border-top: 1px solid var(--border-color); padding: 0.75rem 1.25rem;">
+                                    <span class="pagination__info" id="ranges-pagination-info" style="font-size: 0.85rem;">Mostrando 1-10 de 0 faixas</span>
+                                    <div class="pagination__buttons">
+                                        <button class="pagination__btn" id="ranges-btn-prev-page" disabled style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                                            <i class="fa-solid fa-chevron-left"></i> Anterior
+                                        </button>
+                                        <span class="pagination__page" id="ranges-current-page-num" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; min-width: 28px; height: 28px; background: var(--accent-dark); color: white;">1</span>
+                                        <button class="pagination__btn" id="ranges-btn-next-page" disabled style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                                            Próximo <i class="fa-solid fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1761,15 +1768,22 @@
                                             <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted);">Taxa</th>
                                             <th style="padding: 0.75rem 1rem; font-weight: 600; color: var(--text-muted); text-align: right;">Ações</th>
                                         </tr>
-                                    </thead>
                                     <tbody id="delivery-fees-table-body">
-                                        <tr>
-                                            <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                                                Carregando taxas de entrega...
-                                            </td>
-                                        </tr>
                                     </tbody>
                                 </table>
+                                <!-- Controles de Paginação de Taxas por Bairro -->
+                                <div class="pagination" id="fees-pagination-controls" style="display: none; border-top: 1px solid var(--border-color); padding: 0.75rem 1.25rem;">
+                                    <span class="pagination__info" id="fees-pagination-info" style="font-size: 0.85rem;">Mostrando 1-10 de 0 bairros</span>
+                                    <div class="pagination__buttons">
+                                        <button class="pagination__btn" id="fees-btn-prev-page" disabled style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                                            <i class="fa-solid fa-chevron-left"></i> Anterior
+                                        </button>
+                                        <span class="pagination__page" id="fees-current-page-num" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; min-width: 28px; height: 28px; background: var(--accent-dark); color: white;">1</span>
+                                        <button class="pagination__btn" id="fees-btn-next-page" disabled style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                                            Próximo <i class="fa-solid fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </article>
