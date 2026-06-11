@@ -76,6 +76,20 @@ describe('SettingsRepository Unit Tests', () => {
             null,       null,       // menu_events_active
             null,       null,       // menu_events_start
             null,       null,       // menu_events_end
+            null,       null,       // company_name
+            null,       null,       // trade_name
+            null,       null,       // cnpj
+            null,       null,       // base_cep
+            null,       null,       // company_street
+            null,       null,       // company_number
+            null,       null,       // company_neighborhood
+            null,       null,       // company_phone
+            null,       null,       // company_email
+            null,       null,       // latitude
+            null,       null,       // longitude
+            null,       null,       // consumer_client_id
+            null,       null,       // consumer_client_secret
+            null,       null,       // consumer_integration_active
             1                       // company_id
         ]);
     });

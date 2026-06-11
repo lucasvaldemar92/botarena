@@ -89,6 +89,46 @@ class RagService {
             throw error;
         }
     }
+
+    /**
+     * SOURCE 3: company_address -> Lê os dados de endereço e localização da empresa
+     * @param {Object} settings 
+     * @returns {Promise<Object>}
+     */
+    async syncAddressToRag(settings) {
+        try {
+            if (!settings) return { success: false, reason: 'Nenhuma configuração fornecida' };
+
+            let addressText = `=== DADOS E ENDEREÇO DA EMPRESA ===\n`;
+            addressText += `Nome Fantasia: ${settings.trade_name || settings.empresa || 'BotArena'}\n`;
+            if (settings.company_name) addressText += `Razão Social: ${settings.company_name}\n`;
+            if (settings.cnpj) addressText += `CNPJ: ${settings.cnpj}\n`;
+            if (settings.company_phone) addressText += `WhatsApp: ${settings.company_phone}\n`;
+            if (settings.company_email) addressText += `E-mail: ${settings.company_email}\n`;
+            
+            const logradouro = [
+                settings.company_street,
+                settings.company_number,
+                settings.company_neighborhood
+            ].filter(Boolean).join(', ');
+
+            if (logradouro) addressText += `Endereço: ${logradouro}\n`;
+            if (settings.base_cep) addressText += `CEP: ${settings.base_cep}\n`;
+            
+            if (settings.latitude !== undefined && settings.latitude !== null && settings.longitude !== undefined && settings.longitude !== null) {
+                addressText += `Coordenadas: Lat ${settings.latitude}, Lng ${settings.longitude}\n`;
+            }
+
+            // Deleta o chunk antigo e salva o novo
+            await this.ragRepo.deleteChunksBySource('address', 'company_address');
+            await this.ragRepo.saveChunks('address', 'company_address', [addressText.trim()]);
+
+            return { success: true };
+        } catch (error) {
+            console.error("[RAG ADDRESS SYNC ERROR]:", error);
+            throw error;
+        }
+    }
 }
 
 module.exports = RagService;

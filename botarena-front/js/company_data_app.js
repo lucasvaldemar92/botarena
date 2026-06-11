@@ -44,6 +44,30 @@
                 return;
             }
 
+            // 🧠 Tenta buscar na Memória Inteligente (RAG) primeiro
+            try {
+                const ragRes = await window.utils.apiFetch(`/rag/lookup-address?query=${sanitizedCep}`);
+                if (ragRes && ragRes.success && ragRes.results.length > 0) {
+                    const match = ragRes.results[0];
+                    console.log('⚡ [ViaCEP Pipeline] CEP encontrado no RAG local. Aplicando bypass do ViaCEP.');
+                    
+                    const streetInput = document.getElementById('company-street');
+                    const neighborhoodInput = document.getElementById('company-neighborhood');
+                    const coordsInput = document.getElementById('company-coordinates');
+
+                    if (streetInput && match.rua) streetInput.value = match.rua;
+                    if (neighborhoodInput && match.bairro) neighborhoodInput.value = match.bairro;
+                    if (coordsInput && match.latitude && match.longitude) {
+                        coordsInput.value = `${match.latitude}, ${match.longitude}`;
+                    }
+
+                    initialCep = sanitizedCep;
+                    return; // ⛔ Bypass
+                }
+            } catch (err) {
+                console.warn('[ViaCEP Pipeline] Erro ao buscar CEP no RAG:', err);
+            }
+
             console.log(`🔍 [ViaCEP Pipeline] CEP modificado detectado: ${sanitizedCep}. Buscando dados no ViaCEP...`);
             try {
                 const response = await fetch(`https://viacep.com.br/ws/${sanitizedCep}/json/`);

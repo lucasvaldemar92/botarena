@@ -225,6 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const acaiCount = (stats.bySource && stats.bySource.menu_slot && stats.bySource.menu_slot.acai) || 0;
             const eventsCount = (stats.bySource && stats.bySource.menu_slot && stats.bySource.menu_slot.events) || 0;
             
+            let addressCount = 0;
+            if (stats.bySource && stats.bySource.address) {
+                addressCount = Object.values(stats.bySource.address).reduce((acc, val) => acc + val, 0);
+            }
+            
             let faqCount = 0;
             if (stats.bySource && stats.bySource.faq) {
                 faqCount = Object.values(stats.bySource.faq).reduce((acc, val) => acc + val, 0);
@@ -241,6 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const faqEl = document.getElementById('rag-faq-count');
             if (faqEl) faqEl.textContent = `${faqCount} blocos`;
+            
+            const addressEl = document.getElementById('rag-address-count');
+            if (addressEl) addressEl.textContent = `${addressCount} blocos`;
             
         } catch (err) {
             console.error('Erro ao buscar status de RAG:', err);
@@ -710,6 +718,349 @@ document.addEventListener('DOMContentLoaded', () => {
         deliveryElements.btnCancel.addEventListener('click', closeDeliveryModal);
     }
 
+    // ==========================================
+    // 📂 IMPORTAÇÃO DE ARQUIVOS DE ENDEREÇOS NO RAG
+    // ==========================================
+    const btnImportDelivery = document.getElementById('btn-import-delivery');
+    const deliveryFileUpload = document.getElementById('delivery-file-upload');
+
+    if (btnImportDelivery && deliveryFileUpload) {
+        btnImportDelivery.addEventListener('click', () => {
+            deliveryFileUpload.click();
+        });
+
+        deliveryFileUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const originalHTML = btnImportDelivery.innerHTML;
+            btnImportDelivery.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
+            btnImportDelivery.disabled = true;
+
+            try {
+                const name = file.name.toLowerCase();
+                let chunks = [];
+                let sourceId = 'imported_sheet';
+
+                if (name.endsWith('.kml')) {
+                    sourceId = 'imported_kml';
+                    chunks = await parseKmlFile(file);
+                } else if (name.endsWith('.csv')) {
+                    chunks = await parseCsvFile(file);
+                } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+                    chunks = await parseExcelFile(file);
+                } else {
+                    throw new Error('Formato de arquivo não suportado. Use .xlsx, .xls, .csv ou .kml');
+                }
+
+                if (chunks.length === 0) {
+                    throw new Error('Nenhum endereço válido com CEP, Bairro ou Rua foi encontrado no arquivo.');
+                }
+
+                // Envia para o RAG no backend
+                const res = await window.utils.apiFetch('/rag/upload-address-batch', {
+                    method: 'POST',
+                    body: JSON.stringify({ sourceId, chunks })
+                });
+
+                if (res && res.success) {
+                    showToast(`Sucesso! ${chunks.length} endereços gravados na memória inteligente.`);
+                    
+                    // Recarrega as estatísticas do RAG se a função existir
+                    if (typeof loadRagStats === 'function') {
+                        await loadRagStats();
+                    }
+                } else {
+                    throw new Error('Resposta de erro do servidor.');
+                }
+            } catch (err) {
+                console.error('Erro na importação:', err);
+                alert('Erro na importação de arquivo: ' + err.message);
+            } finally {
+                btnImportDelivery.innerHTML = originalHTML;
+                btnImportDelivery.disabled = false;
+                deliveryFileUpload.value = '';
+            }
+        });
+    }
+
+    function parseExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (rows.length < 2) {
+                        return resolve([]);
+                    }
+                    
+                    const headers = rows[0].map(h => String(h).trim().toLowerCase());
+                    
+                    const colIndex = {
+                        cep: headers.findIndex(h => h.includes('cep')),
+                        bairro: headers.findIndex(h => h.includes('bairro') || h.includes('bair')),
+                        rua: headers.findIndex(h => h.includes('rua') || h.includes('logradouro') || h.includes('endereco') || h.includes('endereço') || h.includes('via') || h.includes('denomina')),
+                        taxa: headers.findIndex(h => h.includes('taxa') || h.includes('valor') || h.includes('frete') || h.includes('preco') || h.includes('preço')),
+                        latitude: headers.findIndex(h => h.includes('latitude') || h.includes('lat')),
+                        longitude: headers.findIndex(h => h.includes('longitude') || h.includes('lon') || h.includes('lng')),
+                        coordenadas: headers.findIndex(h => h.includes('coordenada') || h.includes('coord'))
+                    };
+                    
+                    const chunks = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        // 1. Tratamento para coluna única contendo WKT (Geometria + Bairro concatenados na coluna A)
+                        const firstColVal = String(row[0] || '').trim();
+                        if (firstColVal.toUpperCase().startsWith('POLYGON') || firstColVal.toUpperCase().startsWith('MULTIPOLYGON') || firstColVal.toUpperCase().startsWith('GEOMETRYCOLLECTION')) {
+                            const wktMatch = firstColVal.match(/(?:POLYGON|MULTIPOLYGON|GEOMETRYCOLLECTION)\s*\(.+\),\s*([^,]+)/i);
+                            if (wktMatch) {
+                                const bairro = wktMatch[1].trim();
+                                chunks.push(`Bairro: ${bairro}`);
+                                continue;
+                            }
+                        }
+
+                        const cep = colIndex.cep !== -1 ? String(row[colIndex.cep] || '').trim() : '';
+                        const bairro = colIndex.bairro !== -1 ? String(row[colIndex.bairro] || '').trim() : '';
+                        const rua = colIndex.rua !== -1 ? String(row[colIndex.rua] || '').trim() : '';
+                        const taxaVal = colIndex.taxa !== -1 ? parseFloat(row[colIndex.taxa]) : null;
+                        
+                        let latitude = colIndex.latitude !== -1 ? parseFloat(row[colIndex.latitude]) : null;
+                        let longitude = colIndex.longitude !== -1 ? parseFloat(row[colIndex.longitude]) : null;
+                        
+                        // 2. Extração inteligente de coordenadas complexas (lista de pontos / WKT no Excel)
+                        if (colIndex.coordenadas !== -1) {
+                            const coordStr = String(row[colIndex.coordenadas] || '').trim();
+                            if (coordStr) {
+                                const cleanCoords = coordStr.replace(/[()]/g, '').trim();
+                                const firstPoint = cleanCoords.split(',')[0].trim();
+                                const coordParts = firstPoint.split(/\s+/);
+                                if (coordParts.length >= 2) {
+                                    const p1 = parseFloat(coordParts[0]);
+                                    const p2 = parseFloat(coordParts[1]);
+                                    if (!isNaN(p1) && !isNaN(p2)) {
+                                        // Inferência baseada em magnitude para o sul do Brasil (Long ~ -48, Lat ~ -26)
+                                        if (Math.abs(p1) > Math.abs(p2)) {
+                                            longitude = p1;
+                                            latitude = p2;
+                                        } else {
+                                            latitude = p1;
+                                            longitude = p2;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!cep && !bairro && !rua) continue;
+                        
+                        const chunkParts = [];
+                        if (cep) chunkParts.push(`CEP: ${cep}`);
+                        if (bairro) chunkParts.push(`Bairro: ${bairro}`);
+                        if (rua) chunkParts.push(`Rua: ${rua}`);
+                        if (!isNaN(latitude) && !isNaN(longitude) && latitude !== null && longitude !== null) {
+                            chunkParts.push(`Coordenadas: ${latitude}, ${longitude}`);
+                        }
+                        if (taxaVal !== null && !isNaN(taxaVal)) {
+                            chunkParts.push(`Taxa: ${taxaVal.toFixed(2)}`);
+                        }
+                        
+                        chunks.push(chunkParts.join(' | '));
+                    }
+                    resolve(chunks);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    function parseCsvFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split(/\r?\n/);
+                    if (lines.length < 2) return resolve([]);
+                    
+                    const firstLine = lines[0];
+                    const sep = firstLine.includes(';') ? ';' : ',';
+                    
+                    const rows = lines.map(line => {
+                        return line.split(sep).map(field => field.replace(/^["']|["']$/g, '').trim());
+                    });
+                    
+                    const headers = rows[0].map(h => String(h).trim().toLowerCase());
+                    
+                    const colIndex = {
+                        cep: headers.findIndex(h => h.includes('cep')),
+                        bairro: headers.findIndex(h => h.includes('bairro') || h.includes('bair')),
+                        rua: headers.findIndex(h => h.includes('rua') || h.includes('logradouro') || h.includes('endereco') || h.includes('endereço') || h.includes('via') || h.includes('denomina')),
+                        taxa: headers.findIndex(h => h.includes('taxa') || h.includes('valor') || h.includes('frete') || h.includes('preco') || h.includes('preço')),
+                        latitude: headers.findIndex(h => h.includes('latitude') || h.includes('lat')),
+                        longitude: headers.findIndex(h => h.includes('longitude') || h.includes('lon') || h.includes('lng')),
+                        coordenadas: headers.findIndex(h => h.includes('coordenada') || h.includes('coord'))
+                    };
+                    
+                    const chunks = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length === 0 || (row.length === 1 && !row[0])) continue;
+                        
+                        // 1. Tratamento para coluna única contendo WKT (Geometria + Bairro concatenados na coluna A)
+                        const firstColVal = String(row[0] || '').trim();
+                        if (firstColVal.toUpperCase().startsWith('POLYGON') || firstColVal.toUpperCase().startsWith('MULTIPOLYGON') || firstColVal.toUpperCase().startsWith('GEOMETRYCOLLECTION')) {
+                            const wktMatch = firstColVal.match(/(?:POLYGON|MULTIPOLYGON|GEOMETRYCOLLECTION)\s*\(.+\),\s*([^,]+)/i);
+                            if (wktMatch) {
+                                const bairro = wktMatch[1].trim();
+                                chunks.push(`Bairro: ${bairro}`);
+                                continue;
+                            }
+                        }
+
+                        const cep = colIndex.cep !== -1 ? String(row[colIndex.cep] || '').trim() : '';
+                        const bairro = colIndex.bairro !== -1 ? String(row[colIndex.bairro] || '').trim() : '';
+                        const rua = colIndex.rua !== -1 ? String(row[colIndex.rua] || '').trim() : '';
+                        const taxaVal = colIndex.taxa !== -1 ? parseFloat(String(row[colIndex.taxa]).replace(',', '.')) : null;
+                        
+                        let latitude = colIndex.latitude !== -1 ? parseFloat(String(row[colIndex.latitude]).replace(',', '.')) : null;
+                        let longitude = colIndex.longitude !== -1 ? parseFloat(String(row[colIndex.longitude]).replace(',', '.')) : null;
+                        
+                        // 2. Extração inteligente de coordenadas complexas (lista de pontos / WKT no CSV)
+                        if (colIndex.coordenadas !== -1) {
+                            const coordStr = String(row[colIndex.coordenadas] || '').trim();
+                            if (coordStr) {
+                                const cleanCoords = coordStr.replace(/[()]/g, '').trim();
+                                const firstPoint = cleanCoords.split(',')[0].trim();
+                                const coordParts = firstPoint.split(/\s+/);
+                                if (coordParts.length >= 2) {
+                                    const p1 = parseFloat(coordParts[0].trim().replace(',', '.'));
+                                    const p2 = parseFloat(coordParts[1].trim().replace(',', '.'));
+                                    if (!isNaN(p1) && !isNaN(p2)) {
+                                        if (Math.abs(p1) > Math.abs(p2)) {
+                                            longitude = p1;
+                                            latitude = p2;
+                                        } else {
+                                            latitude = p1;
+                                            longitude = p2;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!cep && !bairro && !rua) continue;
+                        
+                        const chunkParts = [];
+                        if (cep) chunkParts.push(`CEP: ${cep}`);
+                        if (bairro) chunkParts.push(`Bairro: ${bairro}`);
+                        if (rua) chunkParts.push(`Rua: ${rua}`);
+                        if (!isNaN(latitude) && !isNaN(longitude) && latitude !== null && longitude !== null) {
+                            chunkParts.push(`Coordenadas: ${latitude}, ${longitude}`);
+                        }
+                        if (taxaVal !== null && !isNaN(taxaVal)) {
+                            chunkParts.push(`Taxa: ${taxaVal.toFixed(2)}`);
+                        }
+                        
+                        chunks.push(chunkParts.join(' | '));
+                    }
+                    resolve(chunks);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsText(file, 'utf-8');
+        });
+    }
+
+    function parseKmlFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const text = e.target.result;
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(text, 'text/xml');
+                    
+                    const placemarks = xmlDoc.getElementsByTagName('Placemark');
+                    const chunks = [];
+                    
+                    for (let i = 0; i < placemarks.length; i++) {
+                        const pm = placemarks[i];
+                        
+                        const nameNode = pm.getElementsByTagName('name')[0];
+                        const descNode = pm.getElementsByTagName('description')[0];
+                        const pointNode = pm.getElementsByTagName('Point')[0];
+                        
+                        const bairro = nameNode ? nameNode.textContent.trim() : '';
+                        const description = descNode ? descNode.textContent.trim() : '';
+                        
+                        let cep = '';
+                        let rua = '';
+                        let taxaVal = null;
+                        
+                        if (description) {
+                            const cepMatch = description.match(/cep:\s*([0-9]{5}-?[0-9]{3})/i);
+                            if (cepMatch) cep = cepMatch[1];
+                            
+                            const ruaMatch = description.match(/(?:rua|logradouro|endereco|endereço):\s*([^|\n]+)/i);
+                            if (ruaMatch) rua = ruaMatch[1].trim();
+                            
+                            const taxaMatch = description.match(/(?:taxa|valor|frete):\s*([0-9]+(?:[.,][0-9]+)?)/i);
+                            if (taxaMatch) taxaVal = parseFloat(taxaMatch[1].replace(',', '.'));
+                        }
+                        
+                        let latitude = null;
+                        let longitude = null;
+                        
+                        if (pointNode) {
+                            const coordsNode = pointNode.getElementsByTagName('coordinates')[0];
+                            if (coordsNode) {
+                                const coordsStr = coordsNode.textContent.trim();
+                                const parts = coordsStr.split(',');
+                                if (parts.length >= 2) {
+                                    longitude = parseFloat(parts[0].trim());
+                                    latitude = parseFloat(parts[1].trim());
+                                }
+                            }
+                        }
+                        
+                        if (!cep && !bairro && !rua) continue;
+                        
+                        const chunkParts = [];
+                        if (cep) chunkParts.push(`CEP: ${cep}`);
+                        if (bairro) chunkParts.push(`Bairro: ${bairro}`);
+                        if (rua) chunkParts.push(`Rua: ${rua}`);
+                        if (latitude !== null && longitude !== null && !isNaN(latitude) && !isNaN(longitude)) {
+                            chunkParts.push(`Coordenadas: ${latitude}, ${longitude}`);
+                        }
+                        if (taxaVal !== null && !isNaN(taxaVal)) {
+                            chunkParts.push(`Taxa: ${taxaVal.toFixed(2)}`);
+                        }
+                        
+                        chunks.push(chunkParts.join(' | '));
+                    }
+                    resolve(chunks);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsText(file, 'utf-8');
+        });
+    }
+
     // CEP mask input helper
     if (deliveryElements.inputZip) {
         deliveryElements.inputZip.addEventListener('input', (e) => {
@@ -773,6 +1124,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const cep = e.target.value.replace(/\D/g, '');
             if (cep.length === 8) {
                 try {
+                    // 🧠 Busca local na memória RAG primeiro
+                    const ragRes = await window.utils.apiFetch(`/rag/lookup-address?query=${cep}`);
+                    if (ragRes && ragRes.success && ragRes.results.length > 0) {
+                        const match = ragRes.results[0];
+                        console.log('⚡ [RAG Lookup] CEP encontrado no RAG local. Aplicando bypass do ViaCEP.');
+                        
+                        if (deliveryElements.inputNeigh && match.bairro) {
+                            deliveryElements.inputNeigh.value = match.bairro;
+                        }
+                        if (deliveryElements.inputAddr && match.rua) {
+                            deliveryElements.inputAddr.value = match.rua;
+                        }
+                        await calculateDistanceForModal();
+                        if (match.taxa !== null && match.taxa !== undefined) {
+                            deliveryElements.inputFee.value = match.taxa;
+                        }
+                        return; // ⛔ Bypass
+                    }
+                } catch (err) {
+                    console.warn('Erro ao buscar CEP no RAG:', err);
+                }
+
+                try {
                     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                     if (res.ok) {
                         const data = await res.json();
@@ -800,6 +1174,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentCep = deliveryElements.inputZip.value.replace(/\D/g, '');
             
             if (street.length >= 3 && currentCep.length < 8) {
+                try {
+                    // 🧠 Busca local na memória RAG por rua
+                    const ragRes = await window.utils.apiFetch(`/rag/lookup-address?query=${encodeURIComponent(street)}`);
+                    if (ragRes && ragRes.success && ragRes.results.length > 0) {
+                        const match = ragRes.results[0];
+                        console.log('⚡ [RAG Lookup] Rua encontrada no RAG local. Aplicando bypass do ViaCEP.');
+                        
+                        if (deliveryElements.inputZip && match.cep) {
+                            deliveryElements.inputZip.value = window.utils.masks.cep(match.cep);
+                        }
+                        if (deliveryElements.inputNeigh && match.bairro) {
+                            deliveryElements.inputNeigh.value = match.bairro;
+                        }
+                        await calculateDistanceForModal();
+                        if (match.taxa !== null && match.taxa !== undefined) {
+                            deliveryElements.inputFee.value = match.taxa;
+                        }
+                        return; // ⛔ Bypass
+                    }
+                } catch (err) {
+                    console.warn('Erro ao buscar Rua no RAG:', err);
+                }
+
                 try {
                     const loc = await getCompanyCityState();
                     const cleanStreet = street.normalize('NFD').replace(/[\u0300-\u036f]/g, '');

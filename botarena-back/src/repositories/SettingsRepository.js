@@ -57,6 +57,10 @@ class SettingsRepository extends BaseRepository {
             ? (fields.menu_events_active ? 1 : 0)
             : null;
 
+        const consumerActiveVal = fields.consumer_integration_active !== undefined
+            ? (fields.consumer_integration_active ? 1 : 0)
+            : null;
+
         const result = await this.db.run(`
             UPDATE settings SET
                 empresa         = CASE WHEN ? IS NOT NULL THEN ? ELSE empresa END,
@@ -79,6 +83,20 @@ class SettingsRepository extends BaseRepository {
                 menu_events_active = CASE WHEN ? IS NOT NULL THEN ? ELSE menu_events_active END,
                 menu_events_start  = CASE WHEN ? IS NOT NULL THEN ? ELSE menu_events_start END,
                 menu_events_end    = CASE WHEN ? IS NOT NULL THEN ? ELSE menu_events_end END,
+                company_name    = CASE WHEN ? IS NOT NULL THEN ? ELSE company_name END,
+                trade_name      = CASE WHEN ? IS NOT NULL THEN ? ELSE trade_name END,
+                cnpj            = CASE WHEN ? IS NOT NULL THEN ? ELSE cnpj END,
+                base_cep        = CASE WHEN ? IS NOT NULL THEN ? ELSE base_cep END,
+                company_street  = CASE WHEN ? IS NOT NULL THEN ? ELSE company_street END,
+                company_number  = CASE WHEN ? IS NOT NULL THEN ? ELSE company_number END,
+                company_neighborhood = CASE WHEN ? IS NOT NULL THEN ? ELSE company_neighborhood END,
+                company_phone   = CASE WHEN ? IS NOT NULL THEN ? ELSE company_phone END,
+                company_email   = CASE WHEN ? IS NOT NULL THEN ? ELSE company_email END,
+                latitude        = CASE WHEN ? IS NOT NULL THEN ? ELSE latitude END,
+                longitude       = CASE WHEN ? IS NOT NULL THEN ? ELSE longitude END,
+                consumer_client_id = CASE WHEN ? IS NOT NULL THEN ? ELSE consumer_client_id END,
+                consumer_client_secret = CASE WHEN ? IS NOT NULL THEN ? ELSE consumer_client_secret END,
+                consumer_integration_active = CASE WHEN ? IS NOT NULL THEN ? ELSE consumer_integration_active END,
                 updated_at      = CURRENT_TIMESTAMP
             WHERE company_id = ?
         `, [
@@ -122,6 +140,34 @@ class SettingsRepository extends BaseRepository {
             fields.menu_events_start !== undefined ? fields.menu_events_start : null,
             fields.menu_events_end !== undefined ? fields.menu_events_end : null,
             fields.menu_events_end !== undefined ? fields.menu_events_end : null,
+            fields.company_name !== undefined ? fields.company_name : null,
+            fields.company_name !== undefined ? fields.company_name : null,
+            fields.trade_name !== undefined ? fields.trade_name : null,
+            fields.trade_name !== undefined ? fields.trade_name : null,
+            fields.cnpj !== undefined ? fields.cnpj : null,
+            fields.cnpj !== undefined ? fields.cnpj : null,
+            fields.base_cep !== undefined ? fields.base_cep : null,
+            fields.base_cep !== undefined ? fields.base_cep : null,
+            fields.company_street !== undefined ? fields.company_street : null,
+            fields.company_street !== undefined ? fields.company_street : null,
+            fields.company_number !== undefined ? fields.company_number : null,
+            fields.company_number !== undefined ? fields.company_number : null,
+            fields.company_neighborhood !== undefined ? fields.company_neighborhood : null,
+            fields.company_neighborhood !== undefined ? fields.company_neighborhood : null,
+            fields.company_phone !== undefined ? fields.company_phone : null,
+            fields.company_phone !== undefined ? fields.company_phone : null,
+            fields.company_email !== undefined ? fields.company_email : null,
+            fields.company_email !== undefined ? fields.company_email : null,
+            fields.latitude !== undefined ? fields.latitude : null,
+            fields.latitude !== undefined ? fields.latitude : null,
+            fields.longitude !== undefined ? fields.longitude : null,
+            fields.longitude !== undefined ? fields.longitude : null,
+            fields.consumer_client_id !== undefined ? fields.consumer_client_id : null,
+            fields.consumer_client_id !== undefined ? fields.consumer_client_id : null,
+            fields.consumer_client_secret !== undefined ? fields.consumer_client_secret : null,
+            fields.consumer_client_secret !== undefined ? fields.consumer_client_secret : null,
+            consumerActiveVal,
+            consumerActiveVal,
             this.companyId
         ]);
         return result.changes;

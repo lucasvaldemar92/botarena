@@ -246,6 +246,10 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             await settingsRepo.update(validData);
             const updatedConfig = await settingsRepo.get();
 
+            if (ragService) {
+                await ragService.syncAddressToRag(updatedConfig).catch(e => console.error('❌ [RAG Address Sync] Erro:', e));
+            }
+
             // // console.log('✅ [API] Config updated successfully.');
             res.json({ success: true, message: 'Config updated', config: updatedConfig });
 
@@ -1262,21 +1266,244 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    // Batch Ingest inicial de itens do cardápio no RAG
-    if (ragRepo && ragService && catalogRepo) {
-        (async () => {
-            try {
-                const items = await catalogRepo.findAll();
-                let syncCount = 0;
-                for (const item of items) {
-                    if (item.disponivel === 1) {
-                        await syncCatalogItemToRAG(item);
-                        syncCount++;
+    // ==========================================
+    // 🧠 RAG ADDRESS INGESTION & LOOKUP ROUTES (🔒 Protected)
+    // ==========================================
+    
+    // POST: Salvar lote de endereços importados na memória RAG (Mesclando e atualizando dados existentes)
+    router.post('/rag/upload-address-batch', authMiddleware, async (req, res) => {
+        try {
+            const { sourceId, chunks } = req.body;
+            if (!sourceId || !Array.isArray(chunks)) {
+                return res.status(400).json({ error: 'Parâmetros sourceId ou chunks inválidos.' });
+            }
+            if (!ragRepo) {
+                return res.status(503).json({ error: 'Serviço de RAG não disponível.' });
+            }
+
+            // Funções auxiliares para parse e normalização
+            function parseAddressChunk(content) {
+                const parts = content.split(' | ');
+                const data = {};
+                for (const part of parts) {
+                    const colonIndex = part.indexOf(':');
+                    if (colonIndex !== -1) {
+                        const key = part.substring(0, colonIndex).trim().toLowerCase();
+                        const val = part.substring(colonIndex + 1).trim();
+                        data[key] = val;
                     }
                 }
-                console.log(`✅ [RAG Catalog Sync Startup] ${syncCount} itens de catálogo indexados no RAG.`);
+                return {
+                    cep: data.cep || '',
+                    bairro: data.bairro || '',
+                    rua: data.rua || '',
+                    coordenadas: data.coordenadas || '',
+                    taxa: data.taxa || ''
+                };
+            }
+
+            function normalizeStr(str) {
+                if (!str) return '';
+                return str.toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]/g, '')
+                    .trim();
+            }
+
+            // Recupera todos os chunks de endereços salvos atualmente para esta empresa
+            const existingRows = await ragRepo.db.all(
+                `SELECT id, content FROM rag_chunks WHERE company_id = ? AND source_type = 'address'`,
+                [ragRepo.companyId]
+            );
+
+            // Mapeia os existentes parseados para facilitar a busca
+            const parsedExisting = existingRows.map(row => ({
+                id: row.id,
+                content: row.content,
+                parsed: parseAddressChunk(row.content)
+            }));
+
+            let newInsertCount = 0;
+            let mergeCount = 0;
+
+            await ragRepo.db.transaction(async () => {
+                for (const newChunk of chunks) {
+                    const newParsed = parseAddressChunk(newChunk);
+                    const cleanNewCep = normalizeStr(newParsed.cep);
+                    const cleanNewRua = normalizeStr(newParsed.rua);
+                    const cleanNewBairro = normalizeStr(newParsed.bairro);
+
+                    // Achar se existe o mesmo endereço
+                    let match = null;
+                    if (cleanNewCep && cleanNewCep.length === 8) {
+                        match = parsedExisting.find(ex => normalizeStr(ex.parsed.cep) === cleanNewCep);
+                    }
+                    if (!match && cleanNewRua && cleanNewBairro) {
+                        match = parsedExisting.find(ex => 
+                            normalizeStr(ex.parsed.rua) === cleanNewRua && 
+                            normalizeStr(ex.parsed.bairro) === cleanNewBairro
+                        );
+                    }
+
+                    if (match) {
+                        // Mescla os dados: mantém os existentes e atualiza com os novos caso falte algo
+                        const merged = {
+                            cep: match.parsed.cep || newParsed.cep,
+                            bairro: match.parsed.bairro || newParsed.bairro,
+                            rua: match.parsed.rua || newParsed.rua,
+                            coordenadas: match.parsed.coordenadas || newParsed.coordenadas,
+                            taxa: match.parsed.taxa || newParsed.taxa
+                        };
+
+                        // Reconstrói a string do chunk
+                        const mergedParts = [];
+                        if (merged.cep) mergedParts.push(`CEP: ${merged.cep}`);
+                        if (merged.bairro) mergedParts.push(`Bairro: ${merged.bairro}`);
+                        if (merged.rua) mergedParts.push(`Rua: ${merged.rua}`);
+                        if (merged.coordenadas) mergedParts.push(`Coordenadas: ${merged.coordenadas}`);
+                        if (merged.taxa) mergedParts.push(`Taxa: ${merged.taxa}`);
+
+                        const mergedContent = mergedParts.join(' | ');
+
+                        // Se o conteúdo de fato mudou, atualiza no banco
+                        if (mergedContent !== match.content) {
+                            await ragRepo.db.run(
+                                `UPDATE rag_chunks SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                                [mergedContent, match.id]
+                            );
+                            
+                            // Atualiza a nossa lista local para os próximos loops
+                            match.content = mergedContent;
+                            match.parsed = merged;
+                            mergeCount++;
+                        }
+                    } else {
+                        // Não encontrou correspondente: insere um novo chunk
+                        // Descobre o próximo index para o source_id
+                        const idxRow = await ragRepo.db.get(
+                            `SELECT MAX(chunk_index) as max_idx FROM rag_chunks WHERE company_id = ? AND source_type = 'address' AND source_id = ?`,
+                            [ragRepo.companyId, sourceId]
+                        );
+                        const nextIdx = (idxRow && idxRow.max_idx !== null) ? idxRow.max_idx + 1 : 0;
+
+                        await ragRepo.create({
+                            source_type: 'address',
+                            source_id: sourceId,
+                            chunk_index: nextIdx,
+                            content: newChunk
+                        });
+                        newInsertCount++;
+                    }
+                }
+            });
+
+            res.json({ success: true, inserted: newInsertCount, merged: mergeCount, total: chunks.length });
+        } catch (e) {
+            console.error('❌ [API] Erro ao importar lote de endereços no RAG:', e);
+            res.status(500).json({ error: 'Erro interno ao salvar lote de endereços.' });
+        }
+    });
+
+    // GET: Buscar endereço na memória local do RAG para autocompletar e bypass de APIs de terceiros
+    router.get('/rag/lookup-address', authMiddleware, async (req, res) => {
+        try {
+            const { query } = req.query;
+            if (!query || !query.trim()) {
+                return res.json({ success: false, results: [] });
+            }
+            if (!ragRepo) {
+                return res.status(503).json({ error: 'Serviço de RAG não disponível.' });
+            }
+
+            const cleanQuery = query.replace(/\D/g, '');
+            let searchTerms = [query.trim()];
+            if (cleanQuery.length === 8) {
+                // CEP com hífen e sem hífen para garantir o match
+                searchTerms.push(`${cleanQuery.substring(0, 5)}-${cleanQuery.substring(5)}`);
+                searchTerms.push(cleanQuery);
+            }
+
+            let matches = [];
+            // Remove duplicados de termos de busca
+            searchTerms = [...new Set(searchTerms)];
+
+            for (const term of searchTerms) {
+                const termMatches = await ragRepo.db.all(
+                    `SELECT content FROM rag_chunks WHERE company_id = ? AND source_type = 'address' AND content LIKE ? ORDER BY id ASC LIMIT 10`,
+                    [ragRepo.companyId, `%${term}%`]
+                );
+                matches = matches.concat(termMatches);
+            }
+
+            // Filtrar duplicados se existirem
+            const uniqueContents = [...new Set(matches.map(m => m.content))];
+
+            function parseAddressChunk(content) {
+                const parts = content.split(' | ');
+                const data = {};
+                for (const part of parts) {
+                    const colonIndex = part.indexOf(':');
+                    if (colonIndex !== -1) {
+                        const key = part.substring(0, colonIndex).trim().toLowerCase();
+                        const val = part.substring(colonIndex + 1).trim();
+                        data[key] = val;
+                    }
+                }
+                
+                let latitude = null;
+                let longitude = null;
+                if (data.coordenadas) {
+                    const coords = data.coordenadas.split(',');
+                    if (coords.length === 2) {
+                        latitude = parseFloat(coords[0].trim());
+                        longitude = parseFloat(coords[1].trim());
+                    }
+                }
+                
+                return {
+                    cep: data.cep || '',
+                    bairro: data.bairro || '',
+                    rua: data.rua || '',
+                    latitude,
+                    longitude,
+                    taxa: data.taxa ? parseFloat(data.taxa) : null
+                };
+            }
+
+            const parsedResults = uniqueContents.map(parseAddressChunk);
+            res.json({ success: parsedResults.length > 0, results: parsedResults });
+        } catch (e) {
+            console.error('❌ [API] Erro ao buscar endereço no RAG:', e);
+            res.status(500).json({ error: 'Erro interno ao buscar endereço.' });
+        }
+    });
+
+    // Batch Ingest inicial de itens do cardápio e endereço no RAG
+    if (ragRepo && ragService) {
+        (async () => {
+            try {
+                // Sincronizar catálogo
+                if (catalogRepo) {
+                    const items = await catalogRepo.findAll();
+                    let syncCount = 0;
+                    for (const item of items) {
+                        if (item.disponivel === 1) {
+                            await syncCatalogItemToRAG(item);
+                            syncCount++;
+                        }
+                    }
+                    console.log(`✅ [RAG Catalog Sync Startup] ${syncCount} itens de catálogo indexados no RAG.`);
+                }
+                
+                // Sincronizar endereço da empresa
+                if (settingsRepo) {
+                    const config = await settingsRepo.get();
+                    await ragService.syncAddressToRag(config);
+                    console.log('✅ [RAG Address Sync Startup] Endereço da empresa sincronizado no RAG.');
+                }
             } catch (err) {
-                console.error('❌ [RAG Catalog Sync Startup] Falha na indexação inicial:', err);
+                console.error('❌ [RAG Startup Sync] Falha na indexação inicial:', err);
             }
         })();
     }
