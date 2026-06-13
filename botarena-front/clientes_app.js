@@ -34,7 +34,20 @@
         searchInput:        document.getElementById('client-search'),
         activeTagsRow:      document.getElementById('active-tags-row'),
         activeTags:         document.getElementById('active-tags'),
-        resultsCounter:     document.getElementById('results-counter')
+        resultsCounter:     document.getElementById('results-counter'),
+        // Excel
+        excelToggle:        document.getElementById('btn-excel-toggle'),
+        excelMenu:          document.getElementById('excel-menu'),
+        btnExport:          document.getElementById('btn-export-excel'),
+        btnImport:          document.getElementById('btn-import-excel'),
+        fileInput:          document.getElementById('excel-file-input'),
+        importOverlay:      document.getElementById('import-modal-overlay'),
+        importPreviewBody:  document.getElementById('import-preview-body'),
+        importSummary:      document.getElementById('import-summary'),
+        importConfirm:      document.getElementById('import-modal-confirm'),
+        importConfirmLabel: document.getElementById('import-confirm-label'),
+        importClose:        document.getElementById('import-modal-close'),
+        importCancel:       document.getElementById('import-modal-cancel')
     };
 
     // --- State Management ---
@@ -737,6 +750,274 @@
             state.currentPage = 1;
             ui.renderTable();
         });
+    }
+
+    // ─────────────────────────────────────────────
+    //  Excel: Export + Import
+    // ─────────────────────────────────────────────
+    const excel = {
+        // Mapeamento de cabeçalho flexível para colunas do Excel
+        COL_MAP: {
+            // Nome
+            nome: 'name', name: 'name', cliente: 'name',
+            // Telefone
+            telefone: 'phone', phone: 'phone', celular: 'phone', whatsapp: 'phone', contato: 'phone',
+            // Nascimento
+            nascimento: 'birth', 'data de nascimento': 'birth', birth: 'birth', 'data nascimento': 'birth',
+            // CEP
+            cep: 'cep', 'código postal': 'cep', 'cod postal': 'cep',
+            // Bairro
+            bairro: 'neighborhood', região: 'neighborhood', regiao: 'neighborhood', neighborhood: 'neighborhood', 'bairro / região': 'neighborhood',
+            // Endereço
+            'endereço': 'address', endereco: 'address', rua: 'address', logradouro: 'address', address: 'address', 'endereço / rua': 'address',
+            // Origem
+            contato: 'source', origem: 'source', source: 'source', tipo: 'source'
+        },
+
+        /**
+         * Exporta os clientes filtrados para um arquivo .xlsx
+         * Respeita os filtros ativos na tela
+         */
+        exportFiltered: () => {
+            const data = state.filtered.length > 0 ? state.filtered : state.clients;
+
+            if (data.length === 0) {
+                alert('Nenhum cliente para exportar.');
+                return;
+            }
+
+            const rows = data.map(c => ({
+                'Nome':             c.name         || '',
+                'Telefone':         c.phone        || '',
+                'Nascimento':       c.birth_date   || '',
+                'Contato':          c.source === 'whatsapp' ? 'WhatsApp' : 'Manual',
+                'Bairro / Região': c.neighborhood || '',
+                'Endereço / Rua':  c.address      || '',
+                'CEP':              c.zip_code     || ''
+            }));
+
+            const ws  = XLSX.utils.json_to_sheet(rows);
+            const wb  = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+
+            // Largura das colunas
+            ws['!cols'] = [30, 18, 14, 12, 22, 28, 12].map(w => ({ wch: w }));
+
+            const filename = `clientes_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            console.log(`✅ [Export] ${rows.length} clientes exportados para ${filename}`);
+        },
+
+        /**
+         * Lê o arquivo Excel e mapeia para o formato interno.
+         * Detecta cabeçalho automaticamente (case-insensitive, sem acento).
+         */
+        readFile: (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const wb   = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+                        const ws   = wb.Sheets[wb.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+                        const normalize = (str) =>
+                            String(str).toLowerCase()
+                                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                                .trim();
+
+                        const mapped = rows.map(row => {
+                            const out = {};
+                            Object.keys(row).forEach(col => {
+                                const key = excel.COL_MAP[normalize(col)];
+                                if (key) out[key] = String(row[col]).trim();
+                            });
+                            return out;
+                        }).filter(r => Object.keys(r).length > 0);
+
+                        resolve(mapped);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        },
+
+        /**
+         * Exibe o modal de preview de importação.
+         * Detecta duplicatas localmente (por telefone) antes de enviar.
+         */
+        showPreview: (rows) => {
+            // Normaliza telefones existentes para comparação rápida
+            const existingPhones = new Set(
+                state.clients.map(c => (c.phone || '').replace(/[^\d]/g, ''))
+            );
+
+            let newCount = 0, dupCount = 0, errCount = 0;
+
+            const annotated = rows.map(row => {
+                const phone = (row.phone || '').replace(/[^\d+]/g, '');
+                if (!phone) {
+                    errCount++;
+                    return { ...row, _status: 'err' };
+                }
+                const cleanPhone = phone.replace(/[^\d]/g, '');
+                if (existingPhones.has(cleanPhone)) {
+                    dupCount++;
+                    return { ...row, _status: 'dup' };
+                }
+                newCount++;
+                return { ...row, _status: 'new' };
+            });
+
+            // Atualiza summary pills
+            elements.importSummary.innerHTML = `
+                <span class="import-pill import-pill--total">
+                    <i class="fa-solid fa-list"></i> ${rows.length} linhas
+                </span>
+                <span class="import-pill import-pill--new">
+                    <i class="fa-solid fa-plus-circle"></i> ${newCount} novos
+                </span>
+                <span class="import-pill import-pill--dup">
+                    <i class="fa-solid fa-copy"></i> ${dupCount} duplicados
+                </span>
+                ${errCount > 0 ? `<span class="import-pill import-pill--error">
+                    <i class="fa-solid fa-triangle-exclamation"></i> ${errCount} com erro
+                </span>` : ''}
+            `;
+
+            // Preenche tabela de preview
+            elements.importPreviewBody.innerHTML = annotated.map(r => `
+                <tr class="${r._status !== 'new' ? r._status : ''}">
+                    <td>
+                        <span class="status-badge status-badge--${r._status}">
+                            ${r._status === 'new' ? 'Novo' : r._status === 'dup' ? 'Duplicado' : 'Erro'}
+                        </span>
+                    </td>
+                    <td>${r.name || '---'}</td>
+                    <td>${r.phone || '<em>ausente</em>'}</td>
+                    <td>${r.cep || '---'}</td>
+                    <td>${r.neighborhood || '---'}</td>
+                    <td>${r.address || '---'}</td>
+                </tr>
+            `).join('');
+
+            // Configura botão de confirmar
+            elements.importConfirmLabel.textContent = `Importar ${newCount} novo${newCount !== 1 ? 's' : ''}`;
+            elements.importConfirm.disabled = newCount === 0;
+
+            // Salva linhas para uso no confirm
+            elements.importConfirm._pendingRows = annotated.filter(r => r._status === 'new');
+
+            // Abre modal
+            elements.importOverlay.classList.add('active');
+        },
+
+        closePreview: () => {
+            elements.importOverlay.classList.remove('active');
+            elements.fileInput.value = ''; // permite re-selecionar o mesmo arquivo
+        },
+
+        /**
+         * Envia os registros novos para a API e atualiza a lista
+         */
+        confirmImport: async () => {
+            const rows = elements.importConfirm._pendingRows || [];
+            if (rows.length === 0) return;
+
+            elements.importConfirm.disabled = true;
+            elements.importConfirmLabel.textContent = 'Importando...';
+            elements.importConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importando...';
+
+            try {
+                const res = await window.utils.apiFetch('/clients/import', {
+                    method: 'POST',
+                    body: JSON.stringify({ clients: rows })
+                });
+
+                excel.closePreview();
+                await api.fetchClients();
+
+                const msg = [
+                    `✅ Importação concluída!`,
+                    `• Inseridos: ${res.inserted}`,
+                    `• Ignorados (duplicados): ${res.skipped}`,
+                    res.errors && res.errors.length > 0 ? `• Erros: ${res.errors.length}` : ''
+                ].filter(Boolean).join('\n');
+
+                alert(msg);
+            } catch (err) {
+                console.error('❌ [Import] Erro:', err);
+                alert('Erro ao importar. Verifique o console.');
+                elements.importConfirm.disabled = false;
+                elements.importConfirmLabel.textContent = `Tentar novamente`;
+            }
+        }
+    };
+
+    // ─ Toggle menu Excel ─
+    if (elements.excelToggle) {
+        elements.excelToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.excelMenu.classList.toggle('open');
+            // Fecha dropdowns de filtro
+            dropdowns.closeAll();
+        });
+    }
+
+    // ─ Fechar menu Excel ao clicar fora ─
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.excel-dropdown')) {
+            if (elements.excelMenu) elements.excelMenu.classList.remove('open');
+        }
+    });
+
+    // ─ Exportar ─
+    if (elements.btnExport) {
+        elements.btnExport.addEventListener('click', () => {
+            elements.excelMenu.classList.remove('open');
+            excel.exportFiltered();
+        });
+    }
+
+    // ─ Importar: abre seletor de arquivo ─
+    if (elements.btnImport) {
+        elements.btnImport.addEventListener('click', () => {
+            elements.excelMenu.classList.remove('open');
+            elements.fileInput.click();
+        });
+    }
+
+    // ─ Arquivo selecionado ─
+    if (elements.fileInput) {
+        elements.fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const rows = await excel.readFile(file);
+                if (rows.length === 0) {
+                    alert('Nenhuma linha encontrada no arquivo. Verifique o formato.');
+                    return;
+                }
+                excel.showPreview(rows);
+            } catch (err) {
+                console.error('❌ [Import] Erro ao ler arquivo:', err);
+                alert('Erro ao ler o arquivo Excel. Verifique se é um .xlsx ou .xls válido.');
+            }
+        });
+    }
+
+    // ─ Fechar modal de import ─
+    [elements.importClose, elements.importCancel].forEach(btn => {
+        if (btn) btn.addEventListener('click', excel.closePreview);
+    });
+
+    // ─ Confirmar importação ─
+    if (elements.importConfirm) {
+        elements.importConfirm.addEventListener('click', excel.confirmImport);
     }
 
     // ─────────────────────────────────────────────
