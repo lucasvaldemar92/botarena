@@ -1873,8 +1873,19 @@
                                 Disponível como atalho no menu do chat
                             </p>
 
+                            <!-- ══ Título da Seção: Integrações ══ -->
+                            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid var(--border-color);">
+                                <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-plug" style="color: var(--color-primary);"></i>
+                                    Integrações
+                                </h2>
+                                <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                                    Conecte o BotArena a sistemas externos para ampliar as funcionalidades do seu negócio.
+                                </p>
+                            </div>
+
                             <!-- Integração PDV -->
-                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 0; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
                                 <span><i class="fa-solid fa-cash-register" style="color: #f59e0b;"></i> Integração PDV</span>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-main);">Ativar Integração</span>
@@ -1898,7 +1909,43 @@
                                 <i class="fa-solid fa-circle-info" style="color: #3b82f6; margin-right: 0.25rem;"></i>
                                 Insira as chaves fornecidas pelo seu sistema de PDV de retaguarda.
                             </p>
+
+                            <!-- ══ Integração Google ══ -->
+                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <!-- Logo Google SVG colorido -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22">
+                                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                        <path fill="none" d="M0 0h48v48H0z"/>
+                                    </svg>
+                                    Google
+                                </span>
+                            </h3>
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label for="google-analytics-id">Google Analytics Id</label>
+                                <input type="text" id="google-analytics-id" name="google_analytics_id" data-testid="google-analytics-id" placeholder="Ex: G-XXXXXXXXXX" class="input-premium">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label for="google-tag-manager-id">Google Tag Manager Id</label>
+                                <input type="text" id="google-tag-manager-id" name="google_tag_manager_id" data-testid="google-tag-manager-id" placeholder="Ex: GTM-XXXXXXX" class="input-premium">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label for="google-maps-api-key">Google Maps API Key</label>
+                                <input type="text" id="google-maps-api-key" name="google_maps_api_key" data-testid="google-maps-api-key" placeholder="Ex: AIzaSy..." class="input-premium">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label for="google-site-verification">Google Site Verification</label>
+                                <input type="text" id="google-site-verification" name="google_site_verification" data-testid="google-site-verification" placeholder="Ex: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="input-premium">
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -1rem; margin-bottom: 0.5rem; display: block;">
+                                <i class="fa-solid fa-circle-info" style="color: #4285F4; margin-right: 0.25rem;"></i>
+                                As chaves do Google permitem rastrear métricas, gerenciar tags, exibir mapas e verificar a propriedade do domínio.
+                            </p>
                         </div>
+
 
                         <div style="display: flex; justify-content: flex-end; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
                             <button class="btn" id="btn-save-company-data" style="padding: 0.75rem 2rem; border-radius: var(--radius-md); font-weight: 600; background: var(--accent-dark); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
