@@ -65,12 +65,12 @@
             try {
                 const response = await window.utils.apiFetch('/clients');
                 state.clients = response;
-                filters.buildDropdownOptions();
-                filters.apply();
+                filters.apply(); // buildDropdownOptions é chamado internamente
             } catch (err) {
                 console.error('❌ Error fetching clients:', err);
             }
         },
+
         saveClient: async (payload) => {
             try {
                 let response;
@@ -115,27 +115,77 @@
     // ─────────────────────────────────────────────
     const filters = {
         /**
-         * Constrói as opções dos dropdowns de Bairro, Endereço e CEP
-         * a partir dos dados reais dos clientes
+         * Filtra state.clients aplicando TODOS os critérios, opcionalmente
+         * excluindo um filtro específico (usado para calcular opções contextuais).
+         *
+         * @param {string|null} excludeFilterKey  - chave a ignorar ('neighborhood'|'address'|'zip'|'source'|null)
+         * @returns {Array} clientes correspondentes
+         */
+        _applySubset: (excludeFilterKey = null) => {
+            const q = state.searchQuery.toLowerCase().trim();
+            const { source, neighborhood, address, zip } = state.activeFilters;
+
+            return state.clients.filter(c => {
+                // Busca textual
+                if (q) {
+                    const haystack = [
+                        c.name, c.phone, c.address, c.neighborhood,
+                        c.zip_code, c.birth_date, c.source
+                    ].map(v => (v || '').toLowerCase()).join(' ');
+                    if (!haystack.includes(q)) return false;
+                }
+
+                // Contato
+                if (excludeFilterKey !== 'source' && source.size > 0) {
+                    const clientSource = (c.source || 'manual').toLowerCase();
+                    if (!source.has(clientSource)) return false;
+                }
+
+                // Bairro
+                if (excludeFilterKey !== 'neighborhood' && neighborhood.size > 0) {
+                    if (!neighborhood.has((c.neighborhood || '').trim())) return false;
+                }
+
+                // Endereço
+                if (excludeFilterKey !== 'address' && address.size > 0) {
+                    if (!address.has((c.address || '').trim())) return false;
+                }
+
+                // CEP
+                if (excludeFilterKey !== 'zip' && zip.size > 0) {
+                    if (!zip.has((c.zip_code || '').trim())) return false;
+                }
+
+                return true;
+            });
+        },
+
+        /**
+         * Reconstrói as opções dos dropdowns de forma contextual:
+         * cada dropdown só exibe valores presentes nos clientes filtrados
+         * pelos DEMAIS filtros ativos (excluindo ele mesmo).
          */
         buildDropdownOptions: () => {
-            const unique = {
-                neighborhood: new Set(),
-                address:      new Set(),
-                zip:          new Set()
+            // Para cada filtro dinâmico, calcula os valores disponíveis
+            // ignorando o filtro do próprio dropdown
+            const contexts = {
+                source:       filters._applySubset('source'),
+                neighborhood: filters._applySubset('neighborhood'),
+                address:      filters._applySubset('address'),
+                zip:          filters._applySubset('zip')
             };
 
-            state.clients.forEach(c => {
-                if (c.neighborhood && c.neighborhood !== '---') unique.neighborhood.add(c.neighborhood.trim());
-                if (c.address && c.address !== '---')           unique.address.add(c.address.trim());
-                if (c.zip_code && c.zip_code !== '---')         unique.zip.add(c.zip_code.trim());
-            });
-
-            const build = (dropdownId, filterKey, values) => {
+            const build = (dropdownId, filterKey, clientsSubset, getValue) => {
                 const dropdown = document.getElementById(`filter-dropdown-${dropdownId}`);
                 if (!dropdown) return;
 
-                const sorted = [...values].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                const unique = new Set();
+                clientsSubset.forEach(c => {
+                    const val = getValue(c);
+                    if (val && val !== '---') unique.add(val.trim());
+                });
+
+                const sorted = [...unique].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
                 if (sorted.length === 0) {
                     dropdown.innerHTML = `<div class="filter-dropdown__empty">Nenhum dado disponível</div>`;
@@ -153,9 +203,31 @@
                 }).join('');
             };
 
-            build('neighborhood', 'neighborhood', unique.neighborhood);
-            build('address',      'address',      unique.address);
-            build('zip',          'zip',          unique.zip);
+            // Contato: fixo (só Manual e WhatsApp), mas respeita contexto dos outros filtros
+            (() => {
+                const dd = document.getElementById('filter-dropdown-source');
+                if (!dd) return;
+                const available = new Set(contexts.source.map(c => (c.source || 'manual').toLowerCase()));
+                const items = [
+                    { value: 'manual',    label: 'Manual' },
+                    { value: 'whatsapp',  label: 'WhatsApp' }
+                ].filter(item => available.has(item.value));
+
+                if (items.length === 0) {
+                    dd.innerHTML = `<div class="filter-dropdown__empty">Nenhum dado disponível</div>`;
+                    return;
+                }
+                dd.innerHTML = items.map(item => `
+                    <label class="filter-dropdown__item">
+                        <input type="checkbox" value="${item.value}" data-filter="source"
+                            ${state.activeFilters.source.has(item.value) ? 'checked' : ''}>
+                        ${item.label}
+                    </label>`).join('');
+            })();
+
+            build('neighborhood', 'neighborhood', contexts.neighborhood, c => c.neighborhood);
+            build('address',      'address',      contexts.address,      c => c.address);
+            build('zip',          'zip',          contexts.zip,          c => c.zip_code);
         },
 
         /**
@@ -163,42 +235,11 @@
          * e chama renderTable com o resultado
          */
         apply: () => {
-            const q = state.searchQuery.toLowerCase().trim();
-            const { source, neighborhood, address, zip } = state.activeFilters;
+            // Resultado completo (todos os filtros aplicados)
+            state.filtered = filters._applySubset(null);
 
-            state.filtered = state.clients.filter(c => {
-                // 1) Busca textual em todos os campos visíveis
-                if (q) {
-                    const haystack = [
-                        c.name, c.phone, c.address, c.neighborhood,
-                        c.zip_code, c.birth_date, c.source
-                    ].map(v => (v || '').toLowerCase()).join(' ');
-                    if (!haystack.includes(q)) return false;
-                }
-
-                // 2) Filtro Contato (source)
-                if (source.size > 0) {
-                    const clientSource = (c.source || 'manual').toLowerCase();
-                    if (!source.has(clientSource)) return false;
-                }
-
-                // 3) Filtro Bairro
-                if (neighborhood.size > 0) {
-                    if (!neighborhood.has((c.neighborhood || '').trim())) return false;
-                }
-
-                // 4) Filtro Endereço
-                if (address.size > 0) {
-                    if (!address.has((c.address || '').trim())) return false;
-                }
-
-                // 5) Filtro CEP
-                if (zip.size > 0) {
-                    if (!zip.has((c.zip_code || '').trim())) return false;
-                }
-
-                return true;
-            });
+            // Recalcula opções contextuais dos dropdowns
+            filters.buildDropdownOptions();
 
             // Reset paginação ao filtrar
             state.currentPage = 1;
