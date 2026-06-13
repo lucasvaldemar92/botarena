@@ -224,7 +224,8 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             const companyFields = [
                 'company_name', 'trade_name', 'cnpj', 'base_cep', 'company_street', 
                 'company_number', 'company_neighborhood', 'company_phone', 'company_email',
-                'consumer_client_id', 'consumer_client_secret', 'consumer_integration_active'
+                'consumer_client_id', 'consumer_client_secret', 'consumer_integration_active',
+                'google_analytics_id', 'google_tag_manager_id', 'google_maps_api_key', 'google_site_verification'
             ];
             companyFields.forEach(f => {
                 if (rawBody[f] !== undefined) validData[f] = rawBody[f];

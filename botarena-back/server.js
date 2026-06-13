@@ -81,17 +81,85 @@ app.use('/qa-evidence', express.static(path.join(__dirname, '../qa-evidence')));
 // ==========================================
 const htmlCache = {};
 const dsn = process.env.SENTRY_DSN || '';
-const injection = `<script>window.__SENTRY_DSN__="${dsn}";</script>`;
+const sentryInjection = `<script>window.__SENTRY_DSN__="${dsn}";</script>`;
 
 try {
     const dashboardPath = path.join(__dirname, '../botarena-front/painel-administrativo.html');
     const chatPath = path.join(__dirname, '../botarena-front/atendimento.html');
+    const cardapioPath = path.join(__dirname, '../botarena-front/cardapio.html');
     
-    htmlCache['dashboard'] = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
-    htmlCache['chat'] = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
+    htmlCache['dashboard'] = fs.readFileSync(dashboardPath, 'utf8');
+    htmlCache['chat'] = fs.readFileSync(chatPath, 'utf8');
+    htmlCache['cardapio'] = fs.readFileSync(cardapioPath, 'utf8');
 } catch (err) {
     console.error('❌ [Cache] Error loading HTML files:', err);
 }
+
+async function renderHtml(pageName, isDev = false) {
+    let content = '';
+    if (isDev) {
+        let filePath = '';
+        if (pageName === 'dashboard') filePath = path.join(__dirname, '../botarena-front/painel-administrativo.html');
+        else if (pageName === 'chat') filePath = path.join(__dirname, '../botarena-front/atendimento.html');
+        else if (pageName === 'cardapio') filePath = path.join(__dirname, '../botarena-front/cardapio.html');
+        content = fs.readFileSync(filePath, 'utf8');
+    } else {
+        content = htmlCache[pageName];
+    }
+
+    let config = {};
+    try {
+        config = await settingsRepo.get();
+    } catch (e) {}
+
+    let dynamicInjection = sentryInjection;
+
+    if (config.google_analytics_id) {
+        dynamicInjection += `\n    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${config.google_analytics_id}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${config.google_analytics_id}');
+    </script>`;
+    }
+
+    if (config.google_tag_manager_id) {
+        dynamicInjection += `\n    <!-- Google Tag Manager -->
+    <script>
+      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','${config.google_tag_manager_id}');
+    </script>`;
+    }
+
+    if (config.google_site_verification) {
+        dynamicInjection += `\n    <meta name="google-site-verification" content="${config.google_site_verification}" />`;
+    }
+
+    let bodyInjection = '';
+    if (config.google_tag_manager_id) {
+        bodyInjection = `\n    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${config.google_tag_manager_id}"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`;
+    }
+
+    let html = content.replace('</head>', `    ${dynamicInjection}\n</head>`);
+    if (bodyInjection) {
+        html = html.replace('<body>', `<body>${bodyInjection}`);
+    }
+    
+    // Inject maps api key as global var if needed by frontend JS
+    if (config.google_maps_api_key) {
+        html = html.replace('</head>', `    <script>window.__GOOGLE_MAPS_API_KEY__="${config.google_maps_api_key}";</script>\n</head>`);
+    }
+
+    return html;
+}
+
 
 app.get('/', (req, res) => res.redirect('/dashboard/whatsapp'));
 
@@ -105,35 +173,25 @@ app.get(['/painel-administrativo', '/dashboard', '/dashboard/:tab'], async (req,
         console.error('❌ Middleware checking config failed:', err);
     }
     
-    // Dynamic read in development, memory cache in production
-    if (process.env.NODE_ENV !== 'production') {
-        const dashboardPath = path.join(__dirname, '../botarena-front/painel-administrativo.html');
-        const content = fs.readFileSync(dashboardPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
-        return res.type('html').send(content);
-    }
-    
-    res.type('html').send(htmlCache['dashboard']);
+    const isDev = process.env.NODE_ENV !== 'production';
+    const html = await renderHtml('dashboard', isDev);
+    res.type('html').send(html);
 });
 
-app.get('/atendimento', (req, res) => {
-    // Dynamic read in development, memory cache in production
-    if (process.env.NODE_ENV !== 'production') {
-        const chatPath = path.join(__dirname, '../botarena-front/atendimento.html');
-        const content = fs.readFileSync(chatPath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
-        return res.type('html').send(content);
-    }
-    
-    res.type('html').send(htmlCache['chat']);
+app.get('/atendimento', async (req, res) => {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const html = await renderHtml('chat', isDev);
+    res.type('html').send(html);
 });
 
 // Backward compatibility redirects
 app.get('/admin', (req, res) => res.redirect('/dashboard/whatsapp'));
 app.get('/chat', (req, res) => res.redirect('/atendimento'));
 
-app.get('/cardapio', (req, res) => {
-    const filePath = path.join(__dirname, '../botarena-front/cardapio.html');
-    const content = fs.readFileSync(filePath, 'utf8').replace('</head>', `    ${injection}\n</head>`);
-    res.type('html').send(content);
+app.get('/cardapio', async (req, res) => {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const html = await renderHtml('cardapio', isDev);
+    res.type('html').send(html);
 });
 
 // ==========================================

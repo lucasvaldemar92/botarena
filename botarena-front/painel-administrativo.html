@@ -2390,7 +2390,11 @@
                         pix: document.getElementById('pix').value,
                         consumer_client_id: document.getElementById('consumer-client-id').value,
                         consumer_client_secret: document.getElementById('consumer-client-secret').value,
-                        consumer_integration_active: document.getElementById('consumer-active').checked
+                        consumer_integration_active: document.getElementById('consumer-active').checked,
+                        google_analytics_id: document.getElementById('google-analytics-id').value,
+                        google_tag_manager_id: document.getElementById('google-tag-manager-id').value,
+                        google_maps_api_key: document.getElementById('google-maps-api-key').value,
+                        google_site_verification: document.getElementById('google-site-verification').value
                     };
 
                     // Remove empty fields to not overwrite with blanks unintentionally if you want,
@@ -2430,6 +2434,10 @@
                     if (config.consumer_integration_active !== undefined) {
                         document.getElementById('consumer-active').checked = config.consumer_integration_active;
                     }
+                    if (config.google_analytics_id) document.getElementById('google-analytics-id').value = config.google_analytics_id;
+                    if (config.google_tag_manager_id) document.getElementById('google-tag-manager-id').value = config.google_tag_manager_id;
+                    if (config.google_maps_api_key) document.getElementById('google-maps-api-key').value = config.google_maps_api_key;
+                    if (config.google_site_verification) document.getElementById('google-site-verification').value = config.google_site_verification;
 
                     if (config.latitude && config.longitude) {
                         const coordsInput = document.getElementById('company-coordinates');

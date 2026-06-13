@@ -38,6 +38,13 @@ class SQLiteDriver {
             // Silently ignore if column already exists or table does not exist yet
         });
 
+        // Adiciona campos de integração do Google
+        ['google_analytics_id', 'google_tag_manager_id', 'google_maps_api_key', 'google_site_verification'].forEach(col => {
+            this._db.run(`ALTER TABLE settings ADD COLUMN ${col} TEXT;`, (err) => {
+                // Silently ignore se a coluna já existir
+            });
+        });
+
         // Migração para remover a constraint UNIQUE de zip_code na tabela delivery_fees
         this._db.serialize(() => {
             this._db.get(

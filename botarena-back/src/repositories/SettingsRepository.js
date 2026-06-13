@@ -97,6 +97,10 @@ class SettingsRepository extends BaseRepository {
                 consumer_client_id = CASE WHEN ? IS NOT NULL THEN ? ELSE consumer_client_id END,
                 consumer_client_secret = CASE WHEN ? IS NOT NULL THEN ? ELSE consumer_client_secret END,
                 consumer_integration_active = CASE WHEN ? IS NOT NULL THEN ? ELSE consumer_integration_active END,
+                google_analytics_id = CASE WHEN ? IS NOT NULL THEN ? ELSE google_analytics_id END,
+                google_tag_manager_id = CASE WHEN ? IS NOT NULL THEN ? ELSE google_tag_manager_id END,
+                google_maps_api_key = CASE WHEN ? IS NOT NULL THEN ? ELSE google_maps_api_key END,
+                google_site_verification = CASE WHEN ? IS NOT NULL THEN ? ELSE google_site_verification END,
                 updated_at      = CURRENT_TIMESTAMP
             WHERE company_id = ?
         `, [
@@ -168,6 +172,14 @@ class SettingsRepository extends BaseRepository {
             fields.consumer_client_secret !== undefined ? fields.consumer_client_secret : null,
             consumerActiveVal,
             consumerActiveVal,
+            fields.google_analytics_id !== undefined ? fields.google_analytics_id : null,
+            fields.google_analytics_id !== undefined ? fields.google_analytics_id : null,
+            fields.google_tag_manager_id !== undefined ? fields.google_tag_manager_id : null,
+            fields.google_tag_manager_id !== undefined ? fields.google_tag_manager_id : null,
+            fields.google_maps_api_key !== undefined ? fields.google_maps_api_key : null,
+            fields.google_maps_api_key !== undefined ? fields.google_maps_api_key : null,
+            fields.google_site_verification !== undefined ? fields.google_site_verification : null,
+            fields.google_site_verification !== undefined ? fields.google_site_verification : null,
             this.companyId
         ]);
         return result.changes;
