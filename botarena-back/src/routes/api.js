@@ -394,44 +394,84 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     // 👥 CLIENTS ROUTES (🔒 Protected)
     // ==========================================
     async function syncClientToDeliveryFee(clientData) {
-        if (!clientData.cep || !clientData.address) return;
+        const cep = clientData.cep;
+        const neighborhood = clientData.neighborhood;
+        const address = clientData.address;
 
-        // Validate CEP: must contain exactly 8 digits after removing non-digits
-        const cleanCep = clientData.cep.replace(/[^\d]/g, '');
-        const hasValidCep = cleanCep.length === 8;
+        if (!cep || !neighborhood || !address) return;
 
-        // Validate Street Name: must be a string of at least 3 characters after trimming
-        const cleanAddress = clientData.address.trim();
-        const hasValidAddress = cleanAddress.length >= 3;
+        // Limpar CEP para validar: deve ter exatamente 8 dígitos
+        const cleanCep = cep.replace(/[^\d]/g, '');
+        if (cleanCep.length !== 8) return;
 
-        if (hasValidCep && hasValidAddress) {
-            // Format CEP to standard format XXXXX-XXX
-            const formattedCep = `${cleanCep.substring(0, 5)}-${cleanCep.substring(5)}`;
-            
+        // Limpar strings
+        const cleanNeighborhood = neighborhood.trim();
+        const cleanAddress = address.trim();
+
+        if (cleanNeighborhood.length < 3 || cleanAddress.length < 3) return;
+
+        // Formatar CEP para XXXXX-XXX
+        const formattedCep = `${cleanCep.substring(0, 5)}-${cleanCep.substring(5)}`;
+
+        try {
+            // 1. Verificar idempotência
+            const duplicate = await deliveryFeeRepo.findDuplicate(formattedCep, cleanNeighborhood, cleanAddress);
+            if (duplicate) {
+                console.log(`⏭️ [Sync] Endereço já cadastrado na tabela de taxas (CEP: ${formattedCep}, Bairro: ${cleanNeighborhood}, Rua: ${cleanAddress}), ignorando.`);
+                return; // Trava de idempotência
+            }
+
+            // 2. É novo endereço. Vamos calcular a distância e a taxa
+            let distanceKm = 0.0;
             try {
-                // Check if CEP already exists in delivery_fees
-                const existingFee = await deliveryFeeRepo.findByZipCode(formattedCep);
-                if (!existingFee) {
-                    // CEP does not exist: insert a new row with R$ 0,00 as the default fee
-                    await deliveryFeeRepo.add({
-                        neighborhood: cleanAddress,
-                        zipCode: formattedCep,
-                        fee: 0.00
-                    });
-                    console.log(`✅ [Sync] Sincronizado CEP ${formattedCep} (${cleanAddress}) para taxas de entrega.`);
+                const settings = await settingsRepo.get();
+                let originCoors = null;
+                if (settings.latitude !== undefined && settings.longitude !== undefined && settings.latitude !== null && settings.longitude !== null) {
+                    originCoors = { latitude: parseFloat(settings.latitude), longitude: parseFloat(settings.longitude) };
                 } else {
-                    console.log(`⏭️ [Sync] CEP ${formattedCep} já cadastrado na tabela de taxas, ignorando.`);
+                    originCoors = await geocodeAddress(settings.company_street, settings.company_number, settings.company_neighborhood, settings.base_cep);
+                }
+
+                let destCoors = await geocodeAddress(cleanAddress, null, cleanNeighborhood, formattedCep);
+                if (!destCoors) {
+                    destCoors = await geocodeAddress(cleanNeighborhood, null, null, formattedCep);
+                }
+
+                if (originCoors && destCoors) {
+                    distanceKm = calculateHaversineDistance(originCoors.latitude, originCoors.longitude, destCoors.latitude, destCoors.longitude);
+                } else {
+                    distanceKm = getFallbackDistance(cleanAddress || cleanNeighborhood, formattedCep);
                 }
             } catch (err) {
-                console.error('❌ [Sync] Erro ao sincronizar cliente com taxas de entrega:', err);
+                console.error('❌ [Sync Distance Calc] Erro no cálculo de distância:', err.message);
+                distanceKm = getFallbackDistance(cleanAddress || cleanNeighborhood, formattedCep);
             }
+
+            // 3. Obter taxa a partir das faixas de KM se houver faixa ativa correspondente
+            let fee = 0.00;
+            if (deliveryRangeRepo && distanceKm > 0) {
+                try {
+                    const range = await deliveryRangeRepo.findActiveRangeByDistance(distanceKm);
+                    if (range) {
+                        fee = range.fee;
+                    }
+                } catch (err) {
+                    console.error('❌ [Sync Fee Calc] Erro ao buscar faixa de KM para taxa:', err.message);
+                }
+            }
+
+            // 4. Inserir a nova taxa
+            await deliveryFeeRepo.add({
+                neighborhood: cleanNeighborhood,
+                address: cleanAddress,
+                zipCode: formattedCep,
+                fee: fee,
+                distanceKm: distanceKm
+            });
+            console.log(`✅ [Sync] Sincronizado novo endereço: CEP ${formattedCep}, Bairro: ${cleanNeighborhood}, Rua: ${cleanAddress}, Distância: ${distanceKm.toFixed(1)} km, Taxa: R$ ${fee.toFixed(2)}`);
+        } catch (err) {
+            console.error('❌ [Sync] Erro ao processar sincronismo de cliente com taxas de entrega:', err);
         }
-        const {
-        companyRepo,
-        ragService,
-        ragRepository,
-        orderRepo
-    } = container;
     }
 
     router.get('/clients', authMiddleware, async (req, res) => {
@@ -481,7 +521,65 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    // ==========================================
+    /**
+     * POST /clients/import
+     * Importação em lote de clientes a partir de dados do Excel.
+     * Body: { clients: [ { name, phone, birth, cep, neighborhood, address, source } ] }
+     * Retorna: { success, inserted, skipped, errors }
+     */
+    router.post('/clients/import', sensitiveLimiter, authMiddleware, async (req, res) => {
+        const { clients: rows } = req.body;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ error: 'Payload inválido. Envie um array "clients".' });
+        }
+
+        const result = { inserted: 0, skipped: 0, errors: [] };
+
+        for (const row of rows) {
+            try {
+                // Normaliza telefone para comparação
+                const phone = (row.phone || '').replace(/[^\d+]/g, '');
+                if (!phone) {
+                    result.errors.push({ row, reason: 'Telefone ausente' });
+                    continue;
+                }
+
+                // Verifica duplicata por telefone
+                const existing = await clientRepo.findByIdentifier(phone).catch(() => null);
+                if (existing) {
+                    result.skipped++;
+                    continue;
+                }
+
+                const payload = {
+                    name:         row.name         || '',
+                    phone:        phone,
+                    birth:        row.birth         || null,
+                    cep:          row.cep           || null,
+                    neighborhood: row.neighborhood  || null,
+                    address:      row.address       || null,
+                    notes:        row.notes         || null,
+                    source:       row.source        || 'manual'
+                };
+
+                await clientRepo.add(payload);
+                await syncClientToDeliveryFee(payload).catch(() => {});
+                result.inserted++;
+            } catch (e) {
+                if (e.message && e.message.includes('UNIQUE')) {
+                    result.skipped++;
+                } else {
+                    result.errors.push({ row, reason: e.message });
+                }
+            }
+        }
+
+        console.log(`📥 [Import] ${result.inserted} inseridos, ${result.skipped} ignorados, ${result.errors.length} erros`);
+        res.json({ success: true, ...result });
+    });
+
+
     // 🛵 DELIVERY FEES ROUTES (🔒 Protected)
     // ==========================================
     router.get('/delivery-fees', authMiddleware, async (req, res) => {
