@@ -31,6 +31,20 @@ class DeliveryFeeRepository extends BaseRepository {
     }
 
     /**
+     * Find a delivery fee entry by exact combination of zip_code, neighborhood and address (street).
+     * @param {string} zipCode
+     * @param {string} neighborhood
+     * @param {string} address
+     * @returns {Promise<Object|null>}
+     */
+    async findDuplicate(zipCode, neighborhood, address) {
+        return this.db.get(
+            'SELECT * FROM delivery_fees WHERE company_id = ? AND zip_code = ? AND neighborhood = ? AND address = ?',
+            [this.companyId, zipCode, neighborhood, address]
+        );
+    }
+
+    /**
      * Add a new delivery fee entry.
      * @param {Object} data - Delivery fee data object
      * @returns {Promise<Object>} Created entry

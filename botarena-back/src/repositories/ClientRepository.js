@@ -31,7 +31,7 @@ class ClientRepository extends BaseRepository {
             contact_jid: data.jid || null,
             address: data.address || null,
             zip_code: data.cep || null,
-            number: data.number || null,
+            neighborhood: data.neighborhood || null,
             notes: data.notes || null,
             source: data.source || 'manual',
             is_active: 1
@@ -52,7 +52,7 @@ class ClientRepository extends BaseRepository {
             contact_jid: data.jid || null,
             address: data.address || null,
             zip_code: data.cep || null,
-            number: data.number || null,
+            neighborhood: data.neighborhood || null,
             notes: data.notes || null,
             source: data.source || 'manual'
         });

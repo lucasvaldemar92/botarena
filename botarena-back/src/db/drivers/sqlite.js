@@ -34,6 +34,68 @@ class SQLiteDriver {
         // Enable WAL mode for better concurrency
         this._db.run('PRAGMA journal_mode=WAL;');
         this._db.run('PRAGMA foreign_keys=ON;');
+        this._db.run('ALTER TABLE clients ADD COLUMN neighborhood TEXT;', (err) => {
+            // Silently ignore if column already exists or table does not exist yet
+        });
+
+        // Migração para remover a constraint UNIQUE de zip_code na tabela delivery_fees
+        this._db.serialize(() => {
+            this._db.get(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_delivery_fees_zip'",
+                [],
+                (err, row) => {
+                    if (row) {
+                        console.log('📦 [DB Migration] Detectado índice UNIQUE antigo em delivery_fees. Removendo restrição...');
+                        
+                        this._db.serialize(() => {
+                            this._db.run('PRAGMA foreign_keys=OFF;');
+
+                            this._db.run('ALTER TABLE delivery_fees RENAME TO delivery_fees_old;', (errRename) => {
+                                if (errRename) {
+                                    console.error('❌ [DB Migration] Erro ao renomear tabela:', errRename.message);
+                                    return;
+                                }
+
+                                this._db.run(`
+                                    CREATE TABLE delivery_fees (
+                                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                        company_id INTEGER DEFAULT 1,
+                                        neighborhood TEXT,
+                                        address TEXT,
+                                        zip_code TEXT,
+                                        fee REAL DEFAULT 0.00,
+                                        distance_km REAL DEFAULT 0.0,
+                                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                                    );
+                                `, (errCreate) => {
+                                    if (errCreate) {
+                                        console.error('❌ [DB Migration] Erro ao criar nova tabela:', errCreate.message);
+                                        return;
+                                    }
+
+                                    this._db.run(`
+                                        INSERT INTO delivery_fees (id, company_id, neighborhood, address, zip_code, fee, distance_km, created_at, updated_at)
+                                        SELECT id, company_id, neighborhood, address, zip_code, fee, distance_km, created_at, updated_at FROM delivery_fees_old;
+                                    `, (errCopy) => {
+                                        if (errCopy) {
+                                            console.error('❌ [DB Migration] Erro ao copiar dados:', errCopy.message);
+                                            return;
+                                        }
+
+                                        this._db.run('DROP TABLE delivery_fees_old;');
+                                        this._db.run('DROP INDEX IF EXISTS idx_delivery_fees_zip;');
+                                        this._db.run('PRAGMA foreign_keys=ON;');
+
+                                        console.log('✅ [DB Migration] Tabela delivery_fees migrada com sucesso (restrição UNIQUE de zip_code removida).');
+                                    });
+                                });
+                            });
+                        });
+                    }
+                }
+            );
+        });
     }
 
     /**
