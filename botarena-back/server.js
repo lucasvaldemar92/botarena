@@ -16,6 +16,8 @@ const { createApiRouter } = require('./src/routes/api');
 const { initWhatsApp, getClient, isClientReady, setClientReady, getLastQR } = require('./src/services/whatsappClient');
 const { setupSocket }     = require('./src/socket/events');
 const { settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo } = require('./src/container');
+const db                  = require('./src/db/drivers/sqlite');
+const { autoSeed }        = require('./src/db/seed');
 
 // ==========================================
 // 🚀 EXPRESS + SOCKET.IO SETUP
@@ -162,6 +164,11 @@ setupSocket(io, { getClient, isClientReady, getLastQR, settingsRepo, menuRepo })
 // ==========================================
 // 🚀 SERVER START
 // ==========================================
-server.listen(PORT, () => {
-    console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
-});
+(async () => {
+    // Executa o seed antes de subir — usa a mesma conexão do banco
+    await autoSeed(db);
+
+    server.listen(PORT, () => {
+        console.log(`🚀 [Server] Running on http://localhost:${PORT}`);
+    });
+})();
