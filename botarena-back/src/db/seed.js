@@ -25,6 +25,19 @@ async function autoSeed(db) {
         return;
     }
 
+    // 🔒 Preservação de dados para homologação contínua:
+    // Só aplica o seed se a tabela 'settings' estiver vazia ou não possuir registros.
+    // Isso evita que dados inseridos/importados pelo usuário sejam perdidos ao reiniciar o servidor.
+    try {
+        const row = await db.get("SELECT COUNT(*) as count FROM settings");
+        if (row && row.count > 0) {
+            console.log('⏭️  [AutoSeed] Banco de dados já possui registros de configuração. Pulando seed automático para preservar dados de homologação.');
+            return;
+        }
+    } catch (err) {
+        console.log('ℹ️  [AutoSeed] Tabela settings não encontrada ou vazia. Prosseguindo com o seed inicial...');
+    }
+
     const sql = fs.readFileSync(seedPath, 'utf8');
 
     console.log('🌱 [AutoSeed] Carregando seed_data.sql...');

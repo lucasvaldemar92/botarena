@@ -1516,23 +1516,53 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             }
 
             const cleanQuery = query.replace(/\D/g, '');
-            let searchTerms = [query.trim()];
-            if (cleanQuery.length === 8) {
-                // CEP com hífen e sem hífen para garantir o match
-                searchTerms.push(`${cleanQuery.substring(0, 5)}-${cleanQuery.substring(5)}`);
-                searchTerms.push(cleanQuery);
-            }
-
             let matches = [];
-            // Remove duplicados de termos de busca
-            searchTerms = [...new Set(searchTerms)];
 
-            for (const term of searchTerms) {
-                const termMatches = await ragRepo.db.all(
-                    `SELECT content FROM rag_chunks WHERE company_id = ? AND source_type = 'address' AND content LIKE ? ORDER BY id ASC LIMIT 10`,
-                    [ragRepo.companyId, `%${term}%`]
-                );
-                matches = matches.concat(termMatches);
+            if (cleanQuery.length === 8) {
+                // Se for busca direta por CEP (8 dígitos numéricos)
+                const searchTerms = [
+                    `${cleanQuery.substring(0, 5)}-${cleanQuery.substring(5)}`,
+                    cleanQuery
+                ];
+                for (const term of searchTerms) {
+                    const termMatches = await ragRepo.db.all(
+                        `SELECT content FROM rag_chunks WHERE company_id = ? AND source_type = 'address' AND content LIKE ? ORDER BY id ASC LIMIT 10`,
+                        [ragRepo.companyId, `%${term}%`]
+                    );
+                    matches = matches.concat(termMatches);
+                }
+            } else {
+                // Busca inteligente por palavras-chave (tokens) para suportar abreviações (ex: R. versus Rua)
+                const words = query
+                    .replace(/[^a-zA-Z0-9áéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ\s-]/g, '') // Mantém hifens e acentos comuns
+                    .split(/\s+/)
+                    .map(w => w.trim())
+                    .filter(w => {
+                        const low = w.toLowerCase();
+                        // Filtra termos comuns genéricos que poluem a busca
+                        return w.length >= 2 && !['de', 'do', 'da', 'em', 'para', 'com', 'rua', 'avenida', 'travessa', 'alameda', 'al', 'av', 'trav'].includes(low);
+                    });
+
+                if (words.length > 0) {
+                    const sqlConditions = words.map(() => "content LIKE ?").join(" AND ");
+                    const sqlParams = [ragRepo.companyId, ...words.map(w => `%${w}%`)];
+                    
+                    const tokenMatches = await ragRepo.db.all(
+                        `SELECT content FROM rag_chunks WHERE company_id = ? AND source_type = 'address' AND ${sqlConditions} ORDER BY id ASC LIMIT 10`,
+                        sqlParams
+                    );
+                    matches = matches.concat(tokenMatches);
+                }
+
+                // Fallback: Se não achou por palavras combinadas, faz a busca pelo termo inteiro sem pontos
+                if (matches.length === 0) {
+                    const cleanStreetQuery = query.replace(/\./g, '').trim();
+                    const fallbackMatches = await ragRepo.db.all(
+                        `SELECT content FROM rag_chunks WHERE company_id = ? AND source_type = 'address' AND content LIKE ? ORDER BY id ASC LIMIT 10`,
+                        [ragRepo.companyId, `%${cleanStreetQuery}%`]
+                    );
+                    matches = matches.concat(fallbackMatches);
+                }
             }
 
             // Filtrar duplicados se existirem

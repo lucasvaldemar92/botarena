@@ -1271,7 +1271,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     const loc = await getCompanyCityState();
-                    const cleanStreet = street.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    const cleanStreet = street
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .replace(/\./g, '') // Remove pontos para evitar erro 400 no ViaCEP (ex: R. do Principe -> R do Principe)
+                        .replace(/[^a-zA-Z0-9\s-]/g, '') // Mantém apenas letras, números, espaços e hifens
+                        .trim();
                     const url = `https://viacep.com.br/ws/${loc.uf}/${encodeURIComponent(loc.city)}/${encodeURIComponent(cleanStreet)}/json/`;
                     
                     const res = await fetch(url);
