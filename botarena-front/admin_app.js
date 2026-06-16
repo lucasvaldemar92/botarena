@@ -3111,4 +3111,216 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsArrayBuffer(file);
         });
     }
+
+    // ==========================================
+    // 💡 FAQ / CENTRAL DE AJUDA
+    // ==========================================
+    let faqList = [];
+    const faqListContainer = document.getElementById('faq-list-container');
+    const faqEmptyState = document.getElementById('faq-empty-state');
+    const btnAddFaq = document.getElementById('btn-add-faq');
+    const btnClearFaq = document.getElementById('btn-clear-faq');
+    const modalFaq = document.getElementById('modal-faq');
+    const btnCancelFaq = document.getElementById('btn-cancel-faq');
+    const btnSaveFaq = document.getElementById('btn-save-faq');
+    const faqKeywordInput = document.getElementById('faq-keyword');
+    const faqResponseInput = document.getElementById('faq-response');
+
+    async function loadFaqs() {
+        if (!faqListContainer) return;
+        try {
+            const data = await window.utils.apiFetch('/knowledge');
+            faqList = (data || []).filter(item => item.category === 'faq');
+            renderFaqs();
+        } catch (err) {
+            console.error('Erro ao carregar FAQs:', err);
+            faqListContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 2rem;">Erro ao carregar Central de Ajuda.</div>`;
+        }
+    }
+
+    function renderFaqs() {
+        if (!faqListContainer) return;
+        
+        if (faqList.length === 0) {
+            faqListContainer.style.display = 'none';
+            if (faqEmptyState) faqEmptyState.style.display = 'block';
+            if (btnClearFaq) btnClearFaq.style.display = 'none';
+            return;
+        }
+
+        if (faqEmptyState) faqEmptyState.style.display = 'none';
+        faqListContainer.style.display = 'grid';
+        if (btnClearFaq) btnClearFaq.style.display = 'flex';
+
+        faqListContainer.innerHTML = faqList.map(item => {
+            return `
+                <div class="faq-card" style="background: #1e293b; border: 1px solid #334155; border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative; transition: transform 0.2s, box-shadow 0.2s;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem;">
+                        <h4 style="margin: 0; font-weight: 700; color: #f8fafc; font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
+                            <i class="fa-solid fa-circle-question" style="color: #60a5fa;"></i> ${item.keyword}
+                        </h4>
+                        <button class="btn-delete-faq" data-id="${item.id}" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; font-size: 0.95rem; transition: color 0.2s; display: flex; align-items: center; justify-content: center;" title="Excluir">
+                            <i class="fa-solid fa-trash-can" style="color: #f87171;"></i>
+                        </button>
+                    </div>
+                    <p style="margin: 0; color: #cbd5e1; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word;">${item.response}</p>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openFaqModal() {
+        if (!modalFaq) return;
+        
+        const doOpen = () => {
+            modalFaq.style.display = 'flex';
+            if (faqKeywordInput) faqKeywordInput.value = '';
+            if (faqResponseInput) faqResponseInput.value = '';
+        };
+
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.open('modal-faq', doOpen, closeFaqModal);
+        } else {
+            doOpen();
+        }
+    }
+
+    function closeFaqModal() {
+        if (!modalFaq) return;
+        modalFaq.style.display = 'none';
+        if (faqKeywordInput) faqKeywordInput.value = '';
+        if (faqResponseInput) faqResponseInput.value = '';
+        if (window.utils && window.utils.modalManager) {
+            window.utils.modalManager.close('modal-faq');
+        }
+    }
+
+    if (window.utils && window.utils.modalManager) {
+        window.utils.modalManager.register('modal-faq', closeFaqModal);
+    }
+
+    if (btnAddFaq) {
+        btnAddFaq.addEventListener('click', openFaqModal);
+    }
+
+    if (btnCancelFaq) {
+        btnCancelFaq.addEventListener('click', closeFaqModal);
+    }
+
+    if (modalFaq) {
+        modalFaq.addEventListener('click', (e) => {
+            if (e.target === modalFaq) {
+                closeFaqModal();
+            }
+        });
+    }
+
+    if (btnSaveFaq) {
+        btnSaveFaq.addEventListener('click', async () => {
+            const keyword = faqKeywordInput ? faqKeywordInput.value.trim() : '';
+            const response = faqResponseInput ? faqResponseInput.value.trim() : '';
+
+            if (!keyword) {
+                alert('O título ou palavra-chave é obrigatório.');
+                if (faqKeywordInput) faqKeywordInput.focus();
+                return;
+            }
+            if (!response) {
+                alert('O conteúdo do bloco de texto é obrigatório.');
+                if (faqResponseInput) faqResponseInput.focus();
+                return;
+            }
+
+            const originalHTML = btnSaveFaq.innerHTML;
+            btnSaveFaq.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+            btnSaveFaq.disabled = true;
+
+            try {
+                await window.utils.apiFetch('/knowledge', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        keyword,
+                        response,
+                        category: 'faq'
+                    })
+                });
+                closeFaqModal();
+                showToast('Bloco de conhecimento adicionado!');
+                await loadFaqs();
+                await loadRagStats(); // Atualiza contador de RAG
+            } catch (err) {
+                console.error('Erro ao salvar FAQ:', err);
+                alert(err.message || 'Erro ao salvar o bloco.');
+            } finally {
+                btnSaveFaq.innerHTML = originalHTML;
+                btnSaveFaq.disabled = false;
+            }
+        });
+    }
+
+    // Delegação de cliques para excluir FAQ individual
+    if (faqListContainer) {
+        faqListContainer.addEventListener('click', async (e) => {
+            const deleteBtn = e.target.closest('.btn-delete-faq');
+            if (deleteBtn) {
+                const id = deleteBtn.dataset.id;
+                const item = faqList.find(x => x.id == id);
+                const title = item ? item.keyword : 'este bloco';
+                
+                if (confirm(`Tem certeza que deseja excluir o bloco "${title}"?`)) {
+                    try {
+                        await window.utils.apiFetch(`/knowledge/${id}`, {
+                            method: 'DELETE'
+                        });
+                        showToast('Bloco excluído com sucesso!');
+                        await loadFaqs();
+                        await loadRagStats(); // Atualiza contador de RAG
+                    } catch (err) {
+                        console.error('Erro ao excluir FAQ:', err);
+                        alert(err.message || 'Erro ao excluir o bloco.');
+                    }
+                }
+            }
+        });
+    }
+
+    // Excluir todas as FAQs
+    if (btnClearFaq) {
+        btnClearFaq.addEventListener('click', async () => {
+            if (faqList.length === 0) return;
+            if (confirm(`⚠️ ATENÇÃO: Você deseja excluir todos os ${faqList.length} blocos da Central de Ajuda?\nEssa ação não pode ser desfeita.`)) {
+                const originalHTML = btnClearFaq.innerHTML;
+                btnClearFaq.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Excluindo...';
+                btnClearFaq.disabled = true;
+
+                try {
+                    // Executa a exclusão de cada item
+                    await Promise.all(faqList.map(item => 
+                        window.utils.apiFetch(`/knowledge/${item.id}`, { method: 'DELETE' })
+                    ));
+                    showToast('Todos os blocos foram removidos!');
+                    await loadFaqs();
+                    await loadRagStats();
+                } catch (err) {
+                    console.error('Erro ao limpar FAQs:', err);
+                    alert('Erro ao excluir todos os blocos. Alguns itens podem não ter sido removidos.');
+                    await loadFaqs();
+                    await loadRagStats();
+                } finally {
+                    btnClearFaq.innerHTML = originalHTML;
+                    btnClearFaq.disabled = false;
+                }
+            }
+        });
+    }
+
+    // Carrega FAQs inicialmente
+    loadFaqs();
+
+    // Vincula clique na sidebar da aba faq para carregar FAQs
+    const faqCatBtns = document.querySelectorAll('.sidebar__item[data-tab="faq"]');
+    faqCatBtns.forEach(btn => {
+        btn.addEventListener('click', () => loadFaqs());
+    });
 });
+
