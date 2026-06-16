@@ -90,6 +90,14 @@ describe('SettingsRepository Unit Tests', () => {
             null,       null,       // consumer_client_id
             null,       null,       // consumer_client_secret
             null,       null,       // consumer_integration_active
+            null,       null,       // google_analytics_id
+            null,       null,       // google_tag_manager_id
+            null,       null,       // google_maps_api_key
+            null,       null,       // google_site_verification
+            null,       null,       // openai_api_key
+            null,       null,       // gemini_api_key
+            null,       null,       // openai_active
+            null,       null,       // gemini_active
             1                       // company_id
         ]);
     });

@@ -18,7 +18,7 @@ function runQA(runE2E = false) {
 
     if (runE2E) {
         // // console.log("🚀 [EXTRA] Executando E2E Completo (Playwright)...");
-        execSync('npx playwright test tests/visual_sync.spec.js', { stdio: 'inherit' });
+        execSync('npx playwright test', { stdio: 'inherit' });
     } else {
         // // console.log("⚠️ E2E pulado por segurança. Rode com '--full' para executar.");
     }

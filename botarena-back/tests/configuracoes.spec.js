@@ -13,15 +13,27 @@ test.describe('Configurações Menu', () => {
         // Aguarda carregar e ir para o dashboard ou painel administrativo
         await expect(page).toHaveURL(/.*(dashboard|painel-administrativo).*/, { timeout: 5000 });
 
-        // 2. Abre a aba de configurações na sidebar
+        // 1. Preenchimento dos dados do Pix na aba nativa de Dados da Empresa
+        await page.click('[data-tab="company-data"]');
+        await page.fill('#nome-favorecido', 'Arena Juvenal LTDA');
+        await page.fill('#pix', 'contato@arenajuvenal.com.br');
+        await page.click('#btn-save-company-data');
+        await expect(page.locator('#btn-save-company-data')).toContainText('Salvo!');
+
+        // 2. Abre a aba de configurações (Horário de Atendimento) na sidebar
+        const groupDelivery = page.locator('#group-delivery');
+        const isCollapsed = await groupDelivery.evaluate(el => el.classList.contains('collapsed'));
+        if (isCollapsed) {
+            await page.click('#group-delivery .sidebar__group-header');
+            await page.waitForTimeout(300);
+        }
         await page.click('[data-tab="settings"]');
+        
+        // Aguarda o carregamento do iframe
+        await page.waitForTimeout(1500);
         
         // Localiza o iframe de configurações
         const iframe = page.frameLocator('#main-iframe');
-
-        // 1. Preenchimento dos dados do Pix dentro do iframe
-        await iframe.locator('#cfg-pix-name').fill('Arena Juvenal LTDA');
-        await iframe.locator('#cfg-pix-key').fill('contato@arenajuvenal.com.br');
 
         // 2. Adição de um novo período de atendimento dentro do iframe
         await iframe.locator('#btn-add-period').click();

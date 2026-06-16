@@ -40,31 +40,45 @@ test('Client and Delivery Fee Sync & Validation Verification', async ({ page }) 
     const testAddress = 'Avenida Brigadeiro Luis Antonio';
     const testNumber = '1000';
     const testCEP = '01318-001';
+    const testNeighborhood = 'Bela Vista';
 
     await page.fill('#client-name', testName);
     await page.fill('#client-phone', testPhone);
     await page.fill('#client-cep', testCEP);
-    await page.fill('#client-address', testAddress);
-    await page.fill('#client-number', testNumber);
+    await page.fill('#client-neighborhood', testNeighborhood);
+    await page.fill('#client-address', `${testAddress}, ${testNumber}`);
 
     // Enviar formulário
     await page.click('#btn-submit');
-    await page.waitForSelector('#modal-registration:not(.active)', { timeout: 4000 });
+    await expect(page.locator('#modal-registration')).not.toHaveClass(/active/, { timeout: 5000 });
 
     // 4. Verificar se o cliente foi adicionado na tabela de clientes
     const tableText = await page.innerText('#clients-table-body');
     expect(tableText).toContain(testName);
-    expect(tableText).toContain(testAddress);
-    expect(tableText).toContain(testNumber);
+    expect(tableText).toContain(`${testAddress}, ${testNumber}`);
+    expect(tableText).toContain(testNeighborhood);
     expect(tableText).toContain(testCEP);
 
     // 5. Navegar de volta para painel-administrativo.html e verificar se a taxa foi criada com R$ 0,00 e o endereço correspondente
     await page.goto(`${backendUrl}/painel-administrativo.html`);
+    
+    // Garante que o grupo 'group-delivery' está expandido na sidebar
+    const groupDelivery = page.locator('#group-delivery');
+    const isCollapsed = await groupDelivery.evaluate(el => el.classList.contains('collapsed'));
+    if (isCollapsed) {
+        await page.click('#group-delivery .sidebar__group-header');
+        await page.waitForTimeout(300);
+    }
+    
+    // Navega para a aba de taxas de entrega
+    await page.click('[data-tab="delivery-fee"]');
     await page.waitForSelector('#delivery-fees-table-body', { timeout: 5000 });
 
     // Esperar um pouco para a tabela carregar os dados atualizados da API
     await page.waitForTimeout(1000);
-    const deliveryTableText = await page.innerText('#delivery-fees-table-body');
+    const rawTableText = await page.innerText('#delivery-fees-table-body');
+    // Normaliza non-breaking spaces (\u00a0) gerados por formatação de moeda
+    const deliveryTableText = rawTableText.replace(/\u00a0/g, ' ');
     
     // O CEP sincronizado deve constar na tabela de taxas
     expect(deliveryTableText).toContain('01318-001');
@@ -75,8 +89,9 @@ test('Client and Delivery Fee Sync & Validation Verification', async ({ page }) 
     await page.click('#btn-add-delivery-fee');
     await page.waitForSelector('#modal-delivery-fee', { state: 'visible', timeout: 2000 });
 
-    await page.fill('#delivery-neighborhood', 'Outra Regiao');
+    await page.locator('#delivery-neighborhood').evaluate(el => el.value = 'Outra Regiao');
     await page.fill('#delivery-zip-code', '01318-001'); // CEP duplicado
+    await page.fill('#delivery-distance', '10.0'); // Preenche distância que agora é obrigatória
     await page.fill('#delivery-fee-value', '12.50');
 
     await page.click('#form-delivery-fee button[type="submit"]');

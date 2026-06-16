@@ -7,7 +7,7 @@
     "teste-codigo": "node scripts/teste_codigo.js",
     "teste-seg": "node scripts/teste_seguranca.js",
     "teste-banco": "node scripts/teste_banco.js",
-    "teste-e2e": "npx playwright test tests/visual_sync.spec.js",
+    "teste-e2e": "npx playwright test",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "migrate": "node scripts/migrate_add_company_id.js",
