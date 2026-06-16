@@ -134,6 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 printOrder(id);
             });
         });
+
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                openOrderDetails(id);
+            });
+        });
     }
 
     function printOrder(id) {
@@ -144,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const numPedido = order.numero_pedido || order.id.substring(0,4);
         
         let itemsHtml = '';
+        let itemsSubtotal = 0;
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => {
                 const price = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price);
@@ -154,10 +162,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 ${item.notes ? `<div><small>Obs: ${item.notes}</small></div>` : ''}
                 `;
+                itemsSubtotal += (item.price * item.quantity);
             });
         }
 
-        const totalFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total);
+        const deliveryFee = order.delivery_fee || 0;
+        
+        // Se o total gravado for menor que subtotal + taxa de entrega (ex: script de teste ou dados legados),
+        // recalculamos para o cupom não ficar matematicamente incorreto para o cliente.
+        let totalGeral = order.total || 0;
+        if (totalGeral < (itemsSubtotal + deliveryFee - 0.01)) {
+            totalGeral = itemsSubtotal + deliveryFee;
+        }
+
+        const subtotalFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(itemsSubtotal);
+        const deliveryFeeFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee);
+        const totalFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeral);
 
         printArea.innerHTML = `
             <div class="print-center print-bold" style="font-size: 16px; margin-bottom: 4px;">BOTARENA DELIVERY</div>
@@ -172,11 +192,20 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="print-bold" style="margin-bottom: 4px;">ITENS:</div>
             ${itemsHtml}
             <div class="print-divider"></div>
+            <div class="print-flex">
+                <span>Subtotal:</span>
+                <span>${subtotalFmt}</span>
+            </div>
+            <div class="print-flex">
+                <span>Taxa de Entrega:</span>
+                <span>${deliveryFeeFmt}</span>
+            </div>
+            <div class="print-divider"></div>
             <div class="print-flex print-bold" style="font-size: 14px;">
                 <span>TOTAL:</span>
                 <span>${totalFmt}</span>
             </div>
-            <div><span class="print-bold">Pagamento:</span> ${order.payment_method}</div>
+            <div style="margin-top: 4px;"><span class="print-bold">Pagamento:</span> ${order.payment_method}</div>
             <div class="print-divider"></div>
             <div class="print-center" style="margin-top: 10px;">
                 *** CUPOM NAO FISCAL ***
@@ -187,6 +216,144 @@ document.addEventListener('DOMContentLoaded', () => {
         window.print();
         printArea.style.display = 'none';
     }
+
+    // DOM Elements do Modal
+    const detailsModal = document.getElementById('details-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const modalPrintBtn = document.getElementById('modal-print-btn');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBodyContent = document.getElementById('modal-body-content');
+    let activeModalOrderId = null;
+
+    function openOrderDetails(id) {
+        const order = ordersData.find(o => o.id === id);
+        if (!order) return;
+
+        activeModalOrderId = id;
+        modalTitle.textContent = `Pedido #${order.numero_pedido || order.id.substring(0,4)}`;
+
+        const date = new Date(order.created_at).toLocaleString('pt-BR');
+        
+        let itemsHtml = '';
+        let itemsSubtotal = 0;
+        if (order.items && order.items.length > 0) {
+            order.items.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                const priceFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price);
+                const itemTotalFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(itemTotal);
+                itemsHtml += `
+                <div class="details-item-row">
+                    <div class="details-item-info">
+                        <span class="details-item-name">${item.quantity}x ${item.product_name}</span>
+                        ${item.notes ? `<span class="details-item-notes">Obs: ${item.notes}</span>` : ''}
+                    </div>
+                    <span>${itemTotalFmt} <small style="color: var(--text-muted); font-size: 0.75rem;">(${priceFmt} un)</small></span>
+                </div>
+                `;
+                itemsSubtotal += itemTotal;
+            });
+        } else {
+            itemsHtml = '<div style="color: var(--text-muted); font-style: italic; padding: 0.5rem 0;">Nenhum item neste pedido.</div>';
+        }
+
+        const deliveryFee = order.delivery_fee || 0;
+        
+        // Se o total gravado for menor que subtotal + taxa de entrega, recalculamos para exibição correta
+        let totalGeral = order.total || 0;
+        if (totalGeral < (itemsSubtotal + deliveryFee - 0.01)) {
+            totalGeral = itemsSubtotal + deliveryFee;
+        }
+
+        const subtotalFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(itemsSubtotal);
+        const deliveryFeeFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee);
+        const totalGeralFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeral);
+
+        let badgeClass = '';
+        let badgeLabel = '';
+        if (order.status === 'novo') { badgeClass = 'badge-novo'; badgeLabel = 'Novo'; }
+        if (order.status === 'preparo') { badgeClass = 'badge-preparo'; badgeLabel = 'Preparo'; }
+        if (order.status === 'entrega') { badgeClass = 'badge-entrega'; badgeLabel = 'Entrega'; }
+        if (order.status === 'entregue') { badgeClass = 'badge-entregue'; badgeLabel = 'Entregue'; }
+
+        modalBodyContent.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+                <div>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Realizado em:</span><br>
+                    <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">${date}</span>
+                </div>
+                <span class="badge ${badgeClass}" style="padding: 0.5rem 1rem; font-size: 0.8rem;">${badgeLabel}</span>
+            </div>
+
+            <div class="info-section">
+                <span class="info-title">Cliente</span>
+                <div class="info-content">
+                    <strong>${order.customer_name || 'Cliente'}</strong><br>
+                    📞 ${order.customer_phone || 'Não informado'}
+                </div>
+            </div>
+
+            <div class="info-section">
+                <span class="info-title">Endereço de Entrega</span>
+                <div class="info-content">
+                    📍 ${order.customer_address || 'Retirada no Balcão'}<br>
+                    🏘️ Bairro: ${order.neighborhood || 'N/A'}
+                </div>
+            </div>
+
+            <div class="info-section">
+                <span class="info-title">Itens do Pedido</span>
+                <div style="display: flex; flex-direction: column;">
+                    ${itemsHtml}
+                </div>
+            </div>
+
+            <div class="info-section">
+                <span class="info-title">Resumo de Valores</span>
+                <div class="details-summary">
+                    <div class="summary-row">
+                        <span>Subtotal dos Itens:</span>
+                        <span>${subtotalFmt}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Taxa de Entrega:</span>
+                        <span>${deliveryFeeFmt}</span>
+                    </div>
+                    <div class="summary-row" style="margin-top: 4px;">
+                        <span>Método de Pagamento:</span>
+                        <span style="font-weight: 600; color: var(--primary); text-transform: uppercase;">${order.payment_method || 'PIX'}</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>TOTAL GERAL:</span>
+                        <span>${totalGeralFmt}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        detailsModal.classList.add('active');
+    }
+
+    function closeDetailsModal() {
+        detailsModal.classList.remove('active');
+        activeModalOrderId = null;
+    }
+
+    closeModalBtn.addEventListener('click', closeDetailsModal);
+    modalCloseBtn.addEventListener('click', closeDetailsModal);
+    
+    // Fechar ao clicar fora do container
+    detailsModal.addEventListener('click', (e) => {
+        if (e.target === detailsModal) {
+            closeDetailsModal();
+        }
+    });
+
+    modalPrintBtn.addEventListener('click', () => {
+        if (activeModalOrderId) {
+            printOrder(activeModalOrderId);
+        }
+    });
 
     searchInput.addEventListener('input', renderOrders);
     statusFilter.addEventListener('change', renderOrders);
