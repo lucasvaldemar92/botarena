@@ -38,9 +38,16 @@ class SQLiteDriver {
             // Silently ignore if column already exists or table does not exist yet
         });
 
-        // Adiciona campos de integração do Google
-        ['google_analytics_id', 'google_tag_manager_id', 'google_maps_api_key', 'google_site_verification'].forEach(col => {
+        // Adiciona campos de integração do Google e APIs de IA
+        ['google_analytics_id', 'google_tag_manager_id', 'google_maps_api_key', 'google_site_verification', 'openai_api_key', 'gemini_api_key'].forEach(col => {
             this._db.run(`ALTER TABLE settings ADD COLUMN ${col} TEXT;`, (err) => {
+                // Silently ignore se a coluna já existir
+            });
+        });
+
+        // Adiciona status de ativação das IAs
+        ['openai_active', 'gemini_active'].forEach(col => {
+            this._db.run(`ALTER TABLE settings ADD COLUMN ${col} INTEGER DEFAULT 0;`, (err) => {
                 // Silently ignore se a coluna já existir
             });
         });

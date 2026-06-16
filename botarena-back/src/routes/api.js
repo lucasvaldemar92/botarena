@@ -225,7 +225,8 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                 'company_name', 'trade_name', 'cnpj', 'base_cep', 'company_street', 
                 'company_number', 'company_neighborhood', 'company_phone', 'company_email',
                 'consumer_client_id', 'consumer_client_secret', 'consumer_integration_active',
-                'google_analytics_id', 'google_tag_manager_id', 'google_maps_api_key', 'google_site_verification'
+                'google_analytics_id', 'google_tag_manager_id', 'google_maps_api_key', 'google_site_verification',
+                'openai_api_key', 'gemini_api_key', 'openai_active', 'gemini_active'
             ];
             companyFields.forEach(f => {
                 if (rawBody[f] !== undefined) validData[f] = rawBody[f];
@@ -1630,6 +1631,20 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
                     const config = await settingsRepo.get();
                     await ragService.syncAddressToRag(config);
                     console.log('✅ [RAG Address Sync Startup] Endereço da empresa sincronizado no RAG.');
+                }
+
+                // Sincronizar FAQs da Central de Ajuda
+                if (knowledgeRepo) {
+                    const faqs = await knowledgeRepo.getAll();
+                    const faqList = (faqs || []).filter(item => item.category === 'faq');
+                    let syncFaqCount = 0;
+                    for (const faq of faqList) {
+                        const rawText = `Pergunta/Palavra-chave: ${faq.keyword}\nRespostas/Informações: ${faq.response}`;
+                        const chunks = ragService.generateSemanticChunks(rawText);
+                        await ragRepo.saveChunks('faq', faq.id.toString(), chunks);
+                        syncFaqCount++;
+                    }
+                    console.log(`✅ [RAG FAQ Sync Startup] ${syncFaqCount} FAQs da Central de Ajuda indexados no RAG.`);
                 }
             } catch (err) {
                 console.error('❌ [RAG Startup Sync] Falha na indexação inicial:', err);

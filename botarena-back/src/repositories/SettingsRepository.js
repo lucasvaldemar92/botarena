@@ -23,6 +23,8 @@ class SettingsRepository extends BaseRepository {
         return {
             ...row,
             bot_active: Boolean(row?.bot_active), // 1/0 → true/false
+            openai_active: Boolean(row?.openai_active),
+            gemini_active: Boolean(row?.gemini_active),
             menu_lunch_active: row?.menu_lunch_active !== undefined ? Boolean(row.menu_lunch_active) : true,
             menu_lunch_start: row?.menu_lunch_start || '10:00',
             menu_lunch_end: row?.menu_lunch_end || '14:00',
@@ -59,6 +61,14 @@ class SettingsRepository extends BaseRepository {
 
         const consumerActiveVal = fields.consumer_integration_active !== undefined
             ? (fields.consumer_integration_active ? 1 : 0)
+            : null;
+
+        const openaiActiveVal = fields.openai_active !== undefined
+            ? (fields.openai_active ? 1 : 0)
+            : null;
+
+        const geminiActiveVal = fields.gemini_active !== undefined
+            ? (fields.gemini_active ? 1 : 0)
             : null;
 
         const result = await this.db.run(`
@@ -101,6 +111,10 @@ class SettingsRepository extends BaseRepository {
                 google_tag_manager_id = CASE WHEN ? IS NOT NULL THEN ? ELSE google_tag_manager_id END,
                 google_maps_api_key = CASE WHEN ? IS NOT NULL THEN ? ELSE google_maps_api_key END,
                 google_site_verification = CASE WHEN ? IS NOT NULL THEN ? ELSE google_site_verification END,
+                openai_api_key  = CASE WHEN ? IS NOT NULL THEN ? ELSE openai_api_key END,
+                gemini_api_key  = CASE WHEN ? IS NOT NULL THEN ? ELSE gemini_api_key END,
+                openai_active   = CASE WHEN ? IS NOT NULL THEN ? ELSE openai_active END,
+                gemini_active   = CASE WHEN ? IS NOT NULL THEN ? ELSE gemini_active END,
                 updated_at      = CURRENT_TIMESTAMP
             WHERE company_id = ?
         `, [
@@ -180,6 +194,14 @@ class SettingsRepository extends BaseRepository {
             fields.google_maps_api_key !== undefined ? fields.google_maps_api_key : null,
             fields.google_site_verification !== undefined ? fields.google_site_verification : null,
             fields.google_site_verification !== undefined ? fields.google_site_verification : null,
+            fields.openai_api_key !== undefined ? fields.openai_api_key : null,
+            fields.openai_api_key !== undefined ? fields.openai_api_key : null,
+            fields.gemini_api_key !== undefined ? fields.gemini_api_key : null,
+            fields.gemini_api_key !== undefined ? fields.gemini_api_key : null,
+            openaiActiveVal,
+            openaiActiveVal,
+            geminiActiveVal,
+            geminiActiveVal,
             this.companyId
         ]);
         return result.changes;
