@@ -1913,6 +1913,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dynamicChips.forEach(c => c.remove());
         
         categories.forEach(cat => {
+            // Ignora a categoria redundante de adicionais, pois ela já possui chip fixo e estilizado
+            if (cat.nome && cat.nome.toLowerCase() === 'adicionais') return;
+            
             const btn = document.createElement('button');
             btn.className = 'chip-btn dynamic-chip';
             btn.dataset.filter = cat.nome;
