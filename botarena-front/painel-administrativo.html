@@ -1675,7 +1675,10 @@
                             <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Central de Ajuda (FAQs)</h2>
                             <p style="color: var(--text-muted); font-size: 0.9rem;">Adicione blocos de texto e instruções para guiar a inteligência artificial do bot</p>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button id="btn-delete-selected-faq" class="btn btn--secondary" style="display: none; color: #f97316; border-color: #fdba74; padding: 0.5rem 1.25rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-trash-arrow-up"></i> Excluir selecionados (<span id="faq-selected-count">0</span>)
+                            </button>
                             <button id="btn-add-faq" class="btn" style="background-color: var(--accent-dark); color: #fff; padding: 0.5rem 1.25rem; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fa-solid fa-plus"></i> Adicionar
                             </button>
@@ -1683,6 +1686,14 @@
                                 <i class="fa-solid fa-trash-can"></i> Excluir tudo
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Selecionar Todos -->
+                    <div id="faq-select-all-container" style="display: none; align-items: center; gap: 0.5rem; margin-top: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.75rem 1.25rem; border-radius: var(--radius-md);">
+                        <input type="checkbox" id="chk-select-all-faq" style="cursor: pointer; width: 1.15rem; height: 1.15rem; accent-color: var(--accent-dark); margin: 0;">
+                        <label for="chk-select-all-faq" style="cursor: pointer; font-size: 0.85rem; color: var(--text-main); font-weight: 600; user-select: none; margin: 0; display: flex; align-items: center; gap: 0.35rem;">
+                            Selecionar todos os blocos (<span id="faq-total-count-label">0</span>)
+                        </label>
                     </div>
 
                     <!-- Grid de Blocos de FAQ -->

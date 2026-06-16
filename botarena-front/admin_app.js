@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let faqCount = 0;
             if (stats.bySource && stats.bySource.faq) {
-                faqCount = Object.values(stats.bySource.faq).reduce((acc, val) => acc + val, 0);
+                faqCount = Object.keys(stats.bySource.faq).length;
             }
             
             const lunchEl = document.getElementById('rag-menu-lunch');
@@ -3126,6 +3126,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const faqKeywordInput = document.getElementById('faq-keyword');
     const faqResponseInput = document.getElementById('faq-response');
 
+    // Elementos de seleção múltipla
+    const btnDeleteSelectedFaq = document.getElementById('btn-delete-selected-faq');
+    const faqSelectedCountEl = document.getElementById('faq-selected-count');
+    const faqSelectAllContainer = document.getElementById('faq-select-all-container');
+    const chkSelectAllFaq = document.getElementById('chk-select-all-faq');
+    const faqTotalCountLabel = document.getElementById('faq-total-count-label');
+
     async function loadFaqs() {
         if (!faqListContainer) return;
         try {
@@ -3138,25 +3145,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateFaqSelectionState() {
+        if (!faqListContainer) return;
+        const checkboxes = faqListContainer.querySelectorAll('.chk-select-faq');
+        const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+        const count = checkedBoxes.length;
+
+        // Atualiza visibilidade e contador do botão "Excluir selecionados"
+        if (btnDeleteSelectedFaq) {
+            if (count > 0) {
+                btnDeleteSelectedFaq.style.display = 'flex';
+            } else {
+                btnDeleteSelectedFaq.style.display = 'none';
+            }
+        }
+        if (faqSelectedCountEl) {
+            faqSelectedCountEl.textContent = count;
+        }
+
+        // Atualiza checkbox master "Selecionar todos"
+        if (chkSelectAllFaq) {
+            chkSelectAllFaq.checked = (checkboxes.length > 0 && count === checkboxes.length);
+        }
+
+        // Atualiza estilo visual dos cards selecionados
+        checkboxes.forEach(cb => {
+            const card = cb.closest('.faq-card');
+            if (card) {
+                if (cb.checked) {
+                    card.style.borderColor = 'var(--accent-dark)';
+                    card.style.boxShadow = '0 0 10px rgba(96, 165, 250, 0.15)';
+                } else {
+                    card.style.borderColor = '#334155';
+                    card.style.boxShadow = 'none';
+                }
+            }
+        });
+    }
+
     function renderFaqs() {
         if (!faqListContainer) return;
         
+        // Reseta estado dos seletores globais
+        if (chkSelectAllFaq) chkSelectAllFaq.checked = false;
+        if (btnDeleteSelectedFaq) btnDeleteSelectedFaq.style.display = 'none';
+        if (faqSelectedCountEl) faqSelectedCountEl.textContent = '0';
+
         if (faqList.length === 0) {
             faqListContainer.style.display = 'none';
             if (faqEmptyState) faqEmptyState.style.display = 'block';
             if (btnClearFaq) btnClearFaq.style.display = 'none';
+            if (faqSelectAllContainer) faqSelectAllContainer.style.display = 'none';
             return;
         }
 
         if (faqEmptyState) faqEmptyState.style.display = 'none';
         faqListContainer.style.display = 'grid';
         if (btnClearFaq) btnClearFaq.style.display = 'flex';
+        if (faqSelectAllContainer) {
+            faqSelectAllContainer.style.display = 'flex';
+            if (faqTotalCountLabel) faqTotalCountLabel.textContent = faqList.length;
+        }
 
         faqListContainer.innerHTML = faqList.map(item => {
             return `
-                <div class="faq-card" style="background: #1e293b; border: 1px solid #334155; border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative; transition: transform 0.2s, box-shadow 0.2s;">
+                <div class="faq-card" style="background: #1e293b; border: 1px solid #334155; border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem;">
-                        <h4 style="margin: 0; font-weight: 700; color: #f8fafc; font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
+                        <h4 style="margin: 0; font-weight: 700; color: #f8fafc; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; user-select: none;">
+                            <input type="checkbox" class="chk-select-faq" data-id="${item.id}" style="cursor: pointer; margin: 0; width: 1.1rem; height: 1.1rem; accent-color: var(--accent-dark);">
                             <i class="fa-solid fa-circle-question" style="color: #60a5fa;"></i> ${item.keyword}
                         </h4>
                         <button class="btn-delete-faq" data-id="${item.id}" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.25rem; font-size: 0.95rem; transition: color 0.2s; display: flex; align-items: center; justify-content: center;" title="Excluir">
@@ -3309,6 +3365,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 } finally {
                     btnClearFaq.innerHTML = originalHTML;
                     btnClearFaq.disabled = false;
+                }
+            }
+        });
+    }
+
+    // Selecionar/deselecionar todos os checkboxes de FAQ
+    if (chkSelectAllFaq) {
+        chkSelectAllFaq.addEventListener('change', () => {
+            if (!faqListContainer) return;
+            const checkboxes = faqListContainer.querySelectorAll('.chk-select-faq');
+            checkboxes.forEach(cb => {
+                cb.checked = chkSelectAllFaq.checked;
+            });
+            updateFaqSelectionState();
+        });
+    }
+
+    // Delegar alteração de checkbox individual para atualizar estado de seleção
+    if (faqListContainer) {
+        faqListContainer.addEventListener('change', (e) => {
+            if (e.target.classList.contains('chk-select-faq')) {
+                updateFaqSelectionState();
+            }
+        });
+    }
+
+    // Excluir blocos de FAQ selecionados
+    if (btnDeleteSelectedFaq) {
+        btnDeleteSelectedFaq.addEventListener('click', async () => {
+            if (!faqListContainer) return;
+            const checkedBoxes = Array.from(faqListContainer.querySelectorAll('.chk-select-faq:checked'));
+            const selectedIds = checkedBoxes.map(cb => cb.dataset.id);
+            
+            if (selectedIds.length === 0) {
+                showToast('Nenhum bloco selecionado.', 'warning');
+                return;
+            }
+
+            if (confirm(`Tem certeza que deseja excluir os ${selectedIds.length} blocos selecionados?\nEssa ação não pode ser desfeita.`)) {
+                const originalHTML = btnDeleteSelectedFaq.innerHTML;
+                btnDeleteSelectedFaq.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Excluindo...';
+                btnDeleteSelectedFaq.disabled = true;
+
+                try {
+                    // Executa a exclusão de todos os selecionados
+                    await Promise.all(selectedIds.map(id =>
+                        window.utils.apiFetch(`/knowledge/${id}`, { method: 'DELETE' })
+                    ));
+                    showToast(`${selectedIds.length} bloco(s) excluído(s) com sucesso!`);
+                    await loadFaqs();
+                    await loadRagStats();
+                } catch (err) {
+                    console.error('Erro ao excluir FAQs selecionados:', err);
+                    alert('Erro ao excluir os blocos selecionados. Alguns itens podem não ter sido removidos.');
+                    await loadFaqs();
+                    await loadRagStats();
+                } finally {
+                    btnDeleteSelectedFaq.innerHTML = originalHTML;
+                    btnDeleteSelectedFaq.disabled = false;
                 }
             }
         });
