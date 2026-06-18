@@ -23,20 +23,20 @@ jobs:
       - run: npm run test
       - run: npm run teste-banco
       - run: npm run teste-seg
-  sentry-release:
-    needs: test-full
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: botarena-back
-    steps:
-      - uses: actions/checkout@v4
-      - name: Sentry Release
-        uses: getsentry/action-release@v1
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
+#  sentry-release:
+#    needs: test-full
+#    if: github.ref == 'refs/heads/main'
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: botarena-back
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Sentry Release
+#        uses: getsentry/action-release@v1
+#        env:
+#          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+#          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+#          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+#        with:
+#          environment: production
