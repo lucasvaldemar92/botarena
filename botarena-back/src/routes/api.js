@@ -1,5 +1,6 @@
 const express = require('express');
 const authMiddleware       = require('../middleware/auth');
+const rbac                 = require('../middleware/rbac');
 const { sensitiveLimiter } = require('../middleware/rateLimiter');
 const { validate }         = require('../middleware/validate');
 const AuthService          = require('../services/AuthService');
@@ -97,7 +98,7 @@ async function geocodeAddress(street, number, neighborhood, zipCode) {
  * @param {Object}   deps.orderRepo       - OrderRepo instance
  * @returns {Router}
  */
-function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo }) {
+function createApiRouter({ io, getClient, isClientReady, setClientReady, settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo, userRepo }) {
     const router = express.Router();
 
     // Helper to synchronize Catalog Items into RAG Semantic Database
@@ -166,6 +167,25 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     });
 
     // ==========================================
+    // 🔐 AUTH — REAL LOGIN (public)
+    // ==========================================
+    router.post('/auth/login', sensitiveLimiter, async (req, res) => {
+        try {
+            const { email, password } = req.body;
+            const result = await AuthService.login(email, password, userRepo);
+            return res.json(result);
+        } catch (err) {
+            const isCredErr = err.code === 'INVALID_CREDENTIALS';
+            const isInactive = err.code === 'ACCOUNT_INACTIVE';
+            if (isCredErr || isInactive) {
+                return res.status(401).json({ error: err.message, code: err.code });
+            }
+            console.error('❌ [API] Erro no login:', err);
+            return res.status(500).json({ error: 'Erro interno no servidor.' });
+        }
+    });
+
+    // ==========================================
     // 🔐 AUTH — DEV LOGIN (public, dev-only)
     // ==========================================
     router.post('/auth/dev-login', (req, res) => {
@@ -194,9 +214,9 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     });
 
     // ==========================================
-    // ⚙️ SETTINGS ROUTES  (🔒 Protected)
+    // ⚙️ SETTINGS ROUTES  (🔒 Protected — basico, premium, admin)
     // ==========================================
-    router.get('/config', authMiddleware, async (req, res) => {
+    router.get('/config', authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         // // console.log('📡 [API] GET /api/config');
         try {
             res.json(await settingsRepo.get());
@@ -206,7 +226,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/config', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.post('/config', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         // // console.log('📡 [API] POST /api/config');
         try {
             const rawBody = req.body;
@@ -286,9 +306,9 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
     });
 
     // ==========================================
-    // 📚 KNOWLEDGE BASE ROUTES (🔒 Protected)
+    // 📚 KNOWLEDGE BASE ROUTES (🔒 Protected — basico, premium, admin)
     // ==========================================
-    router.get('/knowledge', authMiddleware, async (req, res) => {
+    router.get('/knowledge', authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         // // console.log('📡 [API] GET /api/knowledge');
         try {
             res.json(await knowledgeRepo.getAll());
@@ -298,7 +318,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/knowledge', sensitiveLimiter, authMiddleware, validate(knowledgeSchema), async (req, res) => {
+    router.post('/knowledge', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), validate(knowledgeSchema), async (req, res) => {
         // // console.log('📡 [API] POST /api/knowledge');
         try {
             const { keyword, response, category } = req.body;
@@ -322,7 +342,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.delete('/knowledge/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.delete('/knowledge/:id', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         // // console.log(`📡 [API] DELETE /api/knowledge/${req.params.id}`);
         try {
             const changes = await knowledgeRepo.remove(req.params.id);
@@ -476,7 +496,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     }
 
-    router.get('/clients', authMiddleware, async (req, res) => {
+    router.get('/clients', authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         try {
             res.json(await clientRepo.getAll());
         } catch (e) {
@@ -485,7 +505,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.post('/clients', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.post('/clients', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         try {
             const client = await clientRepo.add(req.body);
             await syncClientToDeliveryFee(req.body);
@@ -499,7 +519,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.put('/clients/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.put('/clients/:id', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         try {
             const changes = await clientRepo.edit(parseInt(req.params.id), req.body);
             await syncClientToDeliveryFee(req.body);
@@ -513,7 +533,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
         }
     });
 
-    router.delete('/clients/:id', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.delete('/clients/:id', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         try {
             const changes = await clientRepo.remove(req.params.id);
             res.json({ success: true, deleted: changes });
@@ -529,7 +549,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
      * Body: { clients: [ { name, phone, birth, cep, neighborhood, address, source } ] }
      * Retorna: { success, inserted, skipped, errors }
      */
-    router.post('/clients/import', sensitiveLimiter, authMiddleware, async (req, res) => {
+    router.post('/clients/import', sensitiveLimiter, authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         const { clients: rows } = req.body;
 
         if (!Array.isArray(rows) || rows.length === 0) {
@@ -584,7 +604,7 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
 
     // 🛵 DELIVERY FEES ROUTES (🔒 Protected)
     // ==========================================
-    router.get('/delivery-fees', authMiddleware, async (req, res) => {
+    router.get('/delivery-fees', authMiddleware, rbac(['basico', 'premium', 'admin']), async (req, res) => {
         try {
             res.json(await deliveryFeeRepo.getAll());
         } catch (e) {
@@ -1651,6 +1671,127 @@ function createApiRouter({ io, getClient, isClientReady, setClientReady, setting
             }
         })();
     }
+
+    // ==========================================
+    // 👤 USERS MANAGEMENT ROUTES (🔒 Admin Only)
+    // ==========================================
+
+    /**
+     * GET /users — List all users (without password_hash)
+     */
+    router.get('/users', authMiddleware, rbac(['admin']), async (req, res) => {
+        try {
+            const users = await userRepo.listAll();
+            res.json(users);
+        } catch (e) {
+            console.error('❌ [API] Error fetching users:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
+    /**
+     * POST /users — Create a new user
+     * Body: { name, email, password, role }
+     */
+    router.post('/users', sensitiveLimiter, authMiddleware, rbac(['admin']), async (req, res) => {
+        try {
+            const { name, email, password, role } = req.body;
+
+            if (!name || !email || !password || !role) {
+                return res.status(400).json({ error: 'Campos obrigatórios: name, email, password, role.' });
+            }
+
+            const validRoles = ['basico', 'premium', 'admin'];
+            if (!validRoles.includes(role)) {
+                return res.status(400).json({ error: `Role inválido. Use: ${validRoles.join(', ')}.` });
+            }
+
+            const AuthService = require('../services/AuthService');
+            const password_hash = await AuthService.hashPassword(password);
+
+            const user = await userRepo.create({ name, email, password_hash, role });
+            res.status(201).json({ success: true, user });
+        } catch (e) {
+            if (e.message && e.message.includes('UNIQUE')) {
+                return res.status(409).json({ error: 'E-mail já cadastrado para outro usuário.' });
+            }
+            console.error('❌ [API] Error creating user:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    /**
+     * PUT /users/:id — Update user name and/or role
+     * Body: { name?, role? }
+     */
+    router.put('/users/:id', sensitiveLimiter, authMiddleware, rbac(['admin']), async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+            const { name, role } = req.body;
+
+            if (role) {
+                const validRoles = ['basico', 'premium', 'admin'];
+                if (!validRoles.includes(role)) {
+                    return res.status(400).json({ error: `Role inválido. Use: ${validRoles.join(', ')}.` });
+                }
+            }
+
+            const changes = await userRepo.update(id, { name, role });
+            if (changes === 0) {
+                return res.status(404).json({ error: 'Usuário não encontrado.' });
+            }
+            res.json({ success: true, changes });
+        } catch (e) {
+            console.error('❌ [API] Error updating user:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    /**
+     * PATCH /users/:id/toggle — Toggle is_active flag
+     */
+    router.patch('/users/:id/toggle', sensitiveLimiter, authMiddleware, rbac(['admin']), async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+
+            // Prevent admin from deactivating their own account
+            if (id === req.user?.id) {
+                return res.status(400).json({ error: 'Você não pode desativar a própria conta.' });
+            }
+
+            const changes = await userRepo.toggleActive(id);
+            if (changes === 0) {
+                return res.status(404).json({ error: 'Usuário não encontrado.' });
+            }
+            res.json({ success: true, changes });
+        } catch (e) {
+            console.error('❌ [API] Error toggling user:', e);
+            res.status(500).json({ error: 'Erro interno no servidor', message: e.message });
+        }
+    });
+
+    /**
+     * DELETE /users/:id — Hard delete a user
+     */
+    router.delete('/users/:id', sensitiveLimiter, authMiddleware, rbac(['admin']), async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+
+            // Prevent self-deletion
+            if (id === req.user?.id) {
+                return res.status(400).json({ error: 'Você não pode excluir a própria conta.' });
+            }
+
+            const changes = await userRepo.delete(id);
+            if (changes === 0) {
+                return res.status(404).json({ error: 'Usuário não encontrado.' });
+            }
+            res.json({ success: true, deleted: changes });
+        } catch (e) {
+            console.error('❌ [API] Error deleting user:', e);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
 
     return router;
 }

@@ -15,7 +15,7 @@ const Sentry = require('@sentry/node');
 const { createApiRouter } = require('./src/routes/api');
 const { initWhatsApp, getClient, isClientReady, setClientReady, getLastQR } = require('./src/services/whatsappClient');
 const { setupSocket }     = require('./src/socket/events');
-const { settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo } = require('./src/container');
+const { settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo, userRepo } = require('./src/container');
 const db                  = require('./src/db/drivers/sqlite');
 const { autoSeed }        = require('./src/db/seed');
 
@@ -197,7 +197,7 @@ app.get('/cardapio', async (req, res) => {
 // ==========================================
 // 📡 API ROUTES (modular)
 // ==========================================
-const repos = { settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo };
+const repos = { settingsRepo, knowledgeRepo, menuRepo, clientRepo, deliveryFeeRepo, deliveryRangeRepo, ragRepo, ragService, orderRepo, catalogRepo, userRepo };
 
 app.use('/api', createApiRouter({
     io, getClient, isClientReady, setClientReady,

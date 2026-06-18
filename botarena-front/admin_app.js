@@ -1,4 +1,61 @@
 // ==========================================
+// 🛡️ RBAC — JWT Decode + Sidebar Visibility
+// ==========================================
+// Decodes the Base64 JWT payload without external dependencies.
+// Reveals admin-only and premium-only sidebar items based on role.
+// Strategy: REMOVE the CSS class instead of setting display (avoids !important conflict).
+
+/**
+ * Decode a JWT payload section from Base64 without external libs.
+ * @param {string} token
+ * @returns {{ id, role, email } | null}
+ */
+function decodeJwtRole(token) {
+    if (!token || typeof token !== 'string') return null;
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+
+        // Base64url → Base64 → decode
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded  = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        const json    = atob(padded);
+        return JSON.parse(json);
+    } catch (e) {
+        return null;
+    }
+}
+
+function applyRbacVisibility() {
+    const token   = localStorage.getItem('botarena-token');
+    const payload = decodeJwtRole(token);
+    const role    = payload?.role || null;
+
+    // Expose role globally for navigation logic in the HTML script block
+    window.userRole = role;
+
+    // Admin: remove class that hides admin-only AND premium-only features
+    if (role === 'admin') {
+        document.querySelectorAll('.admin-only-feature').forEach(el => {
+            el.classList.remove('admin-only-feature');
+        });
+        document.querySelectorAll('.premium-only-feature').forEach(el => {
+            el.classList.remove('premium-only-feature');
+        });
+    }
+
+    // Premium: only remove premium-only class (admin features remain hidden)
+    if (role === 'premium') {
+        document.querySelectorAll('.premium-only-feature').forEach(el => {
+            el.classList.remove('premium-only-feature');
+        });
+    }
+}
+
+// Run after DOM is ready so sidebar elements exist
+document.addEventListener('DOMContentLoaded', applyRbacVisibility);
+
+// ==========================================
 // 📡 GLOBALS AND DOM ELEMENTS
 // ==========================================
 const socket = window.io ? io(window.BASE_URL) : null;

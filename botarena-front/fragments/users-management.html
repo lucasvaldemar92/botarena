@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Acesso | BotArena</title>
+    <meta name="description" content="Painel administrativo de controle de acesso de usuários — BotArena RBAC">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color:     #f8fafc;
+            --card-bg:      #ffffff;
+            --text-main:    #0f172a;
+            --text-muted:   #64748b;
+            --accent-green: #25d366;
+            --accent-dark:  #111b21;
+            --border-color: #e2e8f0;
+            --radius-lg:    16px;
+            --radius-md:    12px;
+            --radius-sm:    8px;
+            --shadow-sm:    0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md:    0 4px 12px rgba(0,0,0,0.08);
+            --transition:   all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-header h1 {
+            font-size: 1.625rem;
+            font-weight: 700;
+        }
+        .page-header p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* ── STATS ROW ── */
+        .stats-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
+            flex: 1;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stat-icon {
+            width: 42px; height: 42px;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .stat-icon--total   { background: #eff6ff; color: #3b82f6; }
+        .stat-icon--admin   { background: #fef3c7; color: #d97706; }
+        .stat-icon--premium { background: #f3e8ff; color: #9333ea; }
+        .stat-icon--basico  { background: #ecfdf5; color: #10b981; }
+        .stat-info span { font-size: 1.5rem; font-weight: 700; display: block; }
+        .stat-info small { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+
+        /* ── TABLE CARD ── */
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .table-card__toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .table-card__toolbar h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.6rem 1.1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; border: none;
+            transition: var(--transition);
+        }
+        .btn--primary   { background: var(--accent-dark); color: #fff; }
+        .btn--primary:hover { background: #1e293b; transform: translateY(-1px); }
+        .btn--danger    { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+        .btn--danger:hover  { background: #ef4444; color: #fff; }
+        .btn--ghost     { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
+        .btn--ghost:hover   { background: #f1f5f9; }
+        .btn--sm        { padding: 0.35rem 0.65rem; font-size: 0.8rem; }
+
+        /* ── TABLE ── */
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #f8fafc;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f8fafc; }
+        td {
+            padding: 0.9rem 1.25rem;
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+
+        /* ── ROLE BADGES ── */
+        .badge-role {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 100px;
+            font-size: 0.75rem; font-weight: 700;
+        }
+        .badge-role--admin   { background: #fef3c7; color: #92400e; }
+        .badge-role--premium { background: #f3e8ff; color: #6b21a8; }
+        .badge-role--basico  { background: #ecfdf5; color: #065f46; }
+
+        /* ── STATUS BADGES ── */
+        .badge-status {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 100px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .badge-status--active   { background: #d1fae5; color: #065f46; }
+        .badge-status--inactive { background: #fee2e2; color: #991b1b; }
+        .badge-status::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* ── AVATAR ── */
+        .avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .user-cell { display: flex; align-items: center; gap: 0.75rem; }
+        .user-cell__info span { display: block; font-weight: 600; font-size: 0.9rem; }
+        .user-cell__info small { color: var(--text-muted); font-size: 0.8rem; }
+
+        /* ── ACTIONS ── */
+        .actions-cell { display: flex; gap: 0.4rem; justify-content: flex-end; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .empty-state i { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.4; display: block; }
+        .empty-state p { font-size: 0.95rem; }
+
+        /* ── MODAL OVERLAY ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            align-items: center; justify-content: center;
+            padding: 1.5rem;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal-box {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            width: 100%; max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+            animation: modalIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.92) translateY(16px); }
+            to   { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-header h3 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+        .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.1rem; padding: 0.25rem; transition: color 0.15s; }
+        .modal-close:hover { color: var(--text-main); }
+        .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.1rem; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+        /* ── FORM FIELDS ── */
+        .field { display: flex; flex-direction: column; gap: 0.4rem; }
+        .field label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .field input, .field select {
+            width: 100%; padding: 0.7rem 0.9rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem; font-family: inherit;
+            color: var(--text-main); background: #fff;
+            outline: none; transition: var(--transition);
+            appearance: none;
+        }
+        .field input:focus, .field select:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(37,211,102,0.12);
+        }
+        .field .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+        /* ── ROLE SELECT — visual profile descriptions ── */
+        .role-select-wrapper { position: relative; }
+        .role-select-wrapper::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free'; font-weight: 900;
+            position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
+            color: var(--text-muted); pointer-events: none; font-size: 0.8rem;
+        }
+        .profile-hint {
+            margin-top: 0.5rem;
+            padding: 0.65rem 0.9rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            display: flex; gap: 0.5rem; align-items: flex-start;
+            transition: var(--transition);
+        }
+        .profile-hint--basico  { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .profile-hint--premium { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+        .profile-hint--admin   { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+        /* ── TOAST ── */
+        .toast-container {
+            position: fixed; bottom: 1.5rem; right: 1.5rem;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            z-index: 99999;
+        }
+        .toast {
+            background: #fff; border: 1px solid var(--border-color);
+            border-radius: var(--radius-md); padding: 0.8rem 1.1rem;
+            display: flex; align-items: center; gap: 0.65rem;
+            box-shadow: var(--shadow-md); font-size: 0.88rem; font-weight: 500;
+            transform: translateX(120%); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            max-width: 320px;
+        }
+        .toast.visible { transform: translateX(0); }
+        .toast--success i { color: #10b981; }
+        .toast--error   i { color: #ef4444; }
+
+        /* ── LOADING SPINNER ── */
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--border-color); border-top-color: var(--accent-dark);
+            border-radius: 50%; animation: spin 0.75s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 680px) {
+            body { padding: 1rem; }
+            .stats-row { flex-direction: column; }
+            th:nth-child(4), td:nth-child(4) { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── PAGE HEADER ────────────────────────── -->
+    <header class="page-header">
+        <div>
+            <h1><i class="fa-solid fa-shield-halved" style="color:#d97706;margin-right:0.4rem"></i>Gestão de Acesso</h1>
+            <p>Crie e gerencie os perfis de acesso dos usuários do sistema.</p>
+        </div>
+        <button class="btn btn--primary" id="btn-new-user">
+            <i class="fa-solid fa-user-plus"></i> Novo Usuário
+        </button>
+    </header>
+
+    <!-- ── STATS ROW ──────────────────────────── -->
+    <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--total"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info"><span id="stat-total">—</span><small>Total</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--admin"><i class="fa-solid fa-crown"></i></div>
+            <div class="stat-info"><span id="stat-admin">—</span><small>Admin</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--premium"><i class="fa-solid fa-star"></i></div>
+            <div class="stat-info"><span id="stat-premium">—</span><small>Premium</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--basico"><i class="fa-solid fa-user"></i></div>
+            <div class="stat-info"><span id="stat-basico">—</span><small>Básico</small></div>
+        </div>
+    </div>
+
+    <!-- ── USERS TABLE ────────────────────────── -->
+    <div class="table-card">
+        <div class="table-card__toolbar">
+            <h2><i class="fa-solid fa-table-list" style="color:var(--text-muted)"></i> Usuários Cadastrados</h2>
+            <button class="btn btn--ghost btn--sm" id="btn-refresh-users" title="Recarregar">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+        </div>
+        <div id="users-table-wrapper">
+            <div class="empty-state"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <!-- ── CREATE / EDIT MODAL ───────────────── -->
+    <div class="modal-overlay" id="modal-user" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-title"><i class="fa-solid fa-user-gear"></i> <span id="modal-title-text">Novo Usuário</span></h3>
+                <button class="modal-close" id="btn-modal-close" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="field">
+                    <label for="input-name">Nome completo</label>
+                    <input type="text" id="input-name" placeholder="Ex: Ana Silva" autocomplete="name">
+                </div>
+                <div class="field">
+                    <label for="input-email">E-mail</label>
+                    <input type="email" id="input-email" placeholder="ana@exemplo.com" autocomplete="email">
+                </div>
+                <div class="field" id="field-password">
+                    <label for="input-password">Senha <span id="password-required-label">(obrigatória)</span></label>
+                    <input type="password" id="input-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                    <span class="hint" id="password-hint"></span>
+                </div>
+                <!-- ── PROFILE SELECT — No-Code RBAC Core ── -->
+                <div class="field">
+                    <label for="input-role">Perfil de Acesso</label>
+                    <div class="role-select-wrapper">
+                        <select id="input-role">
+                            <option value="">Selecione o perfil...</option>
+                            <option value="basico">Básico — Acesso operacional padrão</option>
+                            <option value="premium">Premium — Acesso ampliado (módulos futuros)</option>
+                            <option value="admin">Admin — Acesso total ao sistema</option>
+                        </select>
+                    </div>
+                    <!-- Dynamic profile hint updated on change -->
+                    <div class="profile-hint profile-hint--basico" id="profile-hint" style="display:none"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--ghost" id="btn-modal-cancel">Cancelar</button>
+                <button class="btn btn--primary" id="btn-modal-save">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TOAST CONTAINER ───────────────────── -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ── JS ────────────────────────────────── -->
+    <script>
+        // Resolve BASE_URL from parent window if inside iframe
+        const BASE_URL = window.parent?.BASE_URL || window.BASE_URL || '';
+
+        // Shared apiFetch — uses parent token if inside iframe
+        async function apiFetch(endpoint, options = {}) {
+            const token = window.parent?.localStorage?.getItem('botarena-token')
+                       || localStorage.getItem('botarena-token');
+
+            const res = await fetch(`${BASE_URL}/api${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...(options.headers || {})
+                }
+            });
+
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                const err  = new Error(body.error || `HTTP ${res.status}`);
+                err.status = res.status;
+                throw err;
+            }
+
+            return res.json();
+        }
+    </script>
+    <script src="/users_app.js"></script>
+</body>
+</html>

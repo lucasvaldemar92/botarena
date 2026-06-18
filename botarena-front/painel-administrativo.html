@@ -1300,6 +1300,25 @@
             box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.15);
         }
 
+        /* ── RBAC VISIBILITY CONTROL ── */
+        /* Hidden by default — JS in admin_app.js reveals based on JWT role */
+        .admin-only-feature  { display: none !important; }
+        .premium-only-feature { display: none !important; }
+
+        /* Admin badge inside sidebar item */
+        .sidebar__role-badge {
+            margin-left: auto;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.15rem 0.45rem;
+            border-radius: 100px;
+            line-height: 1.4;
+        }
+        .sidebar__role-badge--admin   { background: #fef3c7; color: #92400e; }
+        .sidebar__role-badge--premium { background: #f3e8ff; color: #6b21a8; }
+
     </style>
 </head>
 <body>
@@ -1402,6 +1421,13 @@
                     </a>
                 </div>
             </div>
+
+            <!-- ── Gestão de Acesso (Admin Only) ── -->
+            <a href="#" class="sidebar__item admin-only-feature" data-tab="users-management" id="menu-users-management">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Gestão de Acesso</span>
+                <span class="sidebar__role-badge sidebar__role-badge--admin">Admin</span>
+            </a>
         </nav>
         <div class="sidebar__footer">
             <button class="sidebar__logout-btn" id="btn-system-logout">
@@ -2424,6 +2450,7 @@
             const layoutHeaderTitle = document.getElementById('layout-header-title');
             const mainIframe = document.getElementById('main-iframe');
             const iframeContainer = document.getElementById('view-iframe-container');
+            const userRole = window.userRole || null; // Set by admin_app.js RBAC decode
 
             const tabMap = {
                 'whatsapp': { title: '📱 Conexão WhatsApp', isIframe: false, id: 'view-whatsapp' },
@@ -2437,7 +2464,8 @@
                 'faq': { title: '💡 Central de Ajuda (FAQs)', isIframe: false, id: 'view-faq' },
                 'integrations': { title: '🔌 Integrações', isIframe: false, id: 'view-integrations' },
                 'company-data': { title: '🏢 Dados da Empresa', isIframe: false, id: 'view-company-data' },
-                'settings': { title: '🕒 Horário de Atendimento', isIframe: true, src: '/configuracoes.html' }
+                'settings': { title: '🕒 Horário de Atendimento', isIframe: true, src: '/configuracoes.html' },
+                'users-management': { title: '🛡️ Gestão de Acesso', isIframe: true, src: '/fragments/users-management.html' }
             };
 
             function navigateTo(tabId, pushState = true) {
