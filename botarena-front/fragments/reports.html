@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - BotArena</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Dark Mode / Glassmorphism Palette */
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --accent: #10b981;
+            --radius-md: 0.75rem;
+            --radius-lg: 1.25rem;
+            --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --font-family: 'Inter', sans-serif;
+            --backdrop-blur: blur(12px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            /* O iframe será transparente, este bg pode não ser visto se a página pai for branca, mas ajuda no isolamento */
+            background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 400px),
+                              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1), transparent 400px);
+            background-attachment: fixed;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            padding: 2rem 2rem 1rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .header-title h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.025em;
+            background: linear-gradient(90deg, #f8fafc, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn-toggle {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-family: var(--font-family);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: var(--backdrop-blur);
+        }
+        .btn-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .btn-toggle.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        /* ── MAIN CONTENT ── */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* ── SUMMARY CARDS ── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            backdrop-filter: var(--backdrop-blur);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0.7;
+        }
+        .summary-title {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .summary-icon {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* ── VIEWPORTS (Canvas & Table) ── */
+        .viewport-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            backdrop-filter: var(--backdrop-blur);
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+        .viewport-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Canvas Container */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Table Structure */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 1rem;
+        }
+        th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--card-border);
+        }
+        td {
+            padding: 1rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Loading */
+        .loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-muted);
+            gap: 1rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-title">
+            <h1>Relatórios Analytics</h1>
+            <p>Acompanhamento em tempo real de vendas e desempenho da operação.</p>
+        </div>
+        <div class="header-controls">
+            <button class="btn-toggle active" id="btn-view-charts">
+                <i class="fa-solid fa-chart-area"></i> Gráficos
+            </button>
+            <button class="btn-toggle" id="btn-view-data">
+                <i class="fa-solid fa-table"></i> Dados Tabela
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Loader inicial -->
+        <div id="loader-view" class="loader">
+            <div class="spinner"></div>
+            <p>Carregando dados estruturais...</p>
+        </div>
+
+        <div id="content-view" style="display: none; flex-direction: column; gap: 1.5rem;">
+            <!-- Summary Widgets -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span class="summary-title">Faturamento Total</span>
+                    <span class="summary-value" id="val-revenue">R$ 0,00</span>
+                    <i class="fa-solid fa-wallet summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-title">Total de Pedidos</span>
+                    <span class="summary-value" id="val-orders">0</span>
+                    <i class="fa-solid fa-box-open summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-title">Ticket Médio</span>
+                    <span class="summary-value" id="val-ticket">R$ 0,00</span>
+                    <i class="fa-solid fa-receipt summary-icon"></i>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-title">Pedidos Entregues</span>
+                    <span class="summary-value" id="val-completed">0</span>
+                    <i class="fa-solid fa-check-circle summary-icon"></i>
+                </div>
+            </div>
+
+            <!-- Chart Viewport -->
+            <div id="viewport-charts" class="viewport-section active">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                    <!-- Gráfico Principal (Linha/Barra) -->
+                    <div>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; color: var(--text-main);">Vendas por Período (Últimos 7 Dias)</h3>
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <!-- Gráfico Secundário (Donut) -->
+                    <div>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; color: var(--text-main);">Status dos Pedidos</h3>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Viewport -->
+            <div id="viewport-data" class="viewport-section">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; @media (min-width: 1024px) { grid-template-columns: 2fr 1fr; }">
+                    <div>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; color: var(--text-main);">Detalhamento de Pedidos</h3>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Cliente</th>
+                                        <th>Status</th>
+                                        <th>Valor Total</th>
+                                        <th>Data/Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; color: var(--text-main);">Top Produtos Vendidos</h3>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th style="text-align: right;">Qtd.</th>
+                                        <th style="text-align: right;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chart.js CDN (Exigência resolvida localmente dentro do frontend se possível, ou CDN caso a lib não esteja bundleada) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/src/assets/js/utils.js?v=1.3"></script>
+    <script src="/js/reports_app.js?v=1.0"></script>
+</body>
+</html>

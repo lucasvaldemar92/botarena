@@ -1337,16 +1337,10 @@
                     <i class="fa-solid fa-chevron-down sidebar__group-chevron"></i>
                 </div>
                 <div class="sidebar__group-content">
-                    <div class="sidebar__item sidebar__item--locked" title="Módulo em breve">
-                        <i class="fa-solid fa-credit-card"></i>
-                        <span>Extrato de Vendas</span>
-                        <i class="fa-solid fa-lock sidebar__item-lock"></i>
-                    </div>
-                    <div class="sidebar__item sidebar__item--locked" title="Módulo em breve">
-                        <i class="fa-solid fa-chart-pie"></i>
-                        <span>Relatório de Vendas</span>
-                        <i class="fa-solid fa-lock sidebar__item-lock"></i>
-                    </div>
+                    <a href="/dashboard/reports" class="sidebar__item premium-only-feature" data-tab="reports">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Relatórios</span>
+                    </a>
                     <div class="sidebar__item sidebar__item--locked" title="Módulo em breve">
                         <i class="fa-solid fa-chart-line"></i>
                         <span>Desempenho Bot</span>
@@ -2458,6 +2452,7 @@
                 'clientes': { title: '👥 Clientes', isIframe: true, src: '/clientes.html' },
                 'cardapio': { title: '🍽️ Cardápio Digital', isIframe: true, src: '/dashboard/cardapio' },
                 'pedidos': { title: '🧾 Gestão de Pedidos', isIframe: true, src: '/pedidos.html' },
+                'reports': { title: '📊 Relatórios', isIframe: true, src: '/fragments/reports.html' },
                 'menu-catalog': { title: '🍴 Cadastro de Cardápio', isIframe: false, id: 'view-menu-catalog' },
                 'delivery-fee': { title: '🛵 Taxa de Entrega', isIframe: false, id: 'view-delivery-fee' },
                 'rag': { title: '🧠 Memória IA (RAG)', isIframe: false, id: 'view-rag' },
